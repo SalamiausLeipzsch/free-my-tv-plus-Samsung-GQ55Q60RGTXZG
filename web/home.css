@@ -681,8 +681,8 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 #wtv-search { position: absolute; left: 470px; top: 160px; width: 1380px; height: 64px; border-radius: 32px; background: rgba(255, 255, 255, 0.1); }
 #wtv-search.focus { box-shadow: 0 0 0 3px #FFF; }
 #wtv-q { position: absolute; left: 28px; right: 28px; top: 0; height: 64px; border: 0; outline: 0; background: transparent; color: #FFF; font: inherit; font-size: 25px; }
-#wtv-info { position: absolute; left: 474px; top: 240px; font-size: 21px; color: rgba(255, 255, 255, 0.6); white-space: nowrap; }
-#wtv-view { position: absolute; left: 470px; top: 286px; width: 1386px; height: 770px; overflow: hidden; }
+#wtv-info { position: absolute; left: 474px; top: 1036px; font-size: 21px; color: rgba(255, 255, 255, 0.6); white-space: nowrap; }
+#wtv-view { position: absolute; left: 470px; top: 290px; width: 1386px; height: 736px; overflow: hidden; }
 #wtv-grid { position: absolute; left: 8px; top: 12px; -webkit-transition: -webkit-transform 0.2s; transition: transform 0.2s; }
 #wtv .chan { width: 260px; }
 #wtv .chan .logo { width: 240px; }
@@ -821,3 +821,149 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 .tile.glass.focus::before { opacity: 0; }
 .night .tile.glass { box-shadow: inset 0 0 0 1.5px rgba(255, 255, 255, 0.35), 0 6px 22px rgba(0, 0, 0, 0.4); }
 .night .tile.glass::before { background: rgba(255, 255, 255, 0.14); }
+
+/* Free My TV+ 1.2: Laenderfilter, "Jetzt laeuft" unter dem Sender, Welt-TV halb durchsichtig ueber dem laufenden Sender */
+#wtv-filter { position: absolute; left: 470px; top: 236px; width: 1380px; height: 46px; white-space: nowrap; overflow: hidden; }
+#wtv-filter .fchip { display: inline-block; height: 40px; line-height: 40px; padding: 0 18px; margin-right: 10px; border-radius: 20px; font-size: 20px; font-weight: 600; background: rgba(255, 255, 255, 0.1); }
+#wtv-filter .fchip.on { box-shadow: inset 0 0 0 2px #34C759; }
+#wtv-filter .fchip.focus { background: #FFF; color: #1D1D1F; }
+#wtv .chan { height: 200px; }
+#wtv .chan .cn { top: 136px; font-size: 20px; }
+#wtv .chan .np { position: absolute; left: 16px; right: 16px; top: 166px; font-size: 17px; color: rgba(255, 255, 255, 0.62); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#wtv.over { z-index: 6; background: rgba(4, 6, 12, 0.5) !important; background-image: none !important; }
+#wtv.over .chan { background: rgba(20, 24, 34, 0.55); }
+#wtv.over .chan .logo { background: rgba(255, 255, 255, 0.78); }
+#wtv.over #wtv-sidebox { background: rgba(4, 6, 12, 0.45); border-radius: 18px; }
+
+/* MARK: - Free My TV+ 1.2 */
+
+/* oben links: Uhrzeit, Wettersymbol, Datum */
+#title .tclock { font-variant-numeric: tabular-nums; }
+#title .tsym { display: inline-block; position: relative; vertical-align: -6px; margin: 0 22px 0 26px; background: #FFF; }
+#title .tdate { font-size: 30px; font-weight: 500; opacity: 0.85; vertical-align: 14px; }
+
+/* Sichtbarer Fokus auch weiss auf weiss: blauer Ring mit hellem Saum */
+.card.focus .img { box-shadow: 0 0 0 4px #0A84FF, 0 0 0 7px rgba(255, 255, 255, 0.9), 0 24px 46px rgba(0, 0, 0, 0.34); }
+.card.focus .img::after { box-shadow: none; }
+.tile.focus, .tile.glass.focus { box-shadow: 0 0 0 4px #0A84FF, 0 0 0 7px rgba(255, 255, 255, 0.9), 0 18px 40px rgba(0, 0, 0, 0.34) !important; }
+.tile.moving { -webkit-animation: wiggle 0.5s infinite alternate; animation: wiggle 0.5s infinite alternate; }
+@-webkit-keyframes wiggle { from { -webkit-transform: scale(1.1) rotate(-2deg); } to { -webkit-transform: scale(1.1) rotate(2deg); } }
+@keyframes wiggle { from { transform: scale(1.1) rotate(-2deg); } to { transform: scale(1.1) rotate(2deg); } }
+
+/* Textkacheln: Milchglas statt dunkelblau, passend zum hellen Rahmen (nachts dunkles Glas) */
+.card .img.text { background: -webkit-linear-gradient(-60deg, rgba(255, 255, 255, 0.92), rgba(233, 237, 244, 0.82)); background: linear-gradient(150deg, rgba(255, 255, 255, 0.92), rgba(233, 237, 244, 0.82));
+  box-shadow: inset 0 1px 0 #FFF, inset 0 0 0 1.5px rgba(255, 255, 255, 0.8), 0 10px 30px rgba(0, 0, 0, 0.12); }
+.card .img.text .kicker { color: #6E6E73; }
+.card .img.text .big { color: #1D1D1F; }
+.card .img.text .sym { background: #1D1D1F; }
+.night .card .img.text { background: -webkit-linear-gradient(-60deg, rgba(58, 60, 70, 0.9), rgba(28, 30, 38, 0.9)); background: linear-gradient(150deg, rgba(58, 60, 70, 0.9), rgba(28, 30, 38, 0.9)); }
+.night .card .img.text .kicker { color: rgba(255, 255, 255, 0.6); }
+.night .card .img.text .big { color: #FFF; }
+.night .card .img.text .sym { background: #FFF; }
+/* mit Bild (Sendung, Artikel): Bild fuellt die Kachel, Schrift weiss */
+.card.pic .img.text { background-size: cover; background-position: center; }
+.card.pic .img.text .kicker { color: rgba(255, 255, 255, 0.85); }
+.card.pic .img.text .big { color: #FFF; text-shadow: 0 2px 10px rgba(0, 0, 0, 0.5); }
+/* flache Kacheln (Suche, Themen) */
+.card.flat .img .big { bottom: 30px; font-size: 26px; }
+.card.flat .img .kicker { bottom: 66px; font-size: 18px; }
+.card.flat.focus { -webkit-transform: translateY(-3px) scale(1.02); transform: translateY(-3px) scale(1.02); }
+/* News: Artikel blaettern mit Einblenden */
+.card.newscard .img { -webkit-animation: fadein 0.6s; animation: fadein 0.6s; }
+.card.newscard .img .big { max-height: 150px; }
+@-webkit-keyframes fadein { from { opacity: 0.2; } to { opacity: 1; } }
+@keyframes fadein { from { opacity: 0.2; } to { opacity: 1; } }
+/* Senderkachel zum Umschalten */
+.card.switcher .img .zk { position: absolute; left: 22px; right: 22px; top: 18px; bottom: auto; font-size: 17px; color: #6E6E73; text-transform: none; letter-spacing: 0; }
+.card.switcher .zrows { position: absolute; left: 14px; right: 14px; top: 56px; }
+.card.switcher .zrow { height: 46px; line-height: 46px; padding: 0 12px; border-radius: 12px; font-size: 21px; color: #6E6E73; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.card.switcher .zrow .zn { display: inline-block; width: 46px; color: #8E8E93; }
+.card.switcher .zrow.cur { height: auto; line-height: 30px; padding: 10px 12px; background: rgba(10, 132, 255, 0.12); color: #1D1D1F; font-weight: 700; }
+.card.switcher .zrow .zp { font-size: 17px; font-weight: 500; color: #3A3A3C; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding-left: 46px; }
+.card.switcher.zapping .img { box-shadow: 0 0 0 4px #34C759, 0 0 0 7px rgba(255, 255, 255, 0.9), 0 24px 46px rgba(0, 0, 0, 0.34); }
+.night .card.switcher .zrow.cur { color: #FFF; }
+.night .card.switcher .zrow .zp { color: rgba(255, 255, 255, 0.7); }
+/* Zuletzt gesehen: kleine Kacheln */
+.card.mini .name { font-size: 14px; bottom: 6px; }
+.card.mini .img.logo img { top: 10%; height: 52%; }
+
+/* Glas-Wuerfel: dicke Kante, Lichtkante oben, Schatten unten, Spiegelung schraeg */
+.tile.glass { border-radius: 26px;
+  box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.95), inset 0 -10px 18px rgba(0, 0, 0, 0.22), inset 0 0 0 2px rgba(255, 255, 255, 0.55), inset 6px 0 12px rgba(255, 255, 255, 0.25), 0 16px 30px rgba(0, 0, 0, 0.24), 0 3px 6px rgba(0, 0, 0, 0.14); }
+.tile.glass::after { content: ''; position: absolute; left: -30%; top: -60%; width: 60%; height: 220%; opacity: 0.55; z-index: 2;
+  background: -webkit-linear-gradient(left, rgba(255, 255, 255, 0), rgba(255, 255, 255, 0.45) 50%, rgba(255, 255, 255, 0));
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0), rgba(255, 255, 255, 0.45) 50%, rgba(255, 255, 255, 0));
+  -webkit-transform: rotate(25deg); transform: rotate(25deg); }
+
+/* Senderliste mit Infofeld */
+#tvlist-view { left: 120px; right: auto; width: 1020px; }
+#tvlist .row .num { width: 80px; margin-right: 20px; }
+#tvlist .row .nm { width: 330px; }
+#tvlist .row .pg { display: inline-block; width: 470px; overflow: hidden; text-overflow: ellipsis; vertical-align: top; }
+#tvlist .row .ib { position: absolute; right: 16px; top: 0; color: rgba(255, 255, 255, 0.35); }
+#tvlist .row.focus .ib { color: #0A84FF; }
+#tvlist-info { position: absolute; left: 1180px; top: 180px; width: 640px; height: 820px; overflow: hidden; padding: 26px 30px; box-sizing: border-box; border-radius: 22px; background: rgba(255, 255, 255, 0.08); }
+#tvlist-info.focus { box-shadow: 0 0 0 3px #0A84FF; }
+#tvlist-info .ich { font-size: 20px; color: rgba(255, 255, 255, 0.55); margin-bottom: 14px; }
+#tvlist-info .iimg { height: 250px; margin: 0 -30px 18px; background-size: cover; background-position: center 30%; }
+#tvlist-info .it { font-size: 32px; font-weight: 700; line-height: 1.2; }
+#tvlist-info .itime { font-size: 21px; color: rgba(255, 255, 255, 0.6); margin: 8px 0 16px; }
+#tvlist-info .ih { margin-top: 18px; font-size: 18px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: rgba(255, 255, 255, 0.55); }
+#tvlist-info .itx { font-size: 21px; line-height: 1.45; color: rgba(255, 255, 255, 0.85); }
+#tvlist-info .inx { font-size: 23px; font-weight: 600; }
+
+/* Wetterbericht */
+#wx-body { position: absolute; left: 90px; right: 90px; top: 170px; bottom: 40px; }
+#wx .wx-msg { font-size: 28px; color: rgba(255, 255, 255, 0.7); }
+#wx .wx-now { position: relative; height: 200px; }
+#wx .wx-now .sym { position: absolute; left: 0; top: 20px; background: #FFF; }
+#wx .wx-big { position: absolute; left: 150px; top: 10px; }
+#wx .wx-big .t { font-size: 96px; font-weight: 300; line-height: 1; }
+#wx .wx-big .c { font-size: 26px; color: rgba(255, 255, 255, 0.75); margin-top: 10px; }
+#wx .wx-facts { position: absolute; left: 640px; right: 0; top: 10px; }
+#wx .wx-facts .f { display: inline-block; width: 220px; margin: 0 14px 14px 0; padding: 10px 16px; border-radius: 14px; background: rgba(255, 255, 255, 0.08); }
+#wx .wx-facts .l, #wx .wx-day .l { display: block; font-size: 16px; color: rgba(255, 255, 255, 0.55); }
+#wx .wx-facts .v { font-size: 24px; font-weight: 600; }
+#wx .wx-days { position: absolute; left: 0; right: 0; top: 230px; white-space: nowrap; }
+#wx .wx-day { display: inline-block; vertical-align: top; width: 228px; margin-right: 13px; padding: 16px 16px 10px; box-sizing: border-box; border-radius: 18px; background: rgba(255, 255, 255, 0.08); white-space: normal; }
+#wx .wx-day .n { font-size: 22px; font-weight: 700; }
+#wx .wx-day .sym { display: block; margin: 10px 0; background: #FFF; }
+#wx .wx-day .mx { font-size: 26px; font-weight: 600; margin-bottom: 8px; }
+#wx .wx-day .r { margin-top: 7px; }
+#wx .wx-day .r .v { font-size: 19px; }
+#wx .wx-src { position: absolute; left: 0; bottom: 0; font-size: 18px; color: rgba(255, 255, 255, 0.5); }
+
+/* News-Themenwahl */
+#topics .hint { position: absolute; right: 90px; top: 88px; font-size: 21px; color: rgba(255, 255, 255, 0.55); }
+#tp-slots { position: absolute; left: 90px; top: 170px; width: 380px; }
+#tp-slots .tslot { padding: 16px 22px; margin-bottom: 14px; border-radius: 18px; background: rgba(255, 255, 255, 0.08); }
+#tp-slots .tslot .k { font-size: 17px; color: rgba(255, 255, 255, 0.55); }
+#tp-slots .tslot .v { font-size: 27px; font-weight: 700; }
+#tp-slots .tslot.on { box-shadow: inset 4px 0 0 #34C759; }
+#tp-slots .tslot.focus { background: #FFF; color: #1D1D1F; }
+#tp-slots .tslot.focus .k { color: #6E6E73; }
+#tp-search { position: absolute; left: 520px; top: 170px; width: 1310px; height: 64px; border-radius: 32px; background: rgba(255, 255, 255, 0.1); }
+#tp-search.focus { box-shadow: 0 0 0 3px #FFF; }
+#tp-q { position: absolute; left: 28px; right: 28px; top: 0; height: 64px; border: 0; outline: 0; background: transparent; color: #FFF; font: inherit; font-size: 25px; }
+#tp-view { position: absolute; left: 520px; top: 262px; width: 1340px; height: 780px; overflow: hidden; }
+#tp-grid .tchip { position: absolute; width: 312px; height: 52px; line-height: 52px; padding: 0 18px; box-sizing: border-box; border-radius: 14px; font-size: 22px; background: rgba(255, 255, 255, 0.07); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#tp-grid .tchip.on { box-shadow: inset 0 0 0 2px #34C759; }
+#tp-grid .tchip.focus { background: #FFF; color: #1D1D1F; }
+
+#title .tdate { margin-left: 26px; }
+.card.newscard .img .kicker { top: 24px; bottom: auto; }
+.card.newscard .img .big { bottom: 24px; max-height: 112px; font-size: 27px; }
+.card.newscard:first-child .img .big { max-height: 160px; font-size: 40px; }
+.card.newscard:first-child .img .kicker { top: 30px; font-size: 20px; }
+
+#wx .wx-facts { left: 600px; }
+#wx .wx-facts .f { width: 196px; margin: 0 12px 12px 0; padding: 8px 14px; }
+#wx .wx-facts .v { font-size: 22px; }
+#wx .wx-days { top: 236px; }
+#wx .wx-day { padding: 14px 16px 8px; }
+#wx .wx-day .sym { margin: 6px 0; }
+#wx .wx-day .r { margin-top: 3px; }
+#wx .wx-day .l { font-size: 15px; }
+#wx .wx-day .r .v { font-size: 18px; }
+#wx .wx-src { top: -70px; bottom: auto; left: auto; right: 0; }
+#topics .hint { top: auto; bottom: 30px; right: auto; left: 520px; }

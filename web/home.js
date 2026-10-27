@@ -397,7 +397,7 @@
   var TAB_KIND = [null, 'movie', 'tv'];
 
   function renderTop() {
-    $('title').textContent = tr('For You');
+    renderTitle();
     var tabs = $('tabs');
     tabs.innerHTML = '';
     var names = ['Jetzt im TV', 'Welt-TV', 'News'];   // Free My TV+: Sat-Programm, Welt-TV, Cybersecurity
@@ -454,7 +454,8 @@
     holder.innerHTML = '';
     cardRects = [];
     for (var c = 0; c < list.length; c++) {
-      var p = list[c], card = el('div', 'card' + (p.inside ? ' inside' : '') + (p.mini ? ' mini' : '') + (p.plain ? ' plain' : ''), holder);
+      var p = list[c], card = el('div', 'card' + (p.inside ? ' inside' : '') + (p.mini ? ' mini' : '') + (p.plain ? ' plain' : '') +
+        (p.flat ? ' flat' : '') + (p.switcher ? ' switcher' + (Plus.zapMode() ? ' zapping' : '') : '') + (p.image ? ' pic' : '') + (p.news ? ' newscard' : ''), holder);
       var rc = p.rect || CARD_RECTS[Math.min(c, 2)];
       cardRects.push(rc);
       card.style.left = rc[0] + 'px';
@@ -472,8 +473,15 @@
         var lg = el('img', '', img);
         lg.src = p.logo;
         lg.onerror = function () { this.style.display = 'none'; };
+      } else if (p.draw) {
+        setClass(img, 'text', true);
+        p.draw(img);
       } else {
         setClass(img, p.news ? 'text news' : 'text', true);
+        if (p.image) {   // Free My TV+: Bild der Sendung oder des Artikels, unten abgedunkelt fuer die Schrift
+          img.style.backgroundImage = '-webkit-linear-gradient(top, rgba(0, 0, 0, 0) 30%, rgba(0, 0, 0, 0.78)), url("' + p.image + '")';
+          img.style.backgroundImage = 'linear-gradient(rgba(0, 0, 0, 0) 30%, rgba(0, 0, 0, 0.78)), url("' + p.image + '")';
+        }
         if (p.icon) sym(p.icon, img, c === 0 ? 72 : 56);
         if (p.kicker) el('div', 'kicker', img, p.kicker);
         el('div', 'big', img, p.text || p.title);
@@ -554,7 +562,18 @@
     img.src = url;
   }
 
+  /** Free My TV+: oben links Uhrzeit, Wettersymbol und Datum (statt "Für dich"). */
+  function renderTitle() {
+    var t = $('title'), d = new Date(), w = Data.weather;
+    if (!t) return;
+    t.innerHTML = '';
+    el('span', 'tclock', t, formatDate('format|h:mm', d.getTime()));
+    if (w) sym(Data.symbol(w.code, w.isDay), t, 62).className += ' tsym';
+    el('span', 'tdate', t, formatDate('format|EEEE, MMMM d', d.getTime()));
+  }
+
   function renderClock() {
+    renderTitle();
     var d = new Date(), c = $('clock');
     c.firstChild.textContent = formatDate('format|h:mm', d.getTime());
     c.lastChild.textContent = formatDate('format|EEEE, MMMM d', d.getTime());
@@ -647,6 +666,7 @@
     drawerInputs = drawerItems.length;
     drawerItems.push({label: tr('All Apps'), symbol: 'apps', run: openApps});
     drawerItems.push({label: tr('Home Settings'), symbol: 'settings', run: openSettings});
+    drawerItems.push({label: 'Wetterbericht', symbol: 'partly_cloudy_day', run: function () { Plus.openWeather(); updateFocus(); }});
     drawerItems.push({label: 'Werbefrei', symbol: 'shield', run: function () { Plus.openPrivacy(); updateFocus(); }});
     if (TV.canOpenSettings) drawerItems.push({label: tr('TV Settings'), symbol: 'tv_settings', run: tvSettings});
     var n = drawerItems.length, gap = 18, groupGap = 56, groups = drawerInputs > 0 && drawerInputs < n ? 2 : 1;
@@ -832,6 +852,8 @@
         step: function (d) { cycle('scene', ['auto'].concat(Object.keys(Plus.scenes)), Prefs.scene(), d); renderBand(); }},
       {label: 'Nach anderen Apps zurück zu Free My TV+', toggle: Prefs.backHome(),
         step: function () { Prefs.set('backHome', !Prefs.backHome()); Plus.backHome(Prefs.backHome()); }},
+      {label: 'Welt-TV: auch Sender mit Geo-Sperre zeigen', toggle: Prefs.showGeo(),
+        step: function () { Prefs.set('showGeo', !Prefs.showGeo()); }},
       {label: 'Samsung-Werbe-Apps ausblenden', toggle: Prefs.hidePromo(),
         step: function () { Prefs.set('hidePromo', !Prefs.hidePromo()); loadApps(function () { renderShelf(); }); }}
     ];
@@ -1237,6 +1259,7 @@
         }
         break;
       case Z.CARDS:
+        if (cards[st.card] && cards[st.card].key && cards[st.card].key(dx, dy)) return;   // Free My TV+: Senderkachel schaltet um
         var to = cardToward(dx, dy);
         if (to >= 0) st.card = to;
         else if (dx) break;
@@ -1282,6 +1305,8 @@
   }
 
   function back() {
+    if (moving) { stopMoving(); return; }
+    if (Plus.endZap()) return;
     if (st.zone === Z.EDIT) {
       setClass($('shelfedit'), 'open', false);
       openSettings();
@@ -1435,6 +1460,20 @@
     var k = e.keyCode;
     if (poke(k === TV.keys.ok)) { e.preventDefault(); return; }   // the first press only wakes the screen (or OK watches)
     if (typing(k)) return;
+    // Free My TV+: Kacheln der Leiste verschieben. OK lange halten (oder rote Taste), dann ← →, OK legt ab.
+    if (st.zone === Z.SHELF && !sheetOpen() && !Plus.isOpen()) {
+      if (moving) {
+        if (k === TV.keys.left || k === TV.keys.right) { moveTile(k === TV.keys.left ? -1 : 1); e.preventDefault(); return; }
+        if (k === TV.keys.ok || k === 403 || k === TV.keys.back || k === 27) { stopMoving(); e.preventDefault(); return; }
+        if (k === TV.keys.up || k === TV.keys.down) stopMoving();
+      } else if (k === 403) { startMoving(); e.preventDefault(); return; }
+      else if (k === TV.keys.ok) {
+        e.preventDefault();
+        if (e.repeat || okTimer) return;
+        okTimer = setTimeout(function () { okTimer = 0; startMoving(); }, 650);
+        return;
+      }
+    }
     var handled = Plus.key(k, TV.keys);
     if (handled === 'type') return;   // Free My TV+: die Taste geht ins Suchfeld
     if (handled) { e.preventDefault(); return; }   // Free My TV+: Welt-TV, Player, Senderliste
@@ -1448,6 +1487,35 @@
     e.preventDefault();
   });
   document.addEventListener('mousemove', function () { poke(); });
+  document.addEventListener('keyup', function (e) {
+    if (e.keyCode === TV.keys.ok && okTimer) { clearTimeout(okTimer); okTimer = 0; activate(); }
+  });
+
+  var moving = false, okTimer = 0;
+  function startMoving() {
+    if (!shelf[st.shelf]) return;
+    moving = true;
+    setClass($('tiles').children[st.shelf], 'moving', true);
+    toast('Kachel verschieben: ← →, OK legt sie ab');
+  }
+  function stopMoving() {
+    moving = false;
+    var t = $('tiles').children;
+    for (var i = 0; i < t.length; i++) setClass(t[i], 'moving', false);
+    Prefs.set('shelf', shelf.map(function (a) { return a.id; }));
+    updateFocus();
+  }
+  function moveTile(dx) {
+    var to = st.shelf + dx;
+    if (to < 0 || to >= shelf.length) return;
+    var a = shelf[st.shelf];
+    shelf[st.shelf] = shelf[to];
+    shelf[to] = a;
+    st.shelf = to;
+    renderShelf();
+    setClass($('tiles').children[st.shelf], 'moving', true);
+    updateFocus();
+  }
 
   /**
    * In the city's field, the keys type (← → move in the text, Delete erases). OK or the keyboard's Done searches; Back,
@@ -1491,6 +1559,7 @@
     TV.apps(function (list) {
       apps = list.filter(function (a) { return !hidden(a); });
       Data.setApps(apps);
+      Plus.setApps(apps, function (a) { launcher(a.id, a.title)(); });
       pickShelf();
       TV.inputs(function (list2) {
         inputs = list2;
@@ -1530,6 +1599,7 @@
   function renderBand() {
     var w = Data.weather, info = $('band-info');
     Plus.band(w);
+    renderTitle();
     checkNight();   // Free My TV+: die Farbstimmung folgt dem Wetter
     if (!info) return;
     info.innerHTML = '';

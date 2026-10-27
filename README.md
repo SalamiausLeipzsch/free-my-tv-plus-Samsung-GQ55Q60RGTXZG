@@ -1,4 +1,10 @@
-> **Free My TV+ (Samsung):** Diese Ausgabe erweitert Free My TV um Sat-Programm mit Livebild, Welt-TV, Cybersecurity-News, werbefreies YouTube über TizenTube und einen Wetter-Foto-Streifen. Anleitung auf Deutsch: [README-PLUS.md](README-PLUS.md).
+> **Free My TV+ (Samsung)** ist ein werbefreier Startbildschirm für Samsung-Fernseher ab 2017 (Tizen), auf Basis von
+> Free My TV. Er bündelt Sat-Fernsehen mit Livebild und Programm, tausende freie Sender aus aller Welt (Welt-TV),
+> News nach eigenen Themen, einen ausführlichen Wetterbericht, werbefreies YouTube (TizenTube) und eine Anleitung samt
+> Sperrlisten gegen Samsungs Werbung und Tracking. Gedacht für alle, die ihren Samsung-TV ohne Werbebanner und
+> Datensammelei nutzen wollen, ohne Root und ohne den Fernseher zu verändern: Free My TV+ ist eine normale App und
+> lässt sich jederzeit wieder löschen. Anleitung auf Deutsch: [README-PLUS.md](README-PLUS.md) ·
+> Änderungen je Version: [CHANGELOG.md](CHANGELOG.md).
 
 <div align="center">
 

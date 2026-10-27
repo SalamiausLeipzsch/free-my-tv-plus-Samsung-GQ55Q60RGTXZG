@@ -53,7 +53,10 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          VERSION=$(grep -o 'version="[^"]*"' tizen/config.xml | head -1 | cut -d'"' -f2)
+          VERSION=$(grep -o '<widget[^>]*' tizen/config.xml | grep -o ' version="[^"]*"' | cut -d'"' -f2)
+          # Text der Release: der Abschnitt dieser Version aus CHANGELOG.md, dazu die Installation
+          awk -v v="## ${VERSION}" '$0==v{on=1;next} /^## /{on=0} on' CHANGELOG.md > notes.md
+          printf '\n---\nInstallieren: TizenBrew Installer -> Install from GitHub -> `%s` (Host PC IP = IP des PCs, danach wieder 127.0.0.1). Signiert fuer Samsung-Fernseher 2017-2022 (Tizen 3 bis 6.5); ab 2023 signiert der Installer neu.\n' "${GITHUB_REPOSITORY}" >> notes.md
           gh release create "v${VERSION}-${GITHUB_RUN_NUMBER}" FreeMyTVPlus-tizen.wgt \
             --title "Free My TV+ ${VERSION} (Build ${GITHUB_RUN_NUMBER})" \
-            --notes "Samsung-App (Tizen 3 bis 6.5 signiert; ab 2023 signiert der TizenBrew Installer neu). Installieren: TizenBrew Installer -> ${GITHUB_REPOSITORY}"
+            --notes-file notes.md

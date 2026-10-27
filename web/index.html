@@ -62,6 +62,7 @@
     <div id="wtv-sidebox"><div id="wtv-side"></div></div>
     <div id="wtv-hint"></div>
     <div id="wtv-search"><input id="wtv-q" type="text" autocomplete="off" spellcheck="false"></div>
+    <div id="wtv-filter"></div>
     <div id="wtv-info"></div>
     <div id="wtv-view"><div id="wtv-grid"></div></div>
     <div id="wtv-bar"><div id="wtv-thumb"></div></div>
@@ -69,13 +70,25 @@
   </div>
   <div id="tvlist" class="layer sheet plus">
     <h2>TV-Programm</h2>
-    <div class="hint">OK: umschalten  ·  Zurück: schließen</div>
+    <div class="hint">OK: umschalten  ·  ► / Info: Details  ·  P+/P−: blättern  ·  Zurück: schließen</div>
     <div id="tvlist-view"><div id="tvlist-rows"></div></div>
+    <div id="tvlist-info"></div>
   </div>
   <div id="privacy" class="layer sheet plus">
     <h2>Werbung &amp; Tracking</h2>
     <div class="hint">▲ ▼ blättern  ·  OK: neu prüfen  ·  Zurück: schließen</div>
     <div id="privacy-view"><div id="privacy-body"></div></div>
+  </div>
+  <div id="wx" class="layer sheet plus">
+    <h2>Wetterbericht</h2>
+    <div id="wx-body"></div>
+  </div>
+  <div id="topics" class="layer sheet plus">
+    <h2>News-Themen</h2>
+    <div class="hint">Links Kachel wählen, rechts das Thema  ·  P+/P−: Buchstaben  ·  Zurück: fertig</div>
+    <div id="tp-slots"></div>
+    <div id="tp-search"><input id="tp-q" type="text" autocomplete="off" spellcheck="false" placeholder="Thema suchen oder eigenes eintippen (OK)"></div>
+    <div id="tp-view"><div id="tp-grid"></div></div>
   </div>
   <div id="player" class="layer">
     <video id="video" autoplay></video>
@@ -93,6 +106,7 @@
 <script src="zones.js"></script>
 <script src="data.js"></script>
 <script src="scene.js"></script>
+<script src="topics.js"></script>
 <script src="plus.js"></script>
 <script src="home.js"></script>
 </body>
