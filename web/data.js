@@ -52,6 +52,8 @@ var Prefs = (function () {
     /** The weather card's forecast: 'hours' (the next 6 hours) or 'days' (the next 5 days). */
     forecast: function () { return pick('forecast', 'hours') === 'days' ? 'days' : 'hours'; },
     quotes: function () { return pick('quotes', CONFIG.showCrypto !== false); },
+    scene: function () { return pick('scene', 'auto'); },   // Free My TV+: Hintergrundbild
+    backHome: function () { return pick('backHome', true) === true; },   // Free My TV+
     hidePromo: function () { return pick('hidePromo', true) === true; },   // Free My TV+
     coin: function (i) { var c = pick('coins', null); return c ? c[i] !== false : true; },
     shelf: function () { return pick('shelf', null); },

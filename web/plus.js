@@ -174,11 +174,17 @@ var Plus = (function () {
   var tv = window.tizen && window.tizen.tvchannel, tvw = window.tizen && window.tizen.tvwindow;
   var sat = {now: null, next: null, channel: null, list: [], programs: {}, at: 0, ok: !!tv};
 
+  /** Samsungs EPG liefert TZDate statt Date: ohne getTime, also aus den Einzelteilen (sonst stand "NaN:NaN" da). */
   function tzMs(t) {
     if (!t) return 0;
     if (typeof t === 'number') return t;
-    try { if (t.getTime) return t.getTime(); } catch (e) {}
-    try { return new Date(t.toString()).getTime(); } catch (e2) { return 0; }
+    var v = NaN;
+    try { if (typeof t.getTime === 'function') v = +t.getTime(); } catch (e) {}
+    if (isNaN(v) || !v) {
+      try { v = new Date(t.getFullYear(), t.getMonth(), t.getDate(), t.getHours(), t.getMinutes(), t.getSeconds ? t.getSeconds() : 0).getTime(); } catch (e2) { v = NaN; }
+    }
+    if (isNaN(v)) { try { v = Date.parse(String(t).replace(/\s*\(.*\)\s*$/, '')); } catch (e3) {} }
+    return isNaN(v) ? 0 : v;
   }
 
   function program(p) {
@@ -209,19 +215,25 @@ var Plus = (function () {
         changed();
       }, function () {}, 6);
     } catch (e3) {}
-    if (!sat.list.length) {
-      try {
-        tv.getChannelList(function (list) {
-          sat.list = (list || []).slice(0, 60);
-          changed();
-        }, function () {}, 'FAVORITE', 0, 60);
-      } catch (e4) {}
-      setTimeout(function () {
-        if (sat.list.length) return;
-        try { tv.getChannelList(function (list) { sat.list = (list || []).slice(0, 60); changed(); }, function () {}, 'ALL', 0, 60); } catch (e5) {}
-      }, 1500);
-    }
+    if (!sat.list.length) loadChannels(0);
     sat.at = Date.now();
+  }
+
+  // Die Senderliste: erst alle, dann nur digitale, dann Favoriten (je nach Firmware antwortet nur eine Variante)
+  var CHANNEL_MODES = ['ALL', 'DIGITAL', 'FAVORITE'];
+  function loadChannels(i) {
+    if (i >= CHANNEL_MODES.length * 2 || sat.list.length) return;
+    var mode = CHANNEL_MODES[i % CHANNEL_MODES.length], withRange = i < CHANNEL_MODES.length;
+    function ok(list) {
+      list = (list || []).filter(function (c) { return c && (c.channelName || c.major); });
+      if (!list.length) return loadChannels(i + 1);
+      sat.list = list.slice(0, 2000);
+      changed();
+    }
+    try {
+      if (withRange) tv.getChannelList(ok, function () { loadChannels(i + 1); }, mode, 0, 2000);
+      else tv.getChannelList(ok, function () { loadChannels(i + 1); }, mode);
+    } catch (e) { loadChannels(i + 1); }
   }
 
   /** Das jetzt laufende Programm eines Senders (fuer die Senderliste). done(program|null). */
@@ -268,24 +280,55 @@ var Plus = (function () {
     } catch (e) { if (done) done(false); }
   }
 
-  // MARK: - Welt-TV (iptv-org)
+  // MARK: - Welt-TV: Quellen (iptv-org, Free-TV, eigene)
 
   var WTV_BASE = 'https://iptv-org.github.io/iptv/';
-  var WTV_SOURCES = [
-    {label: 'Deutsch', path: 'languages/deu.m3u'},
-    {label: 'Deutschland', path: 'countries/de.m3u'},
-    {label: 'Österreich', path: 'countries/at.m3u'},
-    {label: 'Schweiz', path: 'countries/ch.m3u'},
-    {label: 'Englisch', path: 'languages/eng.m3u'},
-    {label: 'UK', path: 'countries/uk.m3u'},
-    {label: 'USA', path: 'countries/us.m3u'},
-    {label: 'Nachrichten', path: 'categories/news.m3u'},
-    {label: 'Dokus', path: 'categories/documentary.m3u'},
-    {label: 'Musik', path: 'categories/music.m3u'},
-    {label: 'Kinder', path: 'categories/kids.m3u'}
+  var FREETV = 'https://raw.githubusercontent.com/Free-TV/IPTV/master/';
+  var INDEX = {label: 'Weltweit (alle)', path: 'index.m3u'};
+
+  function lang(code, label) { return {label: label, path: 'languages/' + code + '.m3u'}; }
+  function country(code, label) { return {label: label, path: 'countries/' + code + '.m3u'}; }
+  function cat(code, label) { return {label: label, path: 'categories/' + code + '.m3u'}; }
+  function named(label, re) { return {label: label, filter: re}; }
+  function freetv(file, label) { return {label: label, url: FREETV + 'playlists/playlist_' + file + '.m3u8'}; }
+
+  // Aufklappbare Gruppen der Seitenleiste. Gruppen mit "open" sind beim ersten Start aufgeklappt.
+  var WTV_GROUPS = [
+    {label: 'Sprachen', open: true, items: [lang('deu', 'Deutsch'), lang('eng', 'Englisch'), lang('fra', 'Französisch'),
+      lang('spa', 'Spanisch'), lang('ita', 'Italienisch'), lang('nld', 'Niederländisch'), lang('pol', 'Polnisch'),
+      lang('tur', 'Türkisch'), lang('por', 'Portugiesisch'), lang('ara', 'Arabisch'), lang('rus', 'Russisch')]},
+    {label: 'Länder', items: [country('de', 'Deutschland'), country('at', 'Österreich'), country('ch', 'Schweiz'),
+      country('uk', 'Großbritannien'), country('us', 'USA'), country('fr', 'Frankreich'), country('it', 'Italien'),
+      country('es', 'Spanien'), country('nl', 'Niederlande'), country('be', 'Belgien'), country('pl', 'Polen'),
+      country('tr', 'Türkei'), country('se', 'Schweden'), country('no', 'Norwegen'), country('dk', 'Dänemark'),
+      country('pt', 'Portugal'), country('gr', 'Griechenland'), country('ca', 'Kanada'), country('au', 'Australien'),
+      country('in', 'Indien'), country('jp', 'Japan'), country('kr', 'Südkorea'), country('br', 'Brasilien'),
+      country('mx', 'Mexiko'), country('ar', 'Argentinien')]},
+    {label: 'Themen', items: [cat('news', 'Nachrichten'), cat('sports', 'Sport'), cat('cooking', 'Kochen'),
+      named('Gaming', /gam(e|es|ing)\b|e-?sport|gamer|twitch|\bign\b|nintendo|playstation|xbox/i),
+      named('Haus & Garten', /garden|garten|\bhaus\b|home|hgtv|\bdiy\b|wohn|immobil|bauen|heimwerk|interior/i),
+      cat('movies', 'Filme'), cat('series', 'Serien'), cat('documentary', 'Dokus'), cat('music', 'Musik'),
+      cat('kids', 'Kinder'), cat('family', 'Familie'), cat('comedy', 'Comedy'), cat('entertainment', 'Unterhaltung'),
+      cat('lifestyle', 'Lifestyle'), cat('travel', 'Reisen'), cat('outdoor', 'Natur & Outdoor'), cat('science', 'Wissenschaft'),
+      cat('education', 'Bildung'), cat('culture', 'Kultur'), cat('business', 'Wirtschaft'), cat('auto', 'Auto & Motor'),
+      cat('animation', 'Animation'), cat('classic', 'Klassiker'), cat('relax', 'Entspannung'), cat('weather', 'Wetter'),
+      cat('legislative', 'Politik & Parlament'), cat('shop', 'Shopping'), cat('religious', 'Religion')]},
+    {label: 'Gratis-Anbieter (Free-TV)', items: [freetv('germany', 'Free-TV Deutschland'), freetv('austria', 'Free-TV Österreich'),
+      freetv('switzerland', 'Free-TV Schweiz'), freetv('uk', 'Free-TV UK'), freetv('usa', 'Free-TV USA'),
+      freetv('france', 'Free-TV Frankreich'), freetv('italy', 'Free-TV Italien'), freetv('spain', 'Free-TV Spanien'),
+      {label: 'Free-TV alle Länder', url: FREETV + 'playlist.m3u8'}]},
+    {label: 'Eigene Quellen', custom: true, items: []},
+    {label: 'Alles', open: true, items: [INDEX]}
   ];
-  var WTV_MAX = 400;
+  var WTV_SOURCES = [];   // flach: alle Quellen (fuer die Karten und als Nummer im Speicher)
+  for (var gi = 0; gi < WTV_GROUPS.length; gi++) WTV_SOURCES = WTV_SOURCES.concat(WTV_GROUPS[gi].items);
   var wtvCache = {};
+  var ADULT = /xxx|adult|erotic|porn/i;
+
+  function customSources() { return stored('wtvCustom') || []; }
+  function syncCustom() {
+    for (var i = 0; i < WTV_GROUPS.length; i++) if (WTV_GROUPS[i].custom) WTV_GROUPS[i].items = customSources().slice();
+  }
 
   function parseM3U(text) {
     var lines = text.split(/\r?\n/), out = [], seen = {}, cur = null;
@@ -299,32 +342,49 @@ var Plus = (function () {
         var name = line.slice(cut >= 0 ? cut + 2 : line.indexOf(',') + 1);
         var tags = [];
         name = name.replace(/\[([^\]]+)\]/g, function (all, t) { tags.push(t); return ''; });
+        if (name.indexOf('Ⓖ') >= 0) tags.push('Geo-blocked');   // Free-TV: (G) = nur im Land
+        name = name.replace(/[Ⓐ-ⓩ]/g, '');
         var q = '';
-        name = name.replace(/\((\d{3,4}p)\)/, function (all, t) { q = t; return ''; }).replace(/^\s+|\s+$/g, '');
+        name = name.replace(/\((\d{3,4}[pi])\)/, function (all, t) { q = t; return ''; }).replace(/^\s+|\s+$/g, '');
         cur = {name: name, logo: attrs['tvg-logo'] || '', group: attrs['group-title'] || '', quality: q, tags: tags};
       } else if (line.charAt(0) !== '#' && cur) {
         cur.url = line;
         var key = cur.name.toLowerCase();
-        if (!seen[key]) { seen[key] = true; out.push(cur); }
+        if (cur.name && !seen[key] && !ADULT.test(cur.group)) { seen[key] = true; out.push(cur); }
         cur = null;
       }
     }
-    out.sort(function (a, b) { return a.name.toLowerCase() < b.name.toLowerCase() ? -1 : 1; });
+    out.sort(function (a, b) { var x = a.name.toLowerCase(), y = b.name.toLowerCase(); return x < y ? -1 : x > y ? 1 : 0; });
     return out;
   }
 
+  function srcUrl(src) { return src.url || WTV_BASE + src.path; }
+
   function loadList(src, done) {
-    var url = src.url || WTV_BASE + src.path;
+    if (src.filter) {
+      return loadList(INDEX, function (all) {
+        done(all ? all.filter(function (c) { return src.filter.test(c.name) || src.filter.test(c.group); }) : null);
+      });
+    }
+    var url = srcUrl(src);
     if (wtvCache[url]) return done(wtvCache[url]);
     getText(url, function (err, text) {
       if (err) return done(null);
       wtvCache[url] = parseM3U(text);
       done(wtvCache[url]);
-    }, 20000);
+    }, 30000);
   }
 
-  // Fuer die Karten in "Welt-TV": ein paar bekannte frei empfangbare Sender, sonst die ersten mit Logo
-  var FEATURED = /^(tagesschau24|DW|arte|phoenix|ZDFinfo|3sat|Welt|ntv|n-tv|euronews|BBC News)/i;
+  // Zuletzt gesehen: die letzten 10 Sender, die in Welt-TV liefen
+  function recent() { return stored('wtvRecent') || []; }
+  function remember(ch) {
+    var list = recent().filter(function (c) { return c.url !== ch.url; });
+    list.unshift({name: ch.name, url: ch.url, logo: ch.logo, quality: ch.quality, tags: ch.tags || []});
+    store('wtvRecent', list.slice(0, 10));
+  }
+
+  // Fuer die Karte in "Welt-TV": ein bekannter frei empfangbarer Sender, sonst der erste mit Logo
+  var FEATURED = /^(3sat|tagesschau24|phoenix|ZDFinfo|DW|Welt|ntv|n-tv|euronews|arte)/i;
   var featured = [];
   function loadFeatured() {
     loadList(WTV_SOURCES[0], function (list) {
@@ -353,99 +413,284 @@ var Plus = (function () {
     else if (!on && has) e.className = (' ' + e.className + ' ').replace(' ' + c + ' ', ' ').replace(/^\s+|\s+$/g, '');
   }
 
-  var ui = {open: null, chip: 0, row: -1, item: 0, list: [], source: null, playing: -1, hls: null, osdTimer: 0, watchdog: 0, onClose: null, playList: null};
-  var COLS = 6;
+  var ui = {open: null, zone: 'side', side: 0, item: 0, scroll: 0, list: [], source: null, label: '', playing: -1, hls: null,
+    osdTimer: 0, watchdog: 0, onClose: null, playList: null, nodes: {}, mode: 'search', letterTimer: 0};
+  var COLS = 5, CW = 276, RH = 210, VIS = 4;
+  var expanded = stored('wtvOpen') || (function () { var o = {}; for (var i = 0; i < WTV_GROUPS.length; i++) o[WTV_GROUPS[i].label] = !!WTV_GROUPS[i].open; return o; })();
 
-  function openWorld(sourceIndex) {
-    var w = $('wtv');
-    if (!w) return;
-    ui.open = 'wtv';
-    setClass(w, 'open', true);
-    var chips = $('wtv-chips');
-    if (!chips.children.length) {
-      for (var i = 0; i < WTV_SOURCES.length; i++) el('div', 'chip', chips, WTV_SOURCES[i].label);
+  /** Die Zeilen der Seitenleiste: Suche, Zuletzt gesehen, dann Gruppen (aufgeklappt mit ihren Quellen). */
+  function sideRows() {
+    var rows = [{kind: 'search', label: 'Suchen'}, {kind: 'recent', label: 'Zuletzt gesehen'}];
+    for (var g = 0; g < WTV_GROUPS.length; g++) {
+      var grp = WTV_GROUPS[g];
+      rows.push({kind: 'group', label: grp.label, group: grp, open: !!expanded[grp.label]});
+      if (!expanded[grp.label]) continue;
+      for (var i = 0; i < grp.items.length; i++) rows.push({kind: 'src', label: grp.items[i].label, src: grp.items[i], custom: grp.custom, index: i});
+      if (grp.custom) rows.push({kind: 'add', label: '+ Eigene Quelle hinzufügen'});
     }
-    var last = typeof sourceIndex === 'number' ? sourceIndex : (stored('wtvSource') || 0);
-    ui.row = -1;
-    pickSource(last);
+    return rows;
   }
 
-  function pickSource(i) {
-    ui.chip = Math.max(0, Math.min(WTV_SOURCES.length - 1, i));
-    ui.source = WTV_SOURCES[ui.chip];
-    store('wtvSource', ui.chip);
-    $('wtv-info').textContent = 'Senderliste „' + ui.source.label + '“ wird geladen …';
+  function openWorld(how) {
+    var w = $('wtv');
+    if (!w) return;
+    syncCustom();
+    ui.open = 'wtv';
+    setClass(w, 'open', true);
+    ui.nodes = {};
     $('wtv-grid').innerHTML = '';
-    ui.list = [];
-    ui.item = 0;
+    if (document.activeElement !== field()) field().placeholder = 'Sendername suchen (OK drücken zum Tippen)';
+    if (how === 'search') { showRecent(); ui.zone = 'search'; paintWorld(); startTyping('search'); return; }
+    var last = stored('wtvSourceLabel'), rows = sideRows(), at = -1;
+    for (var i = 0; i < rows.length; i++) if (rows[i].kind === 'src' && rows[i].label === last) at = i;
+    if (at < 0) { for (i = 0; i < rows.length; i++) if (rows[i].kind === 'src') { at = i; break; } }
+    ui.side = Math.max(0, at);
+    if (rows[ui.side] && rows[ui.side].src) pickSource(rows[ui.side].src); else showRecent();
+    ui.zone = 'side';
     paintWorld();
-    var src = ui.source;
+  }
+
+  function setList(list, label, info) {
+    ui.list = list;
+    ui.label = label;
+    ui.item = 0;
+    ui.scroll = 0;
+    ui.nodes = {};
+    $('wtv-grid').innerHTML = '';
+    $('wtv-info').textContent = info || (list.length + ' Sender  ·  ' + label + '  ·  OK: ansehen  ·  rechte Leiste: nach Buchstaben springen  ·  P+/P−: blättern');
+    paintWorld();
+  }
+
+  function showRecent() {
+    var list = recent();
+    setList(list, 'Zuletzt gesehen', list.length ? list.length + ' zuletzt gesehene Sender  ·  OK: ansehen' : 'Noch nichts angesehen. Such dir links eine Liste aus.');
+  }
+
+  function pickSource(src) {
+    ui.source = src;
+    store('wtvSourceLabel', src.label);
+    setList([], src.label, 'Senderliste „' + src.label + '“ wird geladen …' + (src === INDEX || src.filter ? ' (die große Liste braucht ein paar Sekunden)' : ''));
     loadList(src, function (list) {
-      if (ui.source !== src) return;
-      if (!list) { $('wtv-info').textContent = 'Senderliste konnte nicht geladen werden. Internetverbindung prüfen.'; return; }
-      ui.list = list.slice(0, WTV_MAX);
-      $('wtv-info').textContent = list.length + ' Sender' + (list.length > WTV_MAX ? ' (die ersten ' + WTV_MAX + ', A–Z)' : '') +
-        '  ·  OK: ansehen  ·  „Geo“: nur im Herkunftsland  ·  manche laufen nur zeitweise';
-      var grid = $('wtv-grid');
-      grid.innerHTML = '';
-      for (var k = 0; k < ui.list.length; k++) {
-        var ch = ui.list[k], c = el('div', 'chan', grid), logo = el('div', 'logo', c);
-        c.style.left = (k % COLS) * 290 + 'px';
-        c.style.top = Math.floor(k / COLS) * 214 + 'px';
-        if (ch.logo) { var img = el('img', '', logo); img.setAttribute('data-src', ch.logo); img.onerror = (function (lg, n) { return function () { lg.innerHTML = ''; el('span', 'ph', lg, n.charAt(0)); }; })(logo, ch.name); }
-        else el('span', 'ph', logo, ch.name.charAt(0));
-        el('div', 'cn', c, ch.name);
-        var badge = ch.tags.indexOf('Geo-blocked') >= 0 ? 'Geo' : ch.tags.indexOf('Not 24/7') >= 0 ? 'zeitweise' : ch.quality;
-        if (badge) el('span', 'badge', c, badge);
-      }
-      paintWorld();
+      if (ui.source !== src || ui.open !== 'wtv') return;
+      if (!list) { $('wtv-info').textContent = 'Senderliste konnte nicht geladen werden. Internetverbindung oder Adresse prüfen.'; return; }
+      setList(list, src.label);
     });
   }
 
+  // Suche: in allem, was schon geladen ist, und in der weltweiten Liste
+  var searchTimer = 0;
+  function runSearch(q) {
+    q = (q || '').replace(/^\s+|\s+$/g, '');
+    if (q.length < 2) { if (!q) showRecent(); return; }
+    ui.source = null;
+    $('wtv-info').textContent = 'Suche „' + q + '“ …';
+    loadList(INDEX, function () {
+      var needle = q.toLowerCase(), seen = {}, out = [];
+      for (var url in wtvCache) {
+        if (!wtvCache.hasOwnProperty(url)) continue;
+        var list = wtvCache[url];
+        for (var i = 0; i < list.length; i++) {
+          var c = list[i], key = c.name.toLowerCase();
+          if (key.indexOf(needle) >= 0 && !seen[key]) { seen[key] = true; out.push(c); }
+        }
+      }
+      out.sort(function (a, b) {   // Treffer am Anfang des Namens zuerst
+        var x = a.name.toLowerCase().indexOf(needle) === 0 ? 0 : 1, y = b.name.toLowerCase().indexOf(needle) === 0 ? 0 : 1;
+        return x - y || (a.name.toLowerCase() < b.name.toLowerCase() ? -1 : 1);
+      });
+      setList(out, 'Suche „' + q + '“', out.length ? out.length + ' Treffer für „' + q + '“  ·  OK: ansehen' : 'Nichts gefunden für „' + q + '“.');
+    });
+  }
+
+  function field() { return $('wtv-q'); }
+  function startTyping(mode) {
+    ui.mode = mode;
+    var f = field();
+    f.value = '';
+    f.placeholder = mode === 'add' ? 'Adresse einer M3U-Liste, z. B. https://…/liste.m3u' : 'Sendername suchen, z. B. tagesschau';
+    ui.zone = 'search';
+    paintWorld();
+    f.focus();
+  }
+  function stopTyping() { var f = field(); if (f && document.activeElement === f) f.blur(); }
+
+  function addCustom(url) {
+    url = (url || '').replace(/^\s+|\s+$/g, '');
+    if (!/^https?:\/\/.+/i.test(url)) { $('wtv-info').textContent = 'Das ist keine Adresse. Sie muss mit http:// oder https:// beginnen.'; return; }
+    var name = url.replace(/^https?:\/\//i, '').replace(/[?#].*$/, '');
+    var parts = name.split('/'), label = parts[0] + (parts.length > 1 ? ' · ' + parts[parts.length - 1].replace(/\.m3u8?$/i, '') : '');
+    var list = customSources().filter(function (s) { return s.url !== url; });
+    list.push({label: label.slice(0, 40), url: url});
+    store('wtvCustom', list);
+    syncCustom();
+    expanded['Eigene Quellen'] = true;
+    store('wtvOpen', expanded);
+    var rows = sideRows();
+    for (var i = 0; i < rows.length; i++) if (rows[i].kind === 'src' && rows[i].src.url === url) { ui.side = i; pickSource(rows[i].src); }
+    ui.zone = 'side';
+    paintWorld();
+  }
+
+  function removeCustom(src) {
+    store('wtvCustom', customSources().filter(function (s) { return s.url !== src.url; }));
+    syncCustom();
+    ui.side = Math.max(0, ui.side - 1);
+    showRecent();
+    paintWorld();
+  }
+
+  function letterOf(ch) { var c = (ch && ch.name || '#').charAt(0).toUpperCase(); return /[A-ZÄÖÜ]/.test(c) ? c.replace('Ä', 'A').replace('Ö', 'O').replace('Ü', 'U') : '#'; }
+
   function paintWorld() {
-    var chips = $('wtv-chips').children, i;
-    for (i = 0; i < chips.length; i++) {
-      setClass(chips[i], 'on', i === ui.chip);
-      setClass(chips[i], 'focus', ui.row === -1 && i === ui.chip);
+    // Seitenleiste
+    var side = $('wtv-side'), rows = sideRows(), i;
+    ui.side = Math.max(0, Math.min(rows.length - 1, ui.side));
+    side.innerHTML = '';
+    for (i = 0; i < rows.length; i++) {
+      var r = rows[i], row = el('div', 'srow ' + r.kind, side, (r.kind === 'group' ? (r.open ? '▾  ' : '▸  ') : '') + r.label);
+      if (r.kind === 'src' && ui.source === r.src) setClass(row, 'on', true);
+      if (r.kind === 'recent' && !ui.source && ui.label === 'Zuletzt gesehen') setClass(row, 'on', true);
+      if (ui.zone === 'side' && i === ui.side) setClass(row, 'focus', true);
     }
-    setClass($('wtv-close'), 'focus', ui.row === -2);
-    var items = $('wtv-grid').children;
-    for (i = 0; i < items.length; i++) setClass(items[i], 'focus', ui.row >= 0 && i === ui.item);
-    var r = Math.floor(ui.item / COLS), first = ui.row >= 0 ? Math.max(0, r - 1) : 0;
-    var grid = $('wtv-grid');
-    grid.style.webkitTransform = grid.style.transform = 'translateY(' + (-first * 214) + 'px)';
-    // Logos nur fuer die sichtbaren Reihen laden (schont den Prozessor)
-    for (i = first * COLS; i < Math.min(items.length, (first + 5) * COLS); i++) {
-      var img = items[i].querySelector('img[data-src]');
-      if (img) { img.src = img.getAttribute('data-src'); img.removeAttribute('data-src'); }
+    var firstSide = Math.max(0, Math.min(rows.length - 13, ui.side - 6));
+    side.style.webkitTransform = side.style.transform = 'translateY(' + (-firstSide * 60) + 'px)';
+    var cur = rows[ui.side];
+    $('wtv-hint').textContent = ui.zone === 'side' && cur && cur.custom ? 'Rote Taste: diese Quelle entfernen' : '';
+    setClass($('wtv-close'), 'focus', ui.zone === 'close');
+    setClass($('wtv-search'), 'focus', ui.zone === 'search');
+    setClass($('wtv-bar'), 'focus', ui.zone === 'bar');
+    // Raster: nur die sichtbaren Reihen gibt es als Elemente (auch bei Tausenden Sendern)
+    var n = ui.list.length, rowsTotal = Math.ceil(n / COLS), r0 = Math.floor(ui.item / COLS);
+    if (r0 < ui.scroll) ui.scroll = r0;
+    if (r0 > ui.scroll + VIS - 2) ui.scroll = r0 - (VIS - 2);
+    ui.scroll = Math.max(0, Math.min(ui.scroll, Math.max(0, rowsTotal - VIS + 1)));
+    var grid = $('wtv-grid'), from = Math.max(0, (ui.scroll - 1) * COLS), to = Math.min(n, (ui.scroll + VIS + 1) * COLS), keep = {};
+    for (i = from; i < to; i++) {
+      keep[i] = true;
+      if (!ui.nodes[i]) ui.nodes[i] = chanNode(ui.list[i], i, grid);
+      setClass(ui.nodes[i], 'focus', ui.zone === 'grid' && i === ui.item);
     }
+    for (var k in ui.nodes) {
+      if (ui.nodes.hasOwnProperty(k) && !keep[k]) { if (ui.nodes[k].parentNode) ui.nodes[k].parentNode.removeChild(ui.nodes[k]); delete ui.nodes[k]; }
+    }
+    grid.style.webkitTransform = grid.style.transform = 'translateY(' + (-ui.scroll * RH) + 'px)';
+    // Scrollleiste
+    var track = 760, thumb = $('wtv-thumb'), bar = $('wtv-bar');
+    bar.style.display = rowsTotal > VIS ? '' : 'none';
+    var h = Math.max(48, Math.round(track * Math.min(1, VIS / Math.max(1, rowsTotal))));
+    var span = Math.max(1, rowsTotal - VIS + 1);
+    thumb.style.height = h + 'px';
+    thumb.style.top = Math.round((track - h) * Math.min(1, ui.scroll / span)) + 'px';
+  }
+
+  function chanNode(ch, k, grid) {
+    var c = el('div', 'chan', grid), logo = el('div', 'logo', c);
+    c.style.left = (k % COLS) * CW + 'px';
+    c.style.top = Math.floor(k / COLS) * RH + 'px';
+    if (ch.logo) {
+      var img = el('img', '', logo);
+      img.onerror = function () { logo.innerHTML = ''; el('span', 'ph', logo, ch.name.charAt(0)); };
+      img.src = ch.logo;
+    } else el('span', 'ph', logo, ch.name.charAt(0));
+    el('div', 'cn', c, ch.name);
+    var tags = ch.tags || [];
+    var badge = tags.indexOf('Geo-blocked') >= 0 ? 'Geo' : tags.indexOf('Not 24/7') >= 0 ? 'zeitweise' : ch.quality;
+    if (badge) el('span', 'badge', c, badge);
+    return c;
+  }
+
+  function showLetter() {
+    var b = $('wtv-letter');
+    b.textContent = letterOf(ui.list[ui.item]);
+    setClass(b, 'on', true);
+    clearTimeout(ui.letterTimer);
+    ui.letterTimer = setTimeout(function () { setClass(b, 'on', false); }, 900);
+  }
+
+  function jumpLetter(dir) {
+    var n = ui.list.length;
+    if (!n) return;
+    var now = letterOf(ui.list[ui.item]), i = ui.item;
+    if (dir > 0) { while (i < n && letterOf(ui.list[i]) === now) i++; if (i >= n) i = n - 1; }
+    else {
+      while (i > 0 && letterOf(ui.list[i - 1]) === now) i--;   // Anfang des aktuellen Buchstabens
+      if (i === ui.item && i > 0) { i--; var prev = letterOf(ui.list[i]); while (i > 0 && letterOf(ui.list[i - 1]) === prev) i--; }
+    }
+    ui.item = i;
+    showLetter();
   }
 
   function closeWorld() {
+    stopTyping();
     ui.open = null;
     setClass($('wtv'), 'open', false);
     if (ui.onClose) ui.onClose();
   }
 
+  function sideActivate() {
+    var r = sideRows()[ui.side];
+    if (!r) return;
+    if (r.kind === 'search') startTyping('search');
+    else if (r.kind === 'recent') { ui.source = null; showRecent(); if (ui.list.length) ui.zone = 'grid'; }
+    else if (r.kind === 'group') { expanded[r.label] = !expanded[r.label]; store('wtvOpen', expanded); }
+    else if (r.kind === 'add') startTyping('add');
+    else if (r.kind === 'src') { if (ui.source !== r.src) pickSource(r.src); else if (ui.list.length) ui.zone = 'grid'; }
+  }
+
+  /** Tasten, solange das Eingabefeld den Fokus hat. 'type': die Taste geht ins Feld. */
+  function typingKey(k, K) {
+    if (k === K.ok || k === 65376) {   // OK / Fertig der Samsung-Tastatur
+      var v = field().value;
+      stopTyping();
+      if (ui.mode === 'add') addCustom(v); else { runSearch(v); if (ui.list.length) ui.zone = 'grid'; }
+      paintWorld();
+      return true;
+    }
+    if (k === K.back || k === 27 || k === 65385) { stopTyping(); paintWorld(); return true; }
+    if (k === K.up) { stopTyping(); ui.zone = 'close'; paintWorld(); return true; }
+    if (k === K.down) { stopTyping(); if (ui.list.length) ui.zone = 'grid'; paintWorld(); return true; }
+    return 'type';
+  }
+
   function worldKey(k, K) {
-    if (k === K.back) { closeWorld(); return; }
-    if (ui.row === -2) {   // Schliessen-Knopf
-      if (k === K.ok) closeWorld();
-      else if (k === K.down) ui.row = -1;
-    } else if (ui.row === -1) {   // Quellen
-      if (k === K.left) pickSource(ui.chip - 1);
-      else if (k === K.right) pickSource(ui.chip + 1);
-      else if (k === K.up) ui.row = -2;
-      else if ((k === K.down || k === K.ok) && ui.list.length) { ui.row = 0; ui.item = Math.min(ui.item, ui.list.length - 1); }
-    } else {
-      var n = ui.list.length;
-      if (k === K.left && ui.item % COLS > 0) ui.item--;
-      else if (k === K.right && ui.item % COLS < COLS - 1 && ui.item + 1 < n) ui.item++;
-      else if (k === K.down && ui.item + COLS < n) ui.item += COLS;
-      else if (k === K.up) { if (ui.item >= COLS) ui.item -= COLS; else ui.row = -1; }
-      else if (k === K.ok) { play(ui.list, ui.item, ui.source.label); return; }
+    if (document.activeElement === field()) return typingKey(k, K);
+    var n = ui.list.length;
+    if (k === K.back) {
+      if (ui.zone === 'grid' || ui.zone === 'bar' || ui.zone === 'search') ui.zone = 'side';
+      else { closeWorld(); return true; }
+    } else if (ui.zone === 'close') {
+      if (k === K.ok) { closeWorld(); return true; }
+      if (k === K.down) ui.zone = 'search';
+      else if (k === K.left) ui.zone = 'side';
+    } else if (ui.zone === 'side') {
+      var rows = sideRows();
+      if (k === K.up) { if (ui.side > 0) ui.side--; else ui.zone = 'close'; }
+      else if (k === K.down) ui.side = Math.min(rows.length - 1, ui.side + 1);
+      else if (k === K.ok) sideActivate();
+      else if (k === K.right) ui.zone = n ? 'grid' : 'search';
+      else if (k === 403 && rows[ui.side] && rows[ui.side].custom) removeCustom(rows[ui.side].src);   // rote Taste
+    } else if (ui.zone === 'search') {
+      if (k === K.ok) { startTyping('search'); return true; }
+      if (k === K.down && n) ui.zone = 'grid';
+      else if (k === K.up) ui.zone = 'close';
+      else if (k === K.left) ui.zone = 'side';
+    } else if (ui.zone === 'bar') {
+      if (k === K.up) jumpLetter(-1);
+      else if (k === K.down) jumpLetter(1);
+      else if (k === K.left || k === K.ok) { ui.zone = 'grid'; ui.item = Math.min(n - 1, ui.item - (ui.item % COLS) + COLS - 1); }
+    } else {   // Raster
+      var col = ui.item % COLS;
+      if (k === K.left) { if (col > 0) ui.item--; else ui.zone = 'side'; }
+      else if (k === K.right) { if (col < COLS - 1 && ui.item + 1 < n) ui.item++; else { ui.zone = 'bar'; showLetter(); } }
+      else if (k === K.down) { if (ui.item + COLS < n) ui.item += COLS; else if (Math.floor(ui.item / COLS) < Math.floor((n - 1) / COLS)) ui.item = n - 1; }
+      else if (k === K.up) { if (ui.item >= COLS) ui.item -= COLS; else ui.zone = 'search'; }
+      else if (k === 427) ui.item = Math.max(col, ui.item - COLS * VIS);   // P-
+      else if (k === 428) ui.item = Math.min(n - 1, ui.item + COLS * VIS);   // P+
+      else if (k === K.ok && n) { play(ui.list, ui.item, ui.label); return true; }
+      if (k === 427 || k === 428) showLetter();
     }
     paintWorld();
+    return true;
   }
 
   // Player
@@ -490,6 +735,7 @@ var Plus = (function () {
   function play(list, idx, label) {
     var ch = list[idx];
     if (!ch) return;
+    remember(ch);
     ui.playList = list;
     ui.playing = idx;
     ui.playLabel = label || '';
@@ -564,9 +810,8 @@ var Plus = (function () {
       var ch = sat.list[i], row = el('div', 'row', box);
       el('span', 'num', row, ch.major + (ch.minor ? '.' + ch.minor : ''));
       el('span', 'nm', row, channelName(ch));
-      var p = el('span', 'pg', row, '…');
+      el('span', 'pg', row, '');
       if (cur && ch.major === cur.major && ch.minor === cur.minor) tvl.item = i;
-      (function (span, c) { nowOn(c, function (pr) { span.textContent = pr ? hm(pr.start) + '  ' + pr.title : ''; }); })(p, ch);
     }
     paintChannels();
     return true;
@@ -577,6 +822,14 @@ var Plus = (function () {
     for (var i = 0; i < rows.length; i++) setClass(rows[i], 'focus', i === tvl.item);
     var first = Math.max(0, Math.min(rows.length - 9, tvl.item - 4));
     $('tvlist-rows').style.webkitTransform = $('tvlist-rows').style.transform = 'translateY(' + (-first * 76) + 'px)';
+    // Das laufende Programm nur fuer die sichtbaren Zeilen abfragen (bei Sat sind es oft ueber tausend Sender)
+    for (var k = first; k < Math.min(rows.length, first + 10); k++) {
+      var span = rows[k].children[2];
+      if (span.getAttribute('data-q')) continue;
+      span.setAttribute('data-q', '1');
+      span.textContent = '…';
+      (function (sp, c) { nowOn(c, function (pr) { sp.textContent = pr ? (pr.start ? hm(pr.start) + '  ' : '') + pr.title : ''; }); })(span, sat.list[k]);
+    }
   }
 
   function closeChannels() {
@@ -613,13 +866,13 @@ var Plus = (function () {
 
   var PRIVACY_TEXT = [
     ['h', '1  Am Fernseher ausschalten (einmalig, etwa 2 Minuten)'],
-    ['p', 'Einstellungen → Support → Nutzungsbedingungen & Datenschutz (neuere Geräte: Allgemein & Datenschutz). Die Namen weichen je nach Software leicht ab.'],
-    ['li', 'Interessenbasierte Werbung: aus (Werbung nach deinem Sehverhalten)'],
-    ['li', 'Dienste für Zuschauerinformationen / Informationsdienste zur Anzeige: aus (ACR, erkennt, was läuft, auch über Sat und HDMI)'],
-    ['li', 'Spracherkennungsdienste: aus. Bixby und die Mikrofon-Taste gehen dann nicht mehr, Free My TV+ braucht beides nicht.'],
+    ['p', 'Einstellungen → Schild-Symbol ganz unten → AGBs & Datenschutz (2018–2020). Neuere Geräte: Allgemein & Datenschutz → Nutzungsbedingungen und Datenschutz. Dort jeweils die Zustimmung zurücknehmen:'],
+    ['li', '„Ich stimme den Anzeigeinformationsdiensten …“: ACR, erkennt, was läuft, auch über Sat und HDMI'],
+    ['li', '„Ich stimme Werbung auf Grundlage meiner Interessen zu“: personalisierte Werbung'],
+    ['li', '„Ich stimme den Spracherkennungsdiensten …“: Bixby und die Mikrofon-Taste gehen dann nicht mehr, Free My TV+ braucht beides nicht'],
+    ['li', '„Bedingungen für den Remote-Service“ und „PSID zurücksetzen“. Geschäftsbedingungen und Smart-Hub-Datenschutzhinweis stehen lassen, sonst laufen keine Apps mehr.'],
     ['li', 'Marketing- und Werbe-Benachrichtigungen, falls vorhanden: aus'],
     ['p', 'Einstellungen → Allgemein → Smart-Funktionen: „Autom. Ausführung Smart Hub“ aus, „Autom. Ausführung der letzten App“ an. Dann startet der TV in Free My TV+ statt in der Samsung-Leiste mit Werbung.'],
-    ['li', 'Werbe-ID zurücksetzen (gleiches Menü, falls vorhanden): löscht, was Samsung bisher über dein Sehverhalten gesammelt hat.'],
     ['li', 'HbbTV aus (Einstellungen → Übertragung → Experteneinstellungen → HbbTV-Einstellungen): entfernt Werbe-Einblendungen der Sat-Sender über den roten Knopf. Die Mediathek über den roten Knopf geht dann auch nicht mehr.'],
     ['h', '2  Werbung und Zustimmungs-Abfragen endgültig sperren: DNS-Filter'],
     ['p', 'Der Fernseher fragt Werbung, Tracking und die Abfrage zur personalisierten Werbung bei Samsung-Servern ab. Ein DNS-Filter im Heimnetz beantwortet diese Namen nicht mehr: Die Werbung bleibt leer, und die Abfrage kann nicht mehr geladen werden.'],
@@ -743,6 +996,16 @@ var Plus = (function () {
     return out;
   }
 
+  /** Startet den Hintergrund-Dienst, der Free My TV+ nach anderen Apps zurueckholt (oder schaltet ihn aus). */
+  function backHome(on) {
+    if (!samsung || !window.tizen.ApplicationControl) return;
+    try {
+      var d = new window.tizen.ApplicationControlData('enabled', [on ? '1' : '0']);
+      var ac = new window.tizen.ApplicationControl('http://tizen.org/appcontrol/operation/service', null, null, null, [d]);
+      window.tizen.application.launchAppControl(ac, 'FMTVplusDL.Rueckkehr', function () {}, function () {});
+    } catch (e) {}
+  }
+
   // Samsung-Werbe- und Promo-Apps, die Free My TV+ in Leiste und Alle Apps ausblendet (nur ausgeblendet, nicht geloescht).
   var PROMO = /samsung health|samsung promotion|^promotion$|universal guide|art store|samsung daily|gaming hub|global goals|samsung kids|samsung tv-?shop|^e-?shop$|samsung shop/i;
   function isPromo(app) { return PROMO.test(app.title || '') || /samsunghealth|promotion|universalguide/i.test(app.id || ''); }
@@ -752,7 +1015,7 @@ var Plus = (function () {
     if (!ui.open) return false;
     if (k === 27 || k === 8) k = K.back;   // Esc/Backspace in der Vorschau
     if (ui.open === 'player') playerKey(k, K);
-    else if (ui.open === 'wtv') worldKey(k, K);
+    else if (ui.open === 'wtv') return worldKey(k, K);
     else if (ui.open === 'tvlist') channelsKey(k, K);
     else if (ui.open === 'privacy') privacyKey(k, K);
     return true;
@@ -812,18 +1075,52 @@ var Plus = (function () {
     return wx;
   }
 
+  // Selbst ausgewaehlte Stimmungsbilder (Einstellungen: Hintergrundbild). mood: die passende Farbstimmung des Rahmens.
+  var SCENES = {
+    kamin: {label: 'Kaminfeuer', ids: [30629321, 30312507], mood: 'sunset'},
+    strand: {label: 'Strand', ids: [16652213, 36216421], mood: 'day'},
+    wolken: {label: 'Über den Wolken', ids: [38351374, 29442877], mood: 'day'},
+    wolkenabend: {label: 'Wolken im Abendrot', ids: [29442877, 38351374], mood: 'sunset'},
+    polarlicht: {label: 'Polarlichter', ids: [1663376, 30173395], mood: 'night'},
+    sterne: {label: 'Sternenhimmel', ids: [40474457, 28445520], mood: 'night'},
+    berge: {label: 'Berge im Schnee', ids: [30588906, 34530093], mood: 'snow'},
+    alm: {label: 'Almwiese', ids: [29999861, 30588906], mood: 'partly'},
+    bergsee: {label: 'Bergsee', ids: [34169870, 32801668], mood: 'partly'},
+    wald: {label: 'Wald im Licht', ids: [33671598, 31035343], mood: 'fog'},
+    herbst: {label: 'Herbstwald', ids: [34545331, 29007150], mood: 'sunrise'},
+    winter: {label: 'Winterwald', ids: [19942478, 14722065], mood: 'snow'},
+    wueste: {label: 'Wüste', ids: [16830227, 39242465], mood: 'sunrise'},
+    lavendel: {label: 'Lavendelfeld', ids: [38299853, 12645409], mood: 'sunset'},
+    meer: {label: 'Unter Wasser', ids: [17693485, 13211929], mood: 'rain'},
+    leuchtturm: {label: 'Leuchtturm am Meer', ids: [37514714, 29322189], mood: 'sunset'},
+    stadt: {label: 'Stadt bei Nacht', ids: [38720292, 1660603], mood: 'night'}
+  };
+  function sceneKey() { try { var s = window.Prefs && Prefs.scene ? Prefs.scene() : 'auto'; return SCENES[s] ? s : ''; } catch (e) { return ''; } }
+
   var bandMood = '', bandTried = {}, bandUrl = '';
+
+  /** Das Foto des Streifens auch hinter allen Menues (Einstellungen, Alle Apps, Welt-TV ...), abgedunkelt. */
+  function paintSheets(url) {
+    var list = document.querySelectorAll('.sheet');
+    for (var i = 0; i < list.length; i++) {
+      var st = list[i].style;
+      st.backgroundImage = '-webkit-linear-gradient(top, rgba(6, 8, 14, 0.72), rgba(6, 8, 14, 0.9)), url("' + url + '")';
+      st.backgroundImage = 'linear-gradient(rgba(6, 8, 14, 0.72), rgba(6, 8, 14, 0.9)), url("' + url + '")';
+      st.backgroundSize = 'cover';
+      st.backgroundPosition = 'center';
+    }
+  }
 
   /** Setzt das passende Foto in den Streifen (#band). Ohne Internet oder Foto: die gezeichnete Szene. */
   function band(w) {
     var box = $('band');
     if (!box) return;
-    var m = mood(w);
+    var sc = sceneKey(), m = sc ? 'scene:' + sc : mood(w);
     var label = $('band-mood');
-    if (label) label.textContent = LABEL[m] || '';
+    if (label) label.textContent = sc ? SCENES[sc].label : LABEL[m] || '';
     if (m === bandMood) return;
     bandMood = m;
-    var ids = PEXELS[m] || PEXELS.day, i = 0;
+    var ids = sc ? SCENES[sc].ids : PEXELS[m] || PEXELS.day, i = 0;
     var photo = $('band-photo'), next = $('band-next');
     function tryNext() {
       if (bandMood !== m) return;
@@ -844,6 +1141,7 @@ var Plus = (function () {
     }
     function swap(url) {
       bandUrl = url;
+      paintSheets(url);
       next.style.backgroundImage = 'url("' + url + '")';
       setClass(next, 'on', true);
       setClass(photo, 'on', false);
@@ -865,20 +1163,35 @@ var Plus = (function () {
       if (sat.ok && sat.channel) {
         var now = sat.now, left = now && now.end ? Math.max(0, Math.round((now.end - Date.now()) / 60000)) : 0;
         out.push({id: 'live', live: true, title: channelName(sat.channel) + (now ? '  ·  ' + now.title : ''),
-          meta: now ? 'Jetzt ' + hm(now.start) + (now.end ? '–' + hm(now.end) + '  ·  noch ' + left + ' Min.' : '') : 'Live',
+          meta: now && now.start ? 'Jetzt ' + hm(now.start) + (now.end ? '–' + hm(now.end) + '  ·  noch ' + left + ' Min.' : '') : 'Live',
           run: hooks.fullTV});
-        out.push({id: 'next', text: sat.next ? sat.next.title : 'Programm', kicker: sat.next ? 'Danach ' + hm(sat.next.start) : 'Danach',
-          title: sat.next ? channelName(sat.channel) : 'Kein EPG', run: hooks.fullTV});
-        out.push({id: 'list', text: 'Senderliste', kicker: 'TV-Programm', title: 'Alle Sender', icon: 'live_tv',
-          run: function () { if (!openChannels()) hooks.fullTV(); }});
+        var nx = sat.next;
+        out.push({id: 'next', text: nx ? nx.title : 'Programm', kicker: nx && nx.start ? 'Danach ' + hm(nx.start) : 'Danach',
+          title: nx ? channelName(sat.channel) : 'Kein EPG vom Sender', run: hooks.fullTV});
+        out.push({id: 'list', text: 'Senderliste', kicker: 'TV-Programm', title: sat.list.length ? sat.list.length + ' Sender' : 'Alle Sender', icon: 'live_tv',
+          run: function () { if (!openChannels()) { loadChannels(0); hooks.toast('Die Senderliste wird geladen, gleich noch einmal versuchen.'); } }});
       } else {
         out.push({id: 'live', text: 'Fernsehen', kicker: 'Live-TV', title: 'Live-TV', meta: 'Sat / HD+', icon: 'live_tv', run: hooks.fullTV});
-        for (var f = 0; f < featured.length && out.length < 3; f++) out.push(worldCard(featured[f], f));
+        for (var f = 0; f < featured.length && out.length < 3; f++) out.push(worldCard(featured[f], featured, f));
       }
     } else if (tab === 1) {
-      for (var g = 0; g < featured.length && out.length < 2; g++) out.push(worldCard(featured[g], g));
-      out.push({id: 'wtv', text: 'Alle Sender', kicker: 'Welt-TV', title: 'Sender aus aller Welt', icon: 'cast',
+      // Welt-TV: Tipp (flach) und Suche darunter, "Alle Sender", dann die 10 zuletzt gesehenen
+      if (featured[0]) { var a = worldCard(featured[0], featured, 0); a.rect = [80, 262, 700, 300]; a.inside = true; out.push(a); }
+      out.push({id: 'wsearch', text: 'Sender suchen', kicker: 'Welt-TV', title: '', rect: [80, 582, 700, 180], inside: true, plain: true,
+        run: function () { openWorld('search'); }});
+      out.push({id: 'wtv', text: 'Alle Sender', kicker: 'Kategorien · Länder · Themen', title: '', icon: 'cast', rect: [800, 262, 300, 500], inside: true, plain: true,
         run: function () { openWorld(); }});
+      var rec = recent().slice(0, 10), names = {};
+      for (var r = 0; r < rec.length; r++) names[rec[r].name] = true;
+      for (var t = 0; t < featured.length && rec.length < 10; t++) if (!names[featured[t].name]) rec.push(featured[t]);
+      for (var m = 0; m < rec.length; m++) {
+        var c = worldCard(rec[m], rec, m);
+        c.id = 'r' + m + rec[m].name;
+        c.rect = [1120 + (m % 5) * 146, 262 + Math.floor(m / 5) * 258, 132, 242];
+        c.inside = true;
+        c.mini = true;
+        out.push(c);
+      }
     } else {
       for (var n = 0; n < news.length && out.length < 3; n++) {
         (function (it) {
@@ -891,9 +1204,9 @@ var Plus = (function () {
     return out;
   }
 
-  function worldCard(ch, i) {
+  function worldCard(ch, list, i) {
     return {id: 'w' + i + ch.name, logo: ch.logo, title: ch.name, meta: 'Welt-TV' + (ch.quality ? '  ·  ' + ch.quality : ''),
-      run: function () { play(featured, i, 'Welt-TV'); }};
+      run: function () { play(list, i, 'Welt-TV'); }};
   }
 
   // MARK: - Start
@@ -905,6 +1218,7 @@ var Plus = (function () {
   }
 
   try { window.tizen.tvinputdevice.registerKey('ChannelUp'); window.tizen.tvinputdevice.registerKey('ChannelDown'); } catch (e) {}
+  try { window.tizen.tvinputdevice.registerKey('ColorF0Red'); } catch (e) {}
 
   if (tv) {
     try { tv.addChannelChangeListener(function () { sat.now = null; refreshSat(); changed(); }, 'MAIN'); } catch (e) {}
@@ -924,12 +1238,16 @@ var Plus = (function () {
     sat: sat,
     band: band,
     bandUrl: function () { return bandUrl; },
-    bandLabel: function () { return LABEL[bandMood] || ''; },
+    bandLabel: function () { var s = sceneKey(); return s ? SCENES[s].label : LABEL[bandMood] || ''; },
     mood: mood,
+    moodLabel: function (m) { return LABEL[m] || m; },
+    scenes: SCENES,
+    sceneMood: function () { var s = sceneKey(); return s ? SCENES[s].mood : ''; },
     openWorld: openWorld,
     openPrivacy: openPrivacy,
     isPromo: isPromo,
     memory: memory,
+    backHome: backHome,
     key: key,
     isOpen: function () { return !!ui.open; },
     onClose: function (fn) { ui.onClose = fn; },

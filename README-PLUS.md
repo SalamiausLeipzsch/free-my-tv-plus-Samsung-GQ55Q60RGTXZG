@@ -37,6 +37,24 @@ Wer das vermeiden will, hinterlegt ein Zertifikat dauerhaft als Secrets `TIZEN_A
 Entwickler-Apps nicht. Dann in der Workflow-Datei `python3 tizen/build.py --generic` durch
 `python3 tizen/build.py --generic --no-channel` ersetzen. Ohne das Recht zeigt „Jetzt im TV“ eine Live-TV-Kachel und Welt-TV-Sender.
 
+## Neu in 1.1
+
+- **Welt-TV ohne Grenze:** alle Sender einer Liste (vorher nach 400 Schluss), Scrollleiste rechts zum Springen nach
+  Buchstaben, P+/P− blättert seitenweise. **Suche** über alle Listen, **aufklappbare Kategorien** (Sprachen, Länder,
+  Themen wie Sport, Kochen, Gaming, Haus & Garten, Filme, Reisen …), zusätzlich die Listen von
+  [Free-TV/IPTV](https://github.com/Free-TV/IPTV) und **eigene Quellen** (M3U-Adresse eintippen; rote Taste entfernt sie).
+  Der Tab „Welt-TV“ zeigt einen Tipp, die Suche, „Alle Sender“ und die **10 zuletzt gesehenen Sender**.
+- **Sat-TV:** größeres Livebild, Startzeiten aus dem EPG korrekt (vorher „NaN:NaN“), „Danach“ aus dem EPG, Senderliste
+  mit allen Sendern.
+- **Optik:** quadratische Glas-Kacheln, die im Fokus breit werden. **Design** jetzt auch „Automatisch (Wetter & Tageszeit)“
+  mit Farben passend zum Foto (Sonnenaufgang, Abendrot, Nebel, Nacht …) oder jede Stimmung fest. **Hintergrundbild** frei
+  wählbar: Kaminfeuer, Strand, Über den Wolken, Polarlichter, Sternenhimmel, Berge, Bergsee, Wald, Herbst, Winter, Wüste,
+  Lavendel, Unter Wasser, Leuchtturm, Stadt bei Nacht. Das Foto liegt auch hinter allen Menüs.
+- **Zurück zu Free My TV+:** Ein kleiner Hintergrund-Dienst holt die App nach vorne, wenn du den Browser, Netflix, die
+  Einstellungen oder eine andere App schließt (abschaltbar in den Start-Einstellungen). Samsung lässt keine App den
+  Startbildschirm ersetzen: Die Home-Taste öffnet weiterhin Samsungs Leiste.
+- Die Bildschirmtastatur verschiebt das Bild nicht mehr.
+
 ## Werbung, Tracking und Zustimmungs-Abfragen loswerden
 
 Samsungs Werbung im Menü, das Zuschauer-Tracking (ACR) und Abfragen wie „Personalisierte Werbung zulassen?“ kommen aus der

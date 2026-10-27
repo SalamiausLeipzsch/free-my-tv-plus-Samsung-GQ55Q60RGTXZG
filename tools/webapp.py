@@ -93,6 +93,11 @@ def files(config, made_by):
             continue
         with open(os.path.join(web, name), 'rb') as f:
             out[name] = f.read()
+    service = os.path.join(web, 'service')   # Free My TV+: Hintergrund-Dienst (nur Samsung nutzt ihn)
+    if os.path.isdir(service):
+        for name in sorted(os.listdir(service)):
+            with open(os.path.join(service, name), 'rb') as f:
+                out['service/' + name] = f.read()
     icons = os.path.join(web, 'icons')
     for name in sorted(os.listdir(icons)):
         with open(os.path.join(icons, name), 'rb') as f:

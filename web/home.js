@@ -57,6 +57,10 @@
 
   /** The 1920 × 1080 stage fills the window (on the TV it already is 1920 × 1080). */
   function fit() {
+    // Free My TV+: oeffnet die Samsung-Tastatur, wird das Fenster niedriger. Dann bleibt die Groesse, wie sie war,
+    // sonst rutschte das ganze Bild verkleinert nach links oben.
+    var a = document.activeElement;
+    if (a && a.tagName === 'INPUT') { window.scrollTo(0, 0); return; }
     var s = Math.min(window.innerWidth / 1920, window.innerHeight / 1080);
     stage.style.webkitTransform = stage.style.transform = s === 1 ? '' : 'scale(' + s + ')';
   }
@@ -91,7 +95,9 @@
   ];
   // Apps shown at once, as on Android: 8 (today's smallest tiles, 178 wide); the shelf scrolls for the rest. The
   // built-in list keeps 8 too.
-  var SHELF_VISIBLE = 8, FEW_APPS = 12;
+  var SHELF_VISIBLE = 9, FEW_APPS = 12;
+  // Free My TV+: quadratische Glas-Kacheln, die fokussierte wird breit (rechteckig)
+  var TILE = 126, TILE_WIDE = 210, TILE_GAP = 56;
 
   function shelfKey(app) {
     for (var i = 0; i < SHELF.length; i++) if (SHELF[i][1].test(app.id) || SHELF[i][2].test(app.title)) return SHELF[i];
@@ -345,6 +351,7 @@
     for (i = 0; i < list.length; i++) setClass(list[i], 'focus', st.zone === Z.CARDS && st.card === i);
     list = $('tiles').children;
     for (i = 0; i < list.length; i++) setClass(list[i], 'focus', st.zone === Z.SHELF && st.shelf === i);
+    if (list.length) placeTiles();   // Free My TV+: die fokussierte Kachel wird breit
     revealShelf();
     list = document.querySelectorAll('#drawer .key');
     for (i = 0; i < list.length; i++) setClass(list[i], 'focus', st.zone === Z.DRAWER && st.drawer === i);
@@ -428,7 +435,9 @@
   // MARK: - Picks and background
 
   // Free My TV+: die Karten kommen aus Plus.cards: Livebild + EPG, Welt-TV-Sender oder Cybersecurity-Schlagzeilen.
-  var CARD_RECTS = [[80, 1040], [1160, 320], [1520, 320]];
+  // Free My TV+: Karten 500 hoch (das Livebild ist groesser), eine Karte kann ihr eigenes Rechteck mitbringen
+  var CARD_RECTS = [[80, 262, 1040, 500], [1160, 262, 320, 500], [1520, 262, 320, 500]], LIVE_RECT = CARD_RECTS[0];
+  var cardRects = [];
   var cardHooks = {
     fullTV: function () { var live = liveTV(); if (live) launcher(live.id, tr('Live TV'))(); else TV.launch('org.tizen.tv-viewer', null, function () {}); },
     toast: function (t) { toast(t); }
@@ -443,10 +452,15 @@
     if (same && holder.children.length === list.length) { syncLive(); return; }
     cards = list;
     holder.innerHTML = '';
+    cardRects = [];
     for (var c = 0; c < list.length; c++) {
-      var p = list[c], card = el('div', 'card', holder);
-      card.style.left = CARD_RECTS[c][0] + 'px';
-      card.style.width = CARD_RECTS[c][1] + 'px';
+      var p = list[c], card = el('div', 'card' + (p.inside ? ' inside' : '') + (p.mini ? ' mini' : '') + (p.plain ? ' plain' : ''), holder);
+      var rc = p.rect || CARD_RECTS[Math.min(c, 2)];
+      cardRects.push(rc);
+      card.style.left = rc[0] + 'px';
+      card.style.top = rc[1] + 'px';
+      card.style.width = rc[2] + 'px';
+      card.style.height = rc[3] + 'px';
       var img = el('div', 'img', card);
       if (p.live) {
         setClass(img, 'live', true);
@@ -464,8 +478,11 @@
         if (p.kicker) el('div', 'kicker', img, p.kicker);
         el('div', 'big', img, p.text || p.title);
       }
-      el('div', 'name', card, p.title);
-      if (c === 0 && p.meta) el('div', 'meta', card, p.meta);
+      if (p.title || !p.plain) {
+        var nm = el('div', 'name', card, p.title);
+        if (!p.inside) nm.style.top = (rc[3] + 14) + 'px';
+        if (c === 0 && p.meta && !p.inside) el('span', 'm', nm, p.meta);
+      }
       hover(card, Z.CARDS, c);
     }
     st.card = Math.min(st.card, Math.max(0, list.length - 1));
@@ -478,7 +495,37 @@
   function syncLive() {
     var show = st.tab === 0 && cards[0] && cards[0].live && !sheetOpen() && st.zone !== Z.DRAWER && !saverOn &&
       !Plus.isOpen() && !document.hidden;
-    Plus.live(show ? [80, 262, 1040, 442] : null);
+    Plus.live(show ? LIVE_RECT : null);
+  }
+
+  /** Der Rahmen um das Livebild (#hole) passend zum Rechteck der Livekarte. */
+  (function placeHole() {
+    var x = LIVE_RECT[0], y = LIVE_RECT[1], w = LIVE_RECT[2], h = LIVE_RECT[3], parts = $('hole') ? $('hole').children : [];
+    var boxes = {t: [0, 0, 1920, y], l: [0, y, x, h], r: [x + w, y, 1920 - x - w, h], b: [0, y + h, 1920, 1080 - y - h]};
+    for (var i = 0; i < parts.length; i++) {
+      var b = boxes[parts[i].className];
+      if (!b) continue;
+      parts[i].style.left = b[0] + 'px'; parts[i].style.top = b[1] + 'px';
+      parts[i].style.width = b[2] + 'px'; parts[i].style.height = b[3] + 'px';
+      parts[i].style.backgroundPosition = (-b[0]) + 'px ' + (-b[1]) + 'px';
+    }
+  })();
+
+  /** Free My TV+: Karten raeumlich ansteuern (Welt-TV hat zwei Reihen). -1 = keine in dieser Richtung. */
+  function cardToward(dx, dy) {
+    var a = cardRects[st.card];
+    if (!a) return -1;
+    var ax = a[0] + a[2] / 2, ay = a[1] + a[3] / 2, best = -1, bestScore = 1e9;
+    for (var i = 0; i < cardRects.length; i++) {
+      if (i === st.card) continue;
+      var b = cardRects[i], bx = b[0] + b[2] / 2, by = b[1] + b[3] / 2;
+      var ok = dx > 0 ? b[0] >= a[0] + a[2] - 4 : dx < 0 ? b[0] + b[2] <= a[0] + 4 : dy > 0 ? b[1] >= a[1] + a[3] - 4 : b[1] + b[3] <= a[1] + 4;
+      if (!ok) continue;
+      var main = dx ? Math.abs(bx - ax) : Math.abs(by - ay), side = dx ? Math.abs(by - ay) : Math.abs(bx - ax);
+      var score = main + side * 2;
+      if (score < bestScore) { bestScore = score; best = i; }
+    }
+    return best;
   }
   // Das Livebild liegt bei Samsung unter der Seite: solange es laeuft, ist der Hintergrund dort ausgespart (#hole).
   Plus.onLive(function (on) { setClass(body, 'liveon', on); });
@@ -524,9 +571,8 @@
   var shelfFirst = 0, tileStep = 0, tileLeft = 0;
 
   function renderShelf() {
-    var n = Math.min(shelf.length, SHELF_VISIBLE), gap = 48, pad = 40;
-    // 16:9 tiles, as on Android: never taller than 126, and the glass keeps its bottom edge.
-    var tw = Math.min(126 * 16 / 9, (1760 - Math.max(0, n - 1) * gap) / Math.max(1, n)), th = tw * 9 / 16;
+    var n = Math.min(shelf.length, SHELF_VISIBLE), gap = TILE_GAP, pad = 40;
+    var tw = TILE, th = TILE;
     var width = n * tw + Math.max(0, n - 1) * gap, left = (1920 - width) / 2;
     var platter = $('platter');
     platter.style.display = n ? '' : 'none';
@@ -541,11 +587,11 @@
     tileLeft = left;
     shelfFirst = Math.max(0, Math.min(shelfFirst, shelf.length - n));
     for (var i = 0; i < shelf.length; i++) {
-      var t = el('div', 'tile', tiles);
+      var t = el('div', 'tile glass', tiles);
       t.style.top = (854 + 126 - th) + 'px';
       t.style.width = tw + 'px';
       t.style.height = th + 'px';
-      face(shelf[i], t, wordFit(shelf[i].title, tw, 30));
+      face(shelf[i], t, wordFit(shelf[i].title, tw, 22));
       hover(t, Z.SHELF, i);
     }
     // More apps than fit: a small arrow inside the glass's edge on each side that has more, where no tile reaches
@@ -565,8 +611,9 @@
   function placeTiles() {
     var row = $('tiles'), tiles = row.children, n = Math.min(shelf.length, SHELF_VISIBLE);
     for (var i = 0; i < shelf.length; i++) {
-      var shown = i >= shelfFirst && i < shelfFirst + n;
-      tiles[i].style.left = (tileLeft + i * tileStep) + 'px';
+      var shown = i >= shelfFirst && i < shelfFirst + n, wide = st.zone === Z.SHELF && st.shelf === i;
+      tiles[i].style.width = (wide ? TILE_WIDE : TILE) + 'px';
+      tiles[i].style.left = (tileLeft + i * tileStep - (wide ? (TILE_WIDE - TILE) / 2 : 0)) + 'px';
       tiles[i].style.opacity = shown ? '' : '0';
       tiles[i].style.pointerEvents = shown ? '' : 'none';
     }
@@ -768,8 +815,8 @@
         step: function (d) { if (d >= 0) openLanguages(); }},
       {label: tr('Temperature'), value: unit === 'C' ? '°C' : unit === 'F' ? '°F' : tr('unit|Automatic'),
         step: function (d) { cycle('temperature', ['auto', 'C', 'F'], unit, d); renderPanels(); }},
-      {label: tr('Theme'), value: theme === 'light' ? tr('Light') : theme === 'dark' ? tr('Dark') : auto,
-        step: function (d) { cycle('theme', ['auto', 'light', 'dark'], theme, d); checkNight(); }},
+      {label: tr('Theme'), value: theme === 'light' ? tr('Light') : theme === 'dark' ? tr('Dark') : MOODS[theme] ? Plus.moodLabel(theme) : 'Automatisch (Wetter & Tageszeit)',
+        step: function (d) { cycle('theme', ['auto', 'light', 'dark'].concat(Object.keys(MOODS)), theme, d); checkNight(); }},
       {label: tr('Watch from the screensaver'), toggle: Prefs.saverWatch(),
         step: function () { Prefs.set('saverWatch', !Prefs.saverWatch()); }},
       {label: tr('Weather widget'), toggle: Prefs.weather(),
@@ -781,6 +828,10 @@
       {label: 'Cybersecurity-News', toggle: Prefs.quotes(),
         step: function () { Prefs.set('quotes', !Prefs.quotes()); renderQuotes(); renderPanels(); }},
       {label: 'Werbung & Tracking', value: '›', step: function (d) { if (d >= 0) Plus.openPrivacy(); }},
+      {label: 'Hintergrundbild', value: Plus.scenes[Prefs.scene()] ? Plus.scenes[Prefs.scene()].label : 'Wetter & Tageszeit',
+        step: function (d) { cycle('scene', ['auto'].concat(Object.keys(Plus.scenes)), Prefs.scene(), d); renderBand(); }},
+      {label: 'Nach anderen Apps zurück zu Free My TV+', toggle: Prefs.backHome(),
+        step: function () { Prefs.set('backHome', !Prefs.backHome()); Plus.backHome(Prefs.backHome()); }},
       {label: 'Samsung-Werbe-Apps ausblenden', toggle: Prefs.hidePromo(),
         step: function () { Prefs.set('hidePromo', !Prefs.hidePromo()); loadApps(function () { renderShelf(); }); }}
     ];
@@ -1186,7 +1237,9 @@
         }
         break;
       case Z.CARDS:
-        if (dx) st.card = Math.max(0, Math.min(cards.length - 1, st.card + dx));
+        var to = cardToward(dx, dy);
+        if (to >= 0) st.card = to;
+        else if (dx) break;
         else if (dy < 0) { st.zone = Z.TOP; st.top = st.tab; }
         else if (shelf.length) { st.zone = Z.SHELF; st.shelf = nearest(tiles, centerX(cardNodes[st.card])); }
         break;
@@ -1282,12 +1335,24 @@
 
   var lastNight = null;
 
+  // Free My TV+: Farbstimmungen (Name: [Grundfarbe, dunkel?]), passend zu den Fotos im Streifen
+  var MOODS = {sunrise: ['#FFF1E6', false], day: ['#F5F5F7', false], partly: ['#F1F4F8', false], overcast: ['#ECEEF1', false], rain: ['#E6ECF2', false], snow: ['#F7FAFD', false], fog: ['#EFEFEB', false], sunset: ['#FFE6D6', false], dusk: ['#2B2542', true], night: ['#141B2D', true], nightcloud: ['#1F2126', true], nightsnow: ['#1B2231', true], storm: ['#242830', true]};
+  var moodNow = '';
+  function themeMood() {
+    var theme = Prefs.theme();
+    if (MOODS[theme]) return theme;
+    if (theme === 'auto') return Plus.sceneMood() || Plus.mood(Data.weather);
+    return '';
+  }
+
   function checkNight() {
-    var night = Data.isNight(Date.now());
+    var theme = Prefs.theme(), m = themeMood();
+    var night = theme === 'dark' ? true : theme === 'light' ? false : m ? MOODS[m][1] : Data.isNight(Date.now());
+    if (m !== moodNow) { if (moodNow) setClass(body, 'mood-' + moodNow, false); if (m) setClass(body, 'mood-' + m, true); moodNow = m; }
     setClass(body, 'night', night);
+    document.documentElement.style.background = m ? MOODS[m][0] : night ? '#0B0B0D' : '';
     if (night === lastNight) return;
     lastNight = night;
-    document.documentElement.style.background = night ? '#0B0B0D' : '';
     try { localStorage.setItem('fmtv.night', night ? 'true' : 'false'); } catch (e) {}   // for index.html, next start
   }
 
@@ -1370,7 +1435,9 @@
     var k = e.keyCode;
     if (poke(k === TV.keys.ok)) { e.preventDefault(); return; }   // the first press only wakes the screen (or OK watches)
     if (typing(k)) return;
-    if (Plus.key(k, TV.keys)) { e.preventDefault(); return; }   // Free My TV+: Welt-TV, Player, Senderliste
+    var handled = Plus.key(k, TV.keys);
+    if (handled === 'type') return;   // Free My TV+: die Taste geht ins Suchfeld
+    if (handled) { e.preventDefault(); return; }   // Free My TV+: Welt-TV, Player, Senderliste
     if (k === TV.keys.left) move(-1, 0);
     else if (k === TV.keys.right) move(1, 0);
     else if (k === TV.keys.up) move(0, -1);
@@ -1457,11 +1524,13 @@
     renderPanels();
   });
   Plus.onClose(function () { updateFocus(); });
+  Plus.backHome(Prefs.backHome());
 
   /** Free My TV+: der Foto-Streifen oben mit Wetter, Ort und Uhrzeit. */
   function renderBand() {
     var w = Data.weather, info = $('band-info');
     Plus.band(w);
+    checkNight();   // Free My TV+: die Farbstimmung folgt dem Wetter
     if (!info) return;
     info.innerHTML = '';
     if (w) {

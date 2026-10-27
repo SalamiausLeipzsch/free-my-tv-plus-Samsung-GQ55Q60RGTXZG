@@ -1,12 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<widget xmlns="http://www.w3.org/ns/widgets" xmlns:tizen="http://tizen.org/ns/widgets" id="https://github.com/free-my-tv-plus/tizen" version="1.0.0" viewmodes="maximized">
-    <tizen:application id="FMTVplusDL.FreeMyTVPlus" package="FMTVplusDL" required_version="2.3"/>
+<widget xmlns="http://www.w3.org/ns/widgets" xmlns:tizen="http://tizen.org/ns/widgets" id="https://github.com/free-my-tv-plus/tizen" version="1.1.0" viewmodes="maximized">
+    <tizen:application id="FMTVplusDL.FreeMyTVPlus" package="FMTVplusDL" required_version="3.0"/>
     <name>Free My TV+</name>
     <author href="https://freemytv.io">Free My TV+ (auf Basis von Free My TV)</author>
     <description>Werbefreier Startbildschirm mit Sat-Programm, Welt-TV und Cybersecurity-News.</description>
     <content src="index.html"/>
     <icon src="icon.png"/>
     <feature name="http://tizen.org/feature/screen.size.all"/>
+    <feature name="http://tizen.org/feature/web.service"/>
     <access origin="*" subdomains="true"/>
     <tizen:privilege name="http://tizen.org/privilege/internet"/>
     <tizen:privilege name="http://developer.samsung.com/privilege/network.public"/>
@@ -14,6 +15,12 @@
     <tizen:privilege name="http://tizen.org/privilege/tv.inputdevice"/>
     <tizen:privilege name="http://tizen.org/privilege/tv.window"/>
     <tizen:privilege name="http://tizen.org/privilege/tv.channel"/>
+    <tizen:privilege name="http://tizen.org/privilege/application.info"/>
     <tizen:profile name="tv-samsung"/>
-    <tizen:setting screen-orientation="landscape" context-menu="disable" background-support="disable" encryption="disable" install-location="auto" hwkey-event="enable"/>
+    <tizen:service id="FMTVplusDL.Rueckkehr">
+        <tizen:content src="service/service.js"/>
+        <tizen:name>FreeMyTVPlusRueckkehr</tizen:name>
+        <tizen:description>Holt Free My TV+ nach vorne, wenn eine andere App geschlossen wird.</tizen:description>
+    </tizen:service>
+    <tizen:setting screen-orientation="landscape" context-menu="disable" background-support="enable" encryption="disable" install-location="auto" hwkey-event="enable"/>
 </widget>
