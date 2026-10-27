@@ -10,6 +10,8 @@ version's section becomes the GitHub release text automatically.*
 
 ## 1.6.0
 
+<img src="screenshots/1.6-programmfuehrer.jpg" width="32%" alt="1.6-programmfuehrer"> <img src="screenshots/1.6-schublade.jpg" width="32%" alt="1.6-schublade"> <img src="screenshots/1.6-startseite.jpg" width="32%" alt="1.6-startseite"> <img src="screenshots/1.6-welt-tv-sport-live.jpg" width="32%" alt="1.6-welt-tv-sport-live">
+
 **Kurz:** Vollbild-Übergang neu und flüssig (ein Rahmen wächst per GPU, das Fernsehbild springt nur einmal). Neu: Live-Vorschau
 eines kostenlosen US-Sportsenders in Welt-TV, Senderlogos im Programmführer. Geändert: Programmführer mit größerer Schrift
 (15 Zeilen), P+/P− andersherum, Fernsehbild läuft in der Info-Seite weiter, Livebild nach der Schublade nach 0,25 s.
@@ -24,6 +26,8 @@ eines kostenlosen US-Sportsenders in Welt-TV, Senderlogos im Programmführer. Ge
   Name (aus dem Projekt tv-logo/tv-logos); P+ blättert eine Seite nach oben, P− nach unten; in der Info-Seite läuft das
   Fernsehbild rechts unten weiter.
 - Das Livebild erscheint nach der Schublade 0,25 s später (vorher 0,75 s).
+- Doku: README, Anleitung und Änderungen jetzt auf Deutsch und Englisch, mit Bildern zu jeder Version, einem Vorher-nachher-Vergleich
+  und dem Weg vom Code bis zum ersten Start in Kürze.
 
 **English**
 
@@ -40,8 +44,12 @@ P+/P− reversed, the TV picture keeps playing on the info page, the live pictur
 - TV guide: 15 rows instead of 21 with larger text for channels, programmes and times; channel logo between number and name
   (from the tv-logo/tv-logos project); P+ pages up, P− pages down; the TV picture keeps playing bottom right on the info page.
 - The live picture comes back 0.25 s after the drawer (was 0.75 s).
+- Docs: README, guide and changes now in German and English, with pictures for every version, a before-and-after comparison
+  and a short walk from the code to the first start.
 
 ## 1.5.0
+
+<img src="screenshots/1.5-info-seite.jpg" width="32%" alt="1.5-info-seite"> <img src="screenshots/1.5-licht-govee.jpg" width="32%" alt="1.5-licht-govee"> <img src="screenshots/1.5-mediaplayer-recorder.jpg" width="32%" alt="1.5-mediaplayer-recorder"> <img src="screenshots/1.5-programmfuehrer-menue.jpg" width="32%" alt="1.5-programmfuehrer-menue">
 
 **Kurz:** Neu: Govee-Licht steuern (Ein/Aus, Helligkeit, Farben, Weißton, Szenen, DIY, Musik-Modus, Segmente, DreamView,
 auf Wunsch beim Start an), Recorder für Welt-TV auf USB-Stick oder Netzwerkspeicher (WebDAV), Programmführer mit Menü
@@ -93,6 +101,8 @@ during live TV, TV picture in the World TV channel picker.
 
 ## 1.4.0
 
+<img src="screenshots/1.4-programmfuehrer.jpg" width="32%" alt="1.4-programmfuehrer"> <img src="screenshots/1.4-schublade.jpg" width="32%" alt="1.4-schublade"> <img src="screenshots/1.4-startseite.jpg" width="32%" alt="1.4-startseite">
+
 **Kurz:** Flüssiger: die App-Leiste ruckelt nicht mehr und reißt keine hellen Ecken mehr auf. Neu: das Livebild gleitet nach
 20 s ohne Taste ins Vollbild und auf Tastendruck zurück, Bauchbinde mit Sender und Sendung im Livebild-Rahmen, Uhrzeit, Datum
 und Tageskarte oben in der Schublade. Behoben: Free My TV+ schloss sich nach längerem Schauen, im Programmführer schaltete
@@ -123,6 +133,8 @@ for only a few channels.
 
 ## 1.3.0
 
+<img src="screenshots/1.3-mediaplayer.jpg" width="32%" alt="1.3-mediaplayer"> <img src="screenshots/1.3-programmfuehrer.jpg" width="32%" alt="1.3-programmfuehrer"> <img src="screenshots/1.3-schublade.jpg" width="32%" alt="1.3-schublade"> <img src="screenshots/1.3-startseite.jpg" width="32%" alt="1.3-startseite">
+
 **Kurz:** Neu: TV-Vollbild ohne Taste, Programmführer, Mediaplayer (USB und Adressen), Tasten-Legende auf jeder Seite,
 wählbare Farbe des Auswahlrahmens, über 2.500 News-Themen mit A–Z. Geändert: Foto-Streifen höher, App-Leiste als Glaswürfel
 auf Holz in voller Breite, Schublade mit Wetter oben und Abendrot-Hintergrund, Fernsehbild klein in der Ecke über Menüs.
@@ -144,6 +156,8 @@ drawer with the weather on top and a sunset background, small TV picture in the 
 - News: over 2,500 topics (including every German city above about 50,000 inhabitants), picked via A–Z, search or your own.
 
 ## 1.2.0
+
+<img src="screenshots/1.2-news-themen.jpg" width="32%" alt="1.2-news-themen"> <img src="screenshots/1.2-news-themenwahl.jpg" width="32%" alt="1.2-news-themenwahl"> <img src="screenshots/1.2-startseite.jpg" width="32%" alt="1.2-startseite">
 
 **Kurz:** Neu: Senderkachel zum Umschalten, Suchkachel, Infofeld in der Senderliste, Länderkennung und Länderfilter in
 Welt-TV, Welt-TV-Menü über dem laufenden Sender, News nach eigenen Themen, Wetterbericht. Behoben: Sendernummern
@@ -171,6 +185,8 @@ World TV, World TV menu over the playing channel, news by your own topics, weath
 
 ## 1.1.0
 
+<img src="screenshots/1.1-hintergrund-kamin.jpg" width="32%" alt="1.1-hintergrund-kamin"> <img src="screenshots/1.1-startseite.jpg" width="32%" alt="1.1-startseite"> <img src="screenshots/1.1-welt-tv.jpg" width="32%" alt="1.1-welt-tv">
+
 **Kurz:** Neu: Welt-TV mit Suche, Kategorien, eigenen Quellen und Zuletzt gesehen, Farbstimmungen, Hintergrundbilder,
 Rückkehr-Dienst. Behoben: EPG-Zeiten („NaN:NaN“), Senderliste, Bildschirmtastatur.
 
@@ -180,6 +196,8 @@ Rückkehr-Dienst. Behoben: EPG-Zeiten („NaN:NaN“), Senderliste, Bildschirmta
 a return service. Fixed: EPG times ("NaN:NaN"), channel list, on-screen keyboard.
 
 ## 1.0.0
+
+<img src="screenshots/1.0-news.jpg" width="32%" alt="1.0-news"> <img src="screenshots/1.0-startseite.jpg" width="32%" alt="1.0-startseite"> <img src="screenshots/1.0-welt-tv.jpg" width="32%" alt="1.0-welt-tv"> <img src="screenshots/1.0-werbefrei.jpg" width="32%" alt="1.0-werbefrei">
 
 **Kurz:** Erste Version: Startbildschirm auf Basis von Free My TV mit Sat-Programm und Livebild, Welt-TV, Cybersecurity-News,
 werbefreiem YouTube über TizenTube, Wetter-Foto-Streifen und Werbe- und Tracking-Sperre.

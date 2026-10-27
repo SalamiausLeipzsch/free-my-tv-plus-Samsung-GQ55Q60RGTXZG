@@ -17,7 +17,42 @@ Mediaplayer · Govee-Lichtsteuerung · werbefreies YouTube über TizenTube · Ap
 sortierbar · Farbstimmungen und Hintergrundbilder · Anleitung und Sperrlisten gegen Samsungs Werbung und Tracking.
 
 - Anleitung, Installation und Grenzen: [README-PLUS.md](README-PLUS.md)
-- Was sich mit jeder Version geändert hat: [CHANGELOG.md](CHANGELOG.md)
+- Was sich mit jeder Version geändert hat, mit Bildern: [CHANGELOG.md](CHANGELOG.md)
+
+## Vorher und nachher
+
+<img src="screenshots/vergleich-vorher-nachher.jpg" width="100%" alt="Vorher und nachher: TV-Startseite mit Werbung, Free My TV, Free My TV+ 1.0 und 1.6">
+
+Oben: eine typische TV-Startseite voller Werbung (Illustration) und die Grundlage Free My TV (beide Bilder von der
+Free-My-TV-Website, MIT-Lizenz). Unten: der erste Rollout von Free My TV+ (1.0) und der aktuelle Stand (1.6).
+
+## Was mit dem letzten Update (1.6) möglich ist
+
+<img src="screenshots/1.6-startseite.jpg" width="49%" alt="Startseite"> <img src="screenshots/1.6-programmfuehrer.jpg" width="49%" alt="Programmführer">
+<img src="screenshots/1.6-welt-tv-sport-live.jpg" width="49%" alt="Welt-TV mit Live-Vorschau"> <img src="screenshots/1.6-schublade.jpg" width="49%" alt="Schublade">
+<img src="screenshots/1.5-info-seite.jpg" width="49%" alt="Info-Seite zur Sendung"> <img src="screenshots/1.5-licht-govee.jpg" width="49%" alt="Govee-Licht">
+
+Startseite mit Livebild, Bauchbinde und Senderschalter · Programmführer mit Logos, Zeitachse, Menü und Info-Seite ·
+Welt-TV mit Live-Vorschau · Schublade mit Uhrzeit, Tageskarte, Wetter, News und Verknüpfungen · Govee-Licht · Recorder.
+Die Bilder stammen aus der Browser-Vorschau mit Beispieldaten; auf dem Fernseher läuft an der Stelle des Platzhalters das
+echte Sat-Bild.
+
+## So kommt es auf den Fernseher (kurz)
+
+Ausführlich in [README-PLUS.md](README-PLUS.md#installieren-ohne-tizen-studio); hier der Weg vom Code bis zum ersten Start:
+
+1. **Repository auf GitHub** anlegen (eigene Kopie dieses Projekts, öffentlich).
+2. **Signieren lassen:** Actions → „Samsung-App bauen“ → Run workflow. GitHub baut die Tizen-App, signiert sie mit einem
+   Tizen-Zertifikat und legt `FreeMyTVPlus-tizen.wgt` als Release ab. Tizen Studio ist nicht nötig.
+3. **Fernseher vorbereiten:** Apps → `1 2 3 4 5` → Entwicklermodus an, Host PC IP = IP vom PC, Fernseher neu starten
+   (Power-Taste halten, bis das Samsung-Logo kommt).
+4. **Installieren:** am PC den [TizenBrew Installer](https://github.com/reisxd/TizenBrewInstaller) öffnen, IP vom TV eingeben,
+   *Install from GitHub* → `dein-name/free-my-tv-plus`. Meldung „Package installed“.
+5. **Aufräumen:** Host PC IP wieder auf `127.0.0.1`, Fernseher neu starten.
+6. **Erster Start:** Free My TV+ in den Apps öffnen. Einmal „Autom. Ausführung der letzten App“ einschalten, dann startet der
+   Fernseher künftig direkt hinein. Für weniger Werbung und Tracking: Schublade → *Werbefrei* zeigt die Schritte und prüft sie.
+
+Updates laufen genauso ab Schritt 2.
 
 ## Wie die Idee gewachsen ist
 
@@ -66,7 +101,35 @@ player · Govee light control · ad-free YouTube via TizenTube · an app bar of 
 moods and background pictures · a guide and blocklists against Samsung's ads and tracking.
 
 - Guide, installation and limits: [README-PLUS.md](README-PLUS.md#english)
-- What changed in each version: [CHANGELOG.md](CHANGELOG.md)
+- What changed in each version, with pictures: [CHANGELOG.md](CHANGELOG.md)
+
+### Before and after
+
+The comparison picture above shows, top left to bottom right: a typical home screen full of ads (illustration), the base
+Free My TV, the first rollout of Free My TV+ (1.0) and the current version (1.6).
+
+### What the latest update (1.6) can do
+
+The pictures above: home with live picture, caption and channel switcher · TV guide with logos, timeline, menu and info page ·
+World TV with a live preview · drawer with time, day card, weather, news and shortcuts · Govee light · recorder. They come from
+the browser preview with sample data; on the TV the real satellite picture plays where the placeholder is.
+
+### How it gets onto the TV (short)
+
+In detail in [README-PLUS.md](README-PLUS.md#install-without-tizen-studio); here is the way from the code to the first start:
+
+1. **Repository on GitHub**: your own public copy of this project.
+2. **Let GitHub sign it:** Actions → "Samsung-App bauen" → Run workflow. GitHub builds the Tizen app, signs it with a Tizen
+   certificate and publishes `FreeMyTVPlus-tizen.wgt` as a release. No Tizen Studio needed.
+3. **Prepare the TV:** Apps → `1 2 3 4 5` → Developer Mode on, Host PC IP = IP of the PC, restart the TV (hold the power button
+   until the Samsung logo appears).
+4. **Install:** on the PC open the [TizenBrew Installer](https://github.com/reisxd/TizenBrewInstaller), enter the IP of the TV,
+   *Install from GitHub* → `your-name/free-my-tv-plus`. It reports "Package installed".
+5. **Tidy up:** set Host PC IP back to `127.0.0.1`, restart the TV.
+6. **First start:** open Free My TV+ from the apps. Turn on "Autorun Last App" once and the TV starts straight into it from
+   then on. For fewer ads and less tracking: drawer → *Werbefrei* shows the steps and checks them.
+
+Updates work the same way from step 2.
 
 ### How the idea grew
 
