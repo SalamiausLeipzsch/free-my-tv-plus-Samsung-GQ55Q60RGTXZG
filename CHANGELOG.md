@@ -10,11 +10,15 @@ version's section becomes the GitHub release text automatically.*
 
 ## 1.7.1
 
-**Kurz:** „Welt-TV“ heißt jetzt „IP-TV“ (Reiter, Kacheln, Menüs, Einstellungen). Sonst wie 1.7.0.
+<img src="screenshots/tv/01-startseite-jetzt-im-tv.jpg" width="32%" alt="Startseite am Fernseher"> <img src="screenshots/tv/03-ip-tv-startseite.jpg" width="32%" alt="IP-TV am Fernseher"> <img src="screenshots/tv/02-programmfuehrer.jpg" width="32%" alt="Programmführer am Fernseher">
+
+**Kurz:** „Welt-TV“ heißt jetzt „IP-TV“ (Reiter, Kacheln, Menüs, Einstellungen). Sonst wie 1.7.0. Neu im Repo: Fotos
+vom echten Fernseher, nach Menü sortiert, und zwei Clips vom Übergang ins Vollbild (Sendungen weichgezeichnet).
 
 **English**
 
-**Summary:** "Welt-TV" (World TV) is now called "IP-TV" (tab, tiles, menus, settings). Otherwise the same as 1.7.0.
+**Summary:** "Welt-TV" (World TV) is now called "IP-TV" (tab, tiles, menus, settings). Otherwise the same as 1.7.0. New in
+the repo: photos of the real TV in menu order and two clips of the full-screen transition (programmes blurred).
 
 ## 1.7.0
 

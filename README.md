@@ -24,7 +24,24 @@ sortierbar · Farbstimmungen und Hintergrundbilder · Anleitung und Sperrlisten 
 <img src="screenshots/vergleich-vorher-nachher.jpg" width="100%" alt="Vorher und nachher: TV-Startseite mit Werbung, Free My TV, Free My TV+ 1.0 und 1.7">
 
 Oben: eine typische TV-Startseite voller Werbung (Illustration) und die Grundlage Free My TV (beide Bilder von der
-Free-My-TV-Website, MIT-Lizenz). Unten: der erste Rollout von Free My TV+ (1.0) und der aktuelle Stand (1.7).
+Free-My-TV-Website, MIT-Lizenz). Unten: der erste Rollout von Free My TV+ (1.0) und der aktuelle Stand (1.7) als Foto vom echten Fernseher.
+
+## Am echten Fernseher, nach Menü sortiert
+
+Fotos vom Samsung GQ55Q60R mit Version 1.7. Laufende Sendungen und Presse-Fotos sind weichgezeichnet (Urheberrecht).
+
+| | |
+|---|---|
+| <img src="screenshots/tv/01-startseite-jetzt-im-tv.jpg" alt="Startseite: Jetzt im TV"><br>**1 Startseite „Jetzt im TV“:** Livebild mit Bauchbinde, Danach, Senderschalter, Suche, App-Leiste | <img src="screenshots/tv/02-programmfuehrer.jpg" alt="Programmführer"><br>**2 Programmführer:** Senderlogos, Zeitachse, Info, Fernsehbild in der Ecke |
+| <img src="screenshots/tv/03-ip-tv-startseite.jpg" alt="IP-TV Startseite"><br>**3 IP-TV:** Live-Vorschau, Suche, alle Sender, zuletzt gesehen | <img src="screenshots/tv/04-ip-tv-senderliste.jpg" alt="IP-TV Senderliste"><br>**4 IP-TV-Senderliste:** Sprachen, Länder, Themen, eigene Quellen, Länderfilter |
+| <img src="screenshots/tv/05-news.jpg" alt="News"><br>**5 News:** vier Kacheln nach eigenen Themen | <img src="screenshots/tv/06-schublade.jpg" alt="Schublade"><br>**6 Schublade:** Uhrzeit, Tageskarte, Wetter, Cybersecurity, Eingänge, Verknüpfungen |
+| <img src="screenshots/tv/07-licht-govee.jpg" alt="Licht"><br>**7 Licht (Govee):** Helligkeit, Farbe, Szenen, Musik, Segmente | <img src="screenshots/tv/08-mediaplayer-recorder.jpg" alt="Mediaplayer"><br>**8 Mediaplayer und Recorder:** Adressen, USB, Netzwerkspeicher |
+| <img src="screenshots/tv/09-werbefrei-selbsttest.jpg" alt="Werbefrei"><br>**9 Werbefrei:** Selbsttest und Anleitung | <img src="screenshots/tv/10-alle-apps.jpg" alt="Alle Apps"><br>**10 Alle Apps** |
+
+**Übergang ins Vollbild und zurück** (kurze Clips vom Fernseher, Sendung weichgezeichnet; als Video:
+[hinein](screenshots/tv/clip-zoom-hinein.mp4), [zurück](screenshots/tv/clip-zoom-zurueck.mp4)):
+
+<img src="screenshots/tv/clip-zoom-hinein.gif" width="49%" alt="Ins Vollbild: das Menü blendet ins Hintergrundbild aus"> <img src="screenshots/tv/clip-zoom-zurueck.gif" width="49%" alt="Zurück: das Menü taucht aus dem Hintergrundbild auf">
 
 ## Was mit dem letzten Update (1.7) möglich ist
 
@@ -106,7 +123,15 @@ moods and background pictures · a guide and blocklists against Samsung's ads an
 ### Before and after
 
 The comparison picture above shows, top left to bottom right: a typical home screen full of ads (illustration), the base
-Free My TV, the first rollout of Free My TV+ (1.0) and the current version (1.7).
+Free My TV, the first rollout of Free My TV+ (1.0) and the current version (1.7) as a photo of the real TV.
+
+### On the real TV, in menu order
+
+The photo table above shows Free My TV+ 1.7 on a Samsung GQ55Q60R, in menu order: 1 home "Jetzt im TV" · 2 TV guide ·
+3 IP-TV · 4 IP-TV channel list · 5 news · 6 drawer · 7 light (Govee) · 8 media player and recorder · 9 ad-free self-test ·
+10 all apps, followed by two short clips of the full-screen transition (in and back; also as video:
+[in](screenshots/tv/clip-zoom-hinein.mp4), [back](screenshots/tv/clip-zoom-zurueck.mp4)). Programmes on air and press photos are blurred
+(copyright).
 
 ### What the latest update (1.7) can do
 
