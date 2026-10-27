@@ -56,7 +56,7 @@ jobs:
           VERSION=$(grep -o '<widget[^>]*' tizen/config.xml | grep -o ' version="[^"]*"' | cut -d'"' -f2)
           # Text der Release: der Abschnitt dieser Version aus CHANGELOG.md, dazu die Installation
           awk -v v="## ${VERSION}" '$0==v{on=1;next} /^## /{on=0} on' CHANGELOG.md > notes.md
-          printf '\n---\nInstallieren: TizenBrew Installer -> Install from GitHub -> `%s` (Host PC IP = IP des PCs, danach wieder 127.0.0.1). Signiert fuer Samsung-Fernseher 2017-2022 (Tizen 3 bis 6.5); ab 2023 signiert der Installer neu.\n' "${GITHUB_REPOSITORY}" >> notes.md
+          printf '\n---\nInstallieren: TizenBrew Installer -> Install from GitHub -> `%s` (Host PC IP = IP vom PC, danach wieder 127.0.0.1). Signiert fuer Samsung-Fernseher 2017-2022 (Tizen 3 bis 6.5); ab 2023 signiert der Installer neu.\n\nInstall: TizenBrew Installer -> Install from GitHub -> `%s` (Host PC IP = IP of the PC, then back to 127.0.0.1). Signed for Samsung TVs 2017-2022 (Tizen 3 to 6.5); from 2023 the installer signs it again.\n' "${GITHUB_REPOSITORY}" "${GITHUB_REPOSITORY}" >> notes.md
           gh release create "v${VERSION}-${GITHUB_RUN_NUMBER}" FreeMyTVPlus-tizen.wgt \
             --title "Free My TV+ ${VERSION} (Build ${GITHUB_RUN_NUMBER})" \
             --notes-file notes.md

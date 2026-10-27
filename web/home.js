@@ -524,7 +524,7 @@
       !Plus.isOpen() && !document.hidden;
     if (Plus.morphing()) return;
     if (show && !tvFull) {
-      if (liveWas.drawer) liveDelay = Date.now() + 750;
+      if (liveWas.drawer) liveDelay = Date.now() + 250;   // 1.6: 0,25 s wie nach dem Programmfuehrer
       else if (liveWas.plus) liveDelay = Date.now() + 250;
     }
     liveWas.drawer = st.zone === Z.DRAWER;
@@ -549,24 +549,55 @@
     setClass(body, 'tvback', back);
     setClass(body, 'tvfull', full);
   }
+  // 1.6: der Videoplan des Fernsehers laesst sich nicht fluessig vergroessern (jeder Schritt ruckelt). Deshalb waechst
+  // jetzt ein schwarzer Rahmen per GPU stufenlos von der Vorschau zum Vollbild, die Oberflaeche blendet dabei aus, und erst
+  // am Ende springt das Bild in einem einzigen Schritt auf Vollbild. Zurueck genauso, nur andersherum.
+  var ZOOM_IN = 1200, ZOOM_OUT = 800;
+  function zoomFrame() {
+    var z = $('zoomframe');
+    if (!z) {
+      z = el('div', '', stage);
+      z.id = 'zoomframe';
+      z.style.left = LIVE_RECT[0] + 'px'; z.style.top = LIVE_RECT[1] + 'px';
+      z.style.width = LIVE_RECT[2] + 'px'; z.style.height = LIVE_RECT[3] + 'px';
+    }
+    return z;
+  }
+  function zoomTo(full, ms) {
+    var z = zoomFrame(), t = full ? 'translate(' + (-LIVE_RECT[0]) + 'px, ' + (-LIVE_RECT[1]) + 'px) scale(' +
+      (1920 / LIVE_RECT[2]).toFixed(4) + ', ' + (1080 / LIVE_RECT[3]).toFixed(4) + ')' : 'none';
+    z.style.webkitTransitionDuration = z.style.transitionDuration = ms + 'ms';
+    z.style.webkitTransform = z.style.transform = t;
+  }
   function enterFull() {
     tvFull = true;
     clearTimeout(tvTimer);
     document.documentElement.style.background = 'transparent';
+    var z = zoomFrame();
+    zoomTo(false, 0);
+    setClass(z, 'on', true);
+    void z.offsetWidth;   // Startgroesse festhalten, dann wachsen
     tvClass(false, true, false);
     legend();
-    Plus.liveMorph([0, 0, 1920, 1080], 3000, function () { if (tvFull) tvClass(true, false, false); });
+    zoomTo(true, ZOOM_IN);
+    tvTimer = setTimeout(function () {
+      if (!tvFull) return;
+      Plus.live([0, 0, 1920, 1080]);   // ein einziger Sprung, wenn der Rahmen schon voll ist
+      tvClass(true, false, false);
+    }, ZOOM_IN);
   }
   function leaveFull() {
     tvFull = false;
     clearTimeout(tvTimer);
+    var z = zoomFrame();
+    var show = st.tab === 0 && cards[0] && cards[0].live && !sheetOpen() && st.zone !== Z.DRAWER && !Plus.isOpen();
+    if (show) Plus.live(LIVE_RECT); else syncLive();   // das Bild sofort zurueck in die Vorschau, der Rahmen zieht nach
+    setClass(z, 'on', true);
+    zoomTo(false, ZOOM_OUT);
     tvClass(false, false, true);
     checkNight();
     legend();
-    var show = st.tab === 0 && cards[0] && cards[0].live && !sheetOpen() && st.zone !== Z.DRAWER && !Plus.isOpen();
-    if (show) Plus.liveMorph(LIVE_RECT, 1000, function () { syncLive(); });
-    else syncLive();
-    tvTimer = setTimeout(function () { setClass(body, 'tvback', false); }, 1100);
+    tvTimer = setTimeout(function () { setClass(body, 'tvback', false); setClass(z, 'on', false); syncLive(); }, ZOOM_OUT + 60);
   }
   setInterval(function () {
     if (tvFull || saverOn || document.hidden) return;
@@ -1795,7 +1826,7 @@
   window.addEventListener('appcontrol', reopened);        // Samsung: the same
   document.addEventListener('visibilitychange', function () {
     if (Prefs.backHome()) Plus.backHome(true, !document.hidden);
-    if (document.hidden) { hideSaver(); if (tvFull) { tvFull = false; tvClass(false, false, false); } Plus.live(null); return; }
+    if (document.hidden) { hideSaver(); Plus.stopPreview(); if (tvFull || $('zoomframe')) { tvFull = false; clearTimeout(tvTimer); tvClass(false, false, false); setClass(zoomFrame(), 'on', false); zoomTo(false, 0); } Plus.live(null); return; }
     idleAt = Date.now();
     loadApps(function () { renderShelf(); renderDrawer(); updateFocus(); Data.refresh(); Plus.refresh(); renderCards(); });
   });

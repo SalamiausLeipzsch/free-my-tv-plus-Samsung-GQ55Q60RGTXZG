@@ -1,5 +1,7 @@
 # Free My TV+
 
+> 🇬🇧 **English version below** – [jump to English](#english)
+
 **Ein eigener, werbefreier Startbildschirm für Samsung-Fernseher (Tizen, ab 2017) – entstanden als eigene Idee auf der
 Grundlage von [Free My TV](https://github.com/simbasjungles/free-my-tv) (MIT-Lizenz).**
 
@@ -8,11 +10,11 @@ installiert, verändert am Fernseher nichts und lässt sich jederzeit wieder lö
 Streaming-Apps und freie Internetsender an einem Ort haben wollen – ohne Werbebanner, ohne Zuschauer-Tracking und mit
 einer Oberfläche, die sich nach Wetter, Tageszeit und eigenem Geschmack richtet.
 
-**Kurz, was drin ist:** Sat-Fernsehen mit Livebild, Programmführer und Infos zur Sendung · Welt-TV mit tausenden freien
-Sendern, Suche, Kategorien und Länderfiltern · News-Kacheln nach eigenen Themen (über 2.500) · ausführlicher
-Wetterbericht · Mediaplayer für USB-Speicher und Stream-Adressen · werbefreies YouTube über TizenTube · App-Leiste aus
-Glaswürfeln auf Holz, frei sortierbar · Farbstimmungen und Hintergrundbilder · Anleitung und Sperrlisten gegen Samsungs
-Werbung und Tracking.
+**Kurz, was drin ist:** Sat-Fernsehen mit Livebild, Programmführer (Zeitachse, Senderlogos, Info-Seite, Erinnerung,
+EPG-Suchlauf) · Welt-TV mit tausenden freien Sendern, Live-Vorschau, Suche, Kategorien und Länderfiltern · Recorder für
+Welt-TV auf USB-Stick oder Netzwerkspeicher · News-Kacheln nach eigenen Themen (über 2.500) · ausführlicher Wetterbericht ·
+Mediaplayer · Govee-Lichtsteuerung · werbefreies YouTube über TizenTube · App-Leiste aus Glaswürfeln auf Holz, frei
+sortierbar · Farbstimmungen und Hintergrundbilder · Anleitung und Sperrlisten gegen Samsungs Werbung und Tracking.
 
 - Anleitung, Installation und Grenzen: [README-PLUS.md](README-PLUS.md)
 - Was sich mit jeder Version geändert hat: [CHANGELOG.md](CHANGELOG.md)
@@ -25,29 +27,75 @@ Free My TV+ ist Stück für Stück entstanden, jeweils aus dem, was im Alltag vo
 |---|---|
 | Samsungs Werbung, Tracking (ACR) und Zustimmungs-Abfragen loswerden – mit TV-Schaltern, DNS-Filter und Sperrlisten | 1.0 |
 | Sat-Programm mit Livebild und EPG direkt auf dem Startbildschirm | 1.0 |
-| Freie Internetsender aus aller Welt (Welt-TV) | 1.0, ausgebaut in 1.1–1.3 |
-| Cybersecurity-News statt Kryptokursen | 1.0, Themen frei wählbar ab 1.2 |
+| Freie Internetsender aus aller Welt (Welt-TV), mit Live-Vorschau eines Gratis-Sportsenders | 1.0–1.6 |
+| Cybersecurity-News statt Kryptokursen, später Themen frei wählbar | 1.0–1.3 |
 | YouTube ohne Werbung (TizenTube) | 1.0 |
-| Ein Foto-Streifen passend zu Wetter und Tageszeit, dazu Farbstimmungen und eigene Hintergrundbilder | 1.0–1.3 |
-| Glas-Kacheln statt flacher Kacheln, später Glaswürfel auf altem Holz, flüssig auch auf älteren TVs | 1.1–1.4 |
-| Nach Netflix, Browser & Co. automatisch zurück zum Startbildschirm | 1.1 |
+| Foto passend zu Wetter und Tageszeit, Farbstimmungen und eigene Hintergrundbilder | 1.0–1.5 |
+| Glas-Kacheln, später Glaswürfel auf altem Holz, flüssig auch auf älteren TVs | 1.1–1.4 |
+| Nach Netflix, Browser & Co. automatisch zurück zum Startbildschirm, auch nach einem Absturz | 1.1–1.4 |
 | Welt-TV ohne Grenze, mit Suche, Kategorien, Ländern, eigenen Quellen, Zuletzt gesehen | 1.1–1.2 |
-| Senderliste und Programmführer mit Infos, Bildern, Zeitachse, Erinnerung und EPG-Suchlauf | 1.2–1.5 |
+| Senderliste und Programmführer mit Infos, Bildern, Logos, Zeitachse, Erinnerung und EPG-Suchlauf | 1.2–1.6 |
 | Wetterbericht mit allen wichtigen Werten | 1.2–1.3 |
 | Bedienhilfe: sichtbarer Auswahlrahmen (Farbe wählbar) und Tasten-Legende auf jeder Seite | 1.2–1.3 |
-| TV-Vollbild ohne Taste, stufenlos hinein und zurück | 1.3–1.4 |
-| Bleibt vorne: holt sich nach Absturz oder vollem Speicher selbst zurück | 1.4 |
+| TV-Vollbild ohne Taste, mit weichem Übergang hinein und zurück | 1.3–1.6 |
 | Mediaplayer für USB-Sticks und Stream-Adressen | 1.3 |
 | Recorder für Welt-TV auf USB-Stick oder Netzwerkspeicher (WebDAV) | 1.5 |
 | Govee-Licht steuern (Farben, Szenen, Musik, DreamView) | 1.5 |
 
 **Ideen für später:** KI-Assistent im Fernseher (Claude, GPT und andere Modelle über einen gemeinsamen, frei wählbaren
-Zugang), weitere Gratis-Senderlisten, Programmführer mit Erinnerungen.
+Zugang), weitere Gratis-Senderlisten.
+
+---
+
+<a id="english"></a>
+
+## English
+
+**A home screen of its own, free of ads, for Samsung TVs (Tizen, 2017 and newer) – an idea of its own, built on
+[Free My TV](https://github.com/simbasjungles/free-my-tv) (MIT licence).**
+
+Free My TV+ doesn't replace Samsung's ad bar by rooting the TV, it's an ordinary app: installed through Developer Mode, it
+changes nothing on the TV and can be removed at any time. It's for anyone who wants satellite TV, streaming apps and free
+internet channels in one place – without ad banners, without viewer tracking, and with an interface that follows the
+weather, the time of day and your own taste. The interface itself is in German.
+
+**What's inside, in short:** satellite TV with a live picture and a TV guide (timeline, channel logos, info page, reminders,
+EPG scan) · World TV with thousands of free channels, a live preview, search, categories and country filters · a recorder for
+World TV to a USB stick or network storage · news tiles by your own topics (over 2,500) · a detailed weather report · media
+player · Govee light control · ad-free YouTube via TizenTube · an app bar of glass cubes on wood, freely sortable · colour
+moods and background pictures · a guide and blocklists against Samsung's ads and tracking.
+
+- Guide, installation and limits: [README-PLUS.md](README-PLUS.md#english)
+- What changed in each version: [CHANGELOG.md](CHANGELOG.md)
+
+### How the idea grew
+
+| Idea | Version |
+|---|---|
+| Get rid of Samsung's ads, tracking (ACR) and consent prompts – with TV settings, a DNS filter and blocklists | 1.0 |
+| Satellite TV with a live picture and EPG right on the home screen | 1.0 |
+| Free internet channels from all over the world (World TV), with a live preview of a free sports channel | 1.0–1.6 |
+| Cybersecurity news instead of crypto prices, later any topics you like | 1.0–1.3 |
+| YouTube without ads (TizenTube) | 1.0 |
+| A photo matching weather and time of day, colour moods and your own background pictures | 1.0–1.5 |
+| Glass tiles, later glass cubes on old wood, smooth on older TVs too | 1.1–1.4 |
+| Back to the home screen after Netflix, the browser and others, even after a crash | 1.1–1.4 |
+| World TV without limits, with search, categories, countries, custom sources, recently watched | 1.1–1.2 |
+| Channel list and TV guide with info, pictures, logos, timeline, reminders and EPG scan | 1.2–1.6 |
+| Weather report with all the important values | 1.2–1.3 |
+| Easier control: a visible focus frame (colour selectable) and a key legend on every page | 1.2–1.3 |
+| Full-screen TV when idle, with a soft transition in and out | 1.3–1.6 |
+| Media player for USB sticks and stream addresses | 1.3 |
+| Recorder for World TV to a USB stick or network storage (WebDAV) | 1.5 |
+| Govee light control (colours, scenes, music, DreamView) | 1.5 |
+
+**Ideas for later:** an AI assistant on the TV (Claude, GPT and other models through one shared, selectable gateway), more
+free channel lists.
 
 ---
 
 <details>
-<summary>Ursprüngliches README von Free My TV (Grundlage dieses Projekts)</summary>
+<summary>Ursprüngliches README von Free My TV (Grundlage dieses Projekts) · Original Free My TV README (the base of this project)</summary>
 
 <div align="center">
 

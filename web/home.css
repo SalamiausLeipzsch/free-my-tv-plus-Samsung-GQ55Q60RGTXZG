@@ -1132,9 +1132,9 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 
 /* TV-Vollbild (1.4): Oberflaeche in 5 s sanft aus, auf Tastendruck in 1 s wieder auf */
 .tvgoing #home, .tvgoing #drawer, .tvgoing #hole, .tvgoing #sky, .tvgoing #legend {
-  opacity: 0 !important; -webkit-transition: opacity 3s ease-in-out !important; transition: opacity 3s ease-in-out !important; }
+  opacity: 0 !important; -webkit-transition: opacity 1.2s ease-in-out !important; transition: opacity 1.2s ease-in-out !important; }
 .tvback #home, .tvback #drawer, .tvback #hole, .tvback #sky, .tvback #legend {
-  -webkit-transition: opacity 1s ease-out !important; transition: opacity 1s ease-out !important; }
+  -webkit-transition: opacity 0.8s ease-out !important; transition: opacity 0.8s ease-out !important; }
 .tvgoing, .tvgoing body { background: transparent !important; }
 
 /* Schublade (1.4): oben Uhrzeit, Datum, Tageskarte; dann App-Leiste, Wetter & News, Verknuepfungen, alles im gleichen Abstand (52 px) */
@@ -1241,3 +1241,37 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 #recbadge { position: absolute; right: 40px; top: 24px; z-index: 60; padding: 8px 18px; border-radius: 16px; background: rgba(200, 20, 30, 0.88); color: #FFF;
   font-size: 20px; font-weight: 700; display: none; box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35); }
 #recbadge.on { display: block; }
+
+/* MARK: - Free My TV+ 1.6 */
+/* Programmfuehrer: 15 Zeilen, groessere Schrift, Senderlogo zwischen Nummer und Name */
+#gd-head .tick { font-size: 22px; }
+#gd-rows { top: 204px; }
+#gd .grow, #guide .grow { height: 50px; margin-bottom: 3px; }
+#guide .gname { width: 300px; height: 50px; line-height: 50px; font-size: 23px; font-weight: 600; padding-left: 12px; box-sizing: border-box; }
+#guide .gname .gn { width: 46px; font-weight: 500; }
+#guide .gname .glogo { display: inline-block; width: 58px; height: 34px; margin: 0 12px 0 0; vertical-align: middle; border-radius: 7px; background: rgba(255, 255, 255, 0.88); text-align: center; line-height: 34px; }
+#guide .gname .glogo img { max-width: 50px; max-height: 28px; vertical-align: middle; }
+#guide .gname .glogo.none { background: transparent; width: 0; margin: 0; }
+#guide .gname .gc { vertical-align: middle; }
+#guide .glane { left: 308px; height: 50px; }
+#guide .gprog { height: 50px; padding: 4px 10px; }
+#guide .gprog .gt { font-size: 21px; line-height: 24px; }
+#guide .gprog .gh { font-size: 16px; line-height: 18px; }
+#guide .gnone { font-size: 19px; line-height: 50px; }
+#gd-head { left: 368px; }
+/* Info-Seite: rechts endet alles ueber dem Fernsehbild, das dort weiterlaeuft */
+#gd-detail .dfacts { max-height: 290px; overflow: hidden; }
+#gd-detail .dmain { margin-right: 0; }
+#guide .glane, #gd-head { width: 940px; }
+/* Vollbild-Uebergang (1.6): schwarzer Rahmen waechst per GPU, das Fernsehbild springt nur einmal */
+#zoomframe { position: absolute; z-index: 30; background: #000; border-radius: 6px; opacity: 0; visibility: hidden; pointer-events: none;
+  -webkit-transform-origin: 0 0; transform-origin: 0 0; will-change: transform;
+  -webkit-transition: -webkit-transform 1.2s cubic-bezier(0.4, 0, 0.2, 1); transition: transform 1.2s cubic-bezier(0.4, 0, 0.2, 1); }
+#zoomframe.on { opacity: 1; visibility: visible; }
+.tvfull #zoomframe { opacity: 1; visibility: visible; }
+/* Welt-TV: Live-Vorschau in der grossen Kachel */
+.card .img .pvideo { position: absolute; left: 0; top: 0; width: 100%; height: 100%; object-fit: cover; background: #000; }
+.card .img .pvk { z-index: 1; bottom: 96px; color: rgba(255, 255, 255, 0.9); text-shadow: 0 1px 6px rgba(0, 0, 0, 0.7); }
+.card .img .pvk::before { content: '● '; color: #FF3B30; }
+.card .img .pvb { z-index: 1; color: #FFF; text-shadow: 0 2px 10px rgba(0, 0, 0, 0.7); }
+.card .img.text .pvideo + .pvk, .card .img.text .pvb { color: #FFF; }

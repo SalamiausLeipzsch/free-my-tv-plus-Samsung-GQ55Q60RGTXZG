@@ -464,6 +464,62 @@ var Plus = (function () {
     });
   }
 
+  // Free My TV+ 1.6: Live-Vorschau eines kostenlosen US-Sportsenders in der grossen Welt-TV-Kachel.
+  // ESPN und Co. gibt es nicht legal kostenlos (die Eintraege in freien Listen sind Pay-TV-Kopien): genommen werden nur
+  // offizielle Gratis-Sender der Anbieter selbst, und nie Adressen, die nur eine nackte IP sind.
+  var SPORT_PREF = [/^CBS Sports Golazo/i, /^beIN SPORTS XTRA(?! en)/i, /^Fubo Sports/i, /^NBC Sports NOW/i, /^Tennis Channel(?! 2)/i, /^Willow/i];
+  var sportCh = stored('sportCh') || null, sportBusy = false, sportTried = {};
+  function loadSport() {
+    if (sportBusy || (sportCh && !sportTried[sportCh.url])) return;
+    sportBusy = true;
+    loadList(country('us', 'USA'), function (list) {
+      sportBusy = false;
+      if (!list) return;
+      for (var p = 0; p < SPORT_PREF.length; p++) for (var i = 0; i < list.length; i++) {
+        var c = list[i];
+        if (!SPORT_PREF[p].test(c.name) || sportTried[c.url] || /^https?:\/\/\d+\.\d+\.\d+\.\d+/.test(c.url) || /Not 24\/7/i.test(c.name)) continue;
+        sportCh = {name: c.name, url: c.url, logo: c.logo, quality: c.quality, tags: c.tags || [], cc: c.cc || 'US'};
+        store('sportCh', sportCh);
+        changed();
+        return;
+      }
+    });
+  }
+  var pv = {video: null, hls: null, url: ''};
+  function stopPreview() {
+    if (pv.hls) { try { pv.hls.destroy(); } catch (e) {} }
+    if (pv.video) { try { pv.video.pause(); pv.video.removeAttribute('src'); pv.video.load(); } catch (e) {} if (pv.video.parentNode) pv.video.parentNode.removeChild(pv.video); }
+    pv = {video: null, hls: null, url: ''};
+  }
+  function drawSport(box) {
+    stopPreview();
+    var ch = sportCh;
+    box.innerHTML = '';
+    if (!ch) return;
+    var v = document.createElement('video');
+    v.className = 'pvideo';
+    v.muted = true;
+    v.setAttribute('muted', '');
+    v.setAttribute('playsinline', '');
+    v.autoplay = true;
+    box.appendChild(v);
+    el('div', 'kicker pvk', box, 'Live  ·  US-Sport  ·  kostenlos');
+    el('div', 'big pvb', box, ch.name.replace(/\s*\(\d+p\)/, ''));
+    pv.video = v;
+    pv.url = ch.url;
+    var bad = setTimeout(function () { if (pv.video === v && v.readyState < 2) { sportTried[ch.url] = true; sportCh = null; store('sportCh', null); stopPreview(); loadSport(); } }, 20000);
+    v.onplaying = function () { clearTimeout(bad); };
+    var native = v.canPlayType('application/vnd.apple.mpegurl') || v.canPlayType('application/x-mpegURL');
+    if (native) { v.src = ch.url; try { var pr = v.play(); if (pr && pr['catch']) pr['catch'](function () {}); } catch (e) {} return; }
+    loadHls(function () {
+      if (pv.video !== v || !window.Hls || !window.Hls.isSupported()) return;
+      pv.hls = new window.Hls({maxBufferLength: 8, maxMaxBufferLength: 12, backBufferLength: 4, maxBufferSize: 10 * 1000 * 1000, capLevelToPlayerSize: true});
+      pv.hls.loadSource(ch.url);
+      pv.hls.attachMedia(v);
+      try { var pr2 = v.play(); if (pr2 && pr2['catch']) pr2['catch'](function () {}); } catch (e) {}
+    });
+  }
+
   // MARK: - Welt-TV: Senderliste (eigene Ebene) und Vollbild-Player
 
   function $(id) { return document.getElementById(id); }
@@ -873,6 +929,7 @@ var Plus = (function () {
     if (ch.app) { closeWorld(); if (extLaunch) extLaunch(ch.app); return; }
     if (ch.sat) { closeWorld(); tune(ch.sat, function () { changed(); }); return; }
     if (label !== 'Mediaplayer' && ch.group !== md.title) remember(ch);
+    stopPreview();
     ui.playList = list;
     ui.playing = idx;
     ui.playLabel = label || '';
@@ -1040,7 +1097,7 @@ var Plus = (function () {
   // MARK: - Programmfuehrer (eigene Ebene): 10 Sender davor, der aktuelle, 10 danach, mit Zeitleiste
 
   var gd = {at: 0, from: 0, sel: 0, t: 0, menu: -1, detail: false, prog: null, ch: null};
-  var GD_MIN = 5.6;   // Pixel pro Minute (1.4: Zeilen enden vor dem Fernsehbild rechts unten)
+  var GD_MIN = 5.2;   // Pixel pro Minute (1.6: Zeilen enden vor dem Fernsehbild rechts unten)
   var GD_SPAN = 180;   // Minuten sichtbar
 
   // Free My TV+ 1.4: EPG nacheinander laden (der Fernseher verwirft viele gleichzeitige Anfragen). Zuerst alle sichtbaren
@@ -1118,6 +1175,27 @@ var Plus = (function () {
     epgRun();
   }
 
+  // Free My TV+ 1.6: Senderlogo aus tv-logo/tv-logos (raw.githubusercontent.com). Der Name wird vereinfacht und so lange
+  // von hinten gekuerzt, bis ein Logo passt ("WDR HD Koeln" -> wdr-koln -> wdr).
+  var LOGO_SET = null, logoCache = {};
+  var LOGO_BASE = 'https://raw.githubusercontent.com/tv-logo/tv-logos/main/countries/germany/';
+  function logoFor(ch) {
+    var name = channelName(ch);
+    if (logoCache[name] !== undefined) return logoCache[name];
+    if (!LOGO_SET) { LOGO_SET = {}; var l = window.TV_LOGOS || []; for (var i = 0; i < l.length; i++) LOGO_SET[l[i]] = true; }
+    var n = name.toLowerCase().replace(/ä/g, 'a').replace(/ö/g, 'o').replace(/ü/g, 'u').replace(/ß/g, 'ss')
+      .replace(/\b(u?hd|sd|hevc|fhd|4k)\b/g, ' ').replace(/\+/g, ' plus ').replace(/_/g, ' ')
+      .replace(/pro ?7|prosieben/g, 'pro sieben').replace(/sat\.?\s?1/g, 'sat 1').replace(/rtl ?zwei|rtl ?2\b/g, 'rtl zwei').replace(/rtl ?up/g, 'rtl up')
+      .replace(/vox ?up/g, 'vox up').replace(/zdf ?info/g, 'zdf info').replace(/zdf ?neo/g, 'zdf neo').replace(/kabel ?(eins|1)/g, 'kabel eins')
+      .replace(/n-?tv/g, 'ntv').replace(/super ?rtl/g, 'rtl super').replace(/eurosport ?1/g, 'eurosport 1').replace(/\s+fs\b/g, ' ')
+      .replace(/[^a-z0-9 ]+/g, ' ').replace(/^\s+|\s+$/g, '');
+    var words = n.split(/\s+/), hit = '';
+    for (var k = words.length; k > 0 && !hit; k--) { var slug = words.slice(0, k).join('-'); if (LOGO_SET[slug]) hit = slug; }
+    if (!hit && LOGO_SET[words.join('')]) hit = words.join('');
+    logoCache[name] = hit ? LOGO_BASE + hit + '-de.png' : '';
+    return logoCache[name];
+  }
+
   function guideIndex() {
     var cur = sat.channel;
     for (var i = 0; i < sat.list.length; i++) if (cur && sat.list[i].major === cur.major && sat.list[i].minor === cur.minor) return i;
@@ -1126,7 +1204,7 @@ var Plus = (function () {
 
   // Free My TV+ 1.5: Programmfuehrer mit Zeitachse (◄ ►), Seiten (P+ P−), Menue auf OK (Ansehen, Info, Aufnehmen),
   // ausfuehrlicher Info-Seite und EPG-Auffrischung nach 1, 2 und 3 Minuten, dann alle 5 Minuten.
-  var GD_PAGE = 21, GD_STEP = 30 * 60000, GD_AHEAD = 48 * 3600000;
+  var GD_PAGE = 15, GD_STEP = 30 * 60000, GD_AHEAD = 48 * 3600000;
   function openGuide() {
     if (!sat.list.length) return false;
     ui.open = 'guide';
@@ -1201,17 +1279,20 @@ var Plus = (function () {
       tick.style.left = (t * GD_MIN) + 'px';
     }
     var nowLine = $('gd-now'), nx = (now - from) / 60000 * GD_MIN;
-    nowLine.style.left = (300 + nx) + 'px';
+    nowLine.style.left = (368 + nx) + 'px';
     nowLine.style.display = nx >= 0 && nx <= GD_SPAN * GD_MIN ? '' : 'none';
     box.innerHTML = '';
     var lanes = {}, visible = [], others = [];
-    var half = Math.min(10, Math.floor((n - 1) / 2)), last = Math.min(10, n - 1 - half);
+    var half = Math.min(7, Math.floor((n - 1) / 2)), last = Math.min(7, n - 1 - half);   // 1.6: 15 Zeilen, dafuer groesser
     for (var d = -half; d <= last; d++) {
       var idx = (at + d + n * 3) % n, ch = sat.list[idx];
       if (!ch || lanes[epgKey(ch)]) continue;
       var row = el('div', 'grow' + (d === 0 ? ' cur' : '') + (idx === playing ? ' playing' : ''), box);
       var name = el('div', 'gname', row);
       el('span', 'gn', name, String(ch.major));
+      var lg = el('span', 'glogo', name), lu = logoFor(ch);
+      if (lu) { var im2 = el('img', '', lg); im2.src = lu; im2.onerror = function () { this.parentNode.className = 'glogo none'; }; }
+      else lg.className = 'glogo none';
       el('span', 'gc', name, channelName(ch));
       var lane = el('div', 'glane', row);
       lanes[epgKey(ch)] = {lane: lane, cur: d === 0};
@@ -1455,8 +1536,8 @@ var Plus = (function () {
     if (k === 403) { sweepStart(); return; }   // rot: EPG-Suchlauf
     if (k === K.up) gd.sel = (gd.sel - 1 + n) % n;
     else if (k === K.down) gd.sel = (gd.sel + 1) % n;
-    else if (k === 427) gd.sel = (gd.sel + GD_PAGE) % n;   // P+: eine Seite weiter
-    else if (k === 428) gd.sel = (gd.sel - GD_PAGE + n * 3) % n;   // P−: eine Seite zurueck
+    else if (k === 427) gd.sel = (gd.sel - GD_PAGE + n * 3) % n;   // 1.6: P+ eine Seite nach oben
+    else if (k === 428) gd.sel = (gd.sel + GD_PAGE) % n;   // P− eine Seite nach unten
     else if (k === K.right) gd.t = Math.min(Date.now() + GD_AHEAD, Math.max(gd.t, Date.now()) + GD_STEP);
     else if (k === K.left) gd.t = Math.max(Date.now(), gd.t - GD_STEP);
     else return;
@@ -2291,6 +2372,7 @@ var Plus = (function () {
    */
   function cards(tab, hooks) {
     var out = [];
+    if (tab !== 1) stopPreview();
     if (tab === 0) {
       guideHooks = hooks;
       if (sat.ok && sat.channel) {
@@ -2311,7 +2393,11 @@ var Plus = (function () {
       }
     } else if (tab === 1) {
       // Welt-TV: Tipp (flach) und Suche darunter, "Alle Sender", dann die 10 zuletzt gesehenen
-      if (featured[0]) { var a = worldCard(featured[0], featured, 0); a.rect = [80, 262, 700, 300]; a.inside = true; out.push(a); }
+      loadSport();
+      if (sportCh && !ui.open) {
+        out.push({id: 'sport' + sportCh.url, draw: drawSport, text: '', kicker: '', title: '', plain: true, inside: true, rect: [80, 262, 700, 300],
+          run: function () { stopPreview(); play([sportCh], 0, 'Welt-TV'); }});
+      } else if (featured[0]) { stopPreview(); var a = worldCard(featured[0], featured, 0); a.rect = [80, 262, 700, 300]; a.inside = true; out.push(a); }
       out.push({id: 'wsearch', text: 'Sender suchen', kicker: 'Welt-TV', title: '', rect: [80, 582, 700, 180], inside: true, plain: true,
         run: function () { openWorld('search'); }});
       out.push({id: 'wtv', text: 'Alle Sender', kicker: 'Kategorien · Länder · Themen', title: '', icon: 'cast', rect: [800, 262, 300, 500], inside: true, plain: true,
@@ -2897,11 +2983,12 @@ var Plus = (function () {
     onLegend: function (fn) { legendHook = fn; },
     liveMorph: liveMorph,
     morphing: function () { return !!morph; },
-    cornerOk: function () { return sat.ok && !!sat.channel && ui.open !== 'player' && ui.open !== 'wx' && ui.open !== 'topics' && ui.open !== 'wtv' && ui.open !== 'light' && !(ui.open === 'guide' && gd.detail); },
+    cornerOk: function () { return sat.ok && !!sat.channel && ui.open !== 'player' && ui.open !== 'wx' && ui.open !== 'topics' && ui.open !== 'wtv' && ui.open !== 'light' ; },
     // im Programmfuehrer 10 % kleiner und ueber der Legende, sonst rechts unten
     cornerRect: function () { return ui.open === 'guide' ? [1336, 724, 504, 284] : [1316, 728, 560, 315]; },
     openGuide: openGuide,
     openLight: openLight,
+    stopPreview: stopPreview,
     openMedia: openMedia,
     setApps: function (list, launch) { extApps = list || []; extLaunch = launch; },
     zapMode: function () { return zapMode; },
