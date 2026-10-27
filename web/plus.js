@@ -190,7 +190,8 @@ var Plus = (function () {
   function program(p) {
     if (!p) return null;
     var start = tzMs(p.startTime), dur = (p.duration || 0) * 1000;
-    return {title: p.title || '', start: start, end: dur ? start + dur : 0, text: p.detailedDescription || p.description || ''};
+    return {title: p.title || '', start: start, end: dur ? start + dur : 0, text: p.detailedDescription || p.description || '',
+      lang: p.language || '', rating: p.rating || ''};
   }
 
   function channelName(c) { return c ? (c.channelName || c.programName || ('Kanal ' + c.major)) : ''; }
@@ -277,9 +278,11 @@ var Plus = (function () {
     function step() {
       if (morph !== token) return;
       var k = Math.min(1, (Date.now() - t0) / ms), e = ease(k), r = [];
-      for (var i = 0; i < 4; i++) r.push(Math.round(from[i] + (to[i] - from[i]) * e));
+      // gerade Pixelwerte: der Videoplan des Fernsehers springt sonst zwischen Halbbildern
+      for (var i = 0; i < 4; i++) r.push(Math.round((from[i] + (to[i] - from[i]) * e) / 2) * 2);
+      if (k < 1 && r.join(',') === liveRect) { setTimeout(step, 8); return; }
       liveRect = r.join(',');
-      var next = function () { if (morph !== token) return; if (k >= 1) { morph = null; if (done) done(); } else setTimeout(step, 16); };
+      var next = function () { if (morph !== token) return; if (k >= 1) { morph = null; if (done) done(); } else setTimeout(step, 0); };
       try { tvw.show(function () { liveState(true); next(); }, function () { next(); }, [r[0] + 'px', r[1] + 'px', r[2] + 'px', r[3] + 'px'], 'MAIN'); }
       catch (e2) { morph = null; if (done) done(); }
     }
@@ -931,6 +934,7 @@ var Plus = (function () {
     if (k === K.up || k === 427) play(ui.playList, (ui.playing - 1 + n) % n, ui.playLabel);
     else if (k === K.down || k === 428) play(ui.playList, (ui.playing + 1) % n, ui.playLabel);
     else if (k === K.back) closePlayer();
+    else if (k === 403) Recorder.world(ui.playList && ui.playList[ui.playing]);   // rot: aufnehmen / beenden
     else if (k === K.ok || k === K.left || k === K.right) overlayWorld();
     else osd();
   }
@@ -1035,7 +1039,7 @@ var Plus = (function () {
 
   // MARK: - Programmfuehrer (eigene Ebene): 10 Sender davor, der aktuelle, 10 danach, mit Zeitleiste
 
-  var gd = {at: 0, from: 0, sel: 0};
+  var gd = {at: 0, from: 0, sel: 0, t: 0, menu: -1, detail: false, prog: null, ch: null};
   var GD_MIN = 5.6;   // Pixel pro Minute (1.4: Zeilen enden vor dem Fernsehbild rechts unten)
   var GD_SPAN = 180;   // Minuten sichtbar
 
@@ -1120,17 +1124,49 @@ var Plus = (function () {
     return 0;
   }
 
+  // Free My TV+ 1.5: Programmfuehrer mit Zeitachse (◄ ►), Seiten (P+ P−), Menue auf OK (Ansehen, Info, Aufnehmen),
+  // ausfuehrlicher Info-Seite und EPG-Auffrischung nach 1, 2 und 3 Minuten, dann alle 5 Minuten.
+  var GD_PAGE = 21, GD_STEP = 30 * 60000, GD_AHEAD = 48 * 3600000;
   function openGuide() {
     if (!sat.list.length) return false;
     ui.open = 'guide';
     gd.sel = guideIndex();
+    gd.t = Date.now();
+    gd.menu = -1;
+    gd.detail = false;
     setClass($('guide'), 'open', true);
     paintGuide();
+    guideRefresh(0);
     legendChanged();
     return true;
   }
 
-  function laneFill(ln, list, from, now) {
+  var gdTimer = 0;
+  function guideRefresh(round) {
+    clearTimeout(gdTimer);
+    var wait = round < 3 ? 60000 : 5 * 60000;
+    gdTimer = setTimeout(function () {
+      if (ui.open !== 'guide') return;
+      for (var k in epg) if (epg.hasOwnProperty(k)) epg[k].at = 0;   // alles neu vom Tuner holen
+      if (!gd.detail && gd.menu < 0) paintGuide();
+      guideRefresh(round + 1);
+    }, wait);
+  }
+
+  function guideFrom() { var f = Math.max(gd.t, Date.now()) - 30 * 60000; return f - f % (30 * 60000); }
+
+  /** Die Sendung des Senders zum Zeitpunkt gd.t (oder die naechste danach). */
+  function guidePick(list) {
+    var t = Math.max(gd.t, Date.now()), best = null;
+    for (var i = 0; list && i < list.length; i++) {
+      var p = list[i];
+      if (p.start <= t && (!p.end || p.end > t)) return p;
+      if (p.start > t && (!best || p.start < best.start)) best = p;
+    }
+    return best;
+  }
+
+  function laneFill(ln, list, from, now, pick) {
     ln.innerHTML = '';
     var any = false;
     for (var i = 0; i < list.length; i++) {
@@ -1138,7 +1174,7 @@ var Plus = (function () {
       if (!p.start || !p.end || p.end < from || p.start > from + GD_SPAN * 60000) continue;
       var x = Math.max(0, (p.start - from) / 60000 * GD_MIN), w = Math.min(GD_SPAN * GD_MIN, (p.end - from) / 60000 * GD_MIN) - x;
       if (w < 8) continue;
-      var b = el('div', 'gprog' + (p.start <= now && p.end > now ? ' live' : ''), ln);
+      var b = el('div', 'gprog' + (p.start <= now && p.end > now ? ' live' : '') + (pick && p === pick ? ' pick' : ''), ln);
       b.style.left = x + 'px';
       b.style.width = (w - 4) + 'px';
       el('div', 'gt', b, p.title);
@@ -1149,18 +1185,24 @@ var Plus = (function () {
     return any;
   }
 
+  function dayLabel(ms) {
+    var d = new Date(ms), t = new Date(), days = ['So', 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa'];
+    var diff = Math.round((new Date(d.getFullYear(), d.getMonth(), d.getDate()) - new Date(t.getFullYear(), t.getMonth(), t.getDate())) / 86400000);
+    return diff === 0 ? 'Heute' : diff === 1 ? 'Morgen' : days[d.getDay()] + ' ' + d.getDate() + '.' + (d.getMonth() + 1) + '.';
+  }
+
   function paintGuide() {
     var box = $('gd-rows'), head = $('gd-head'), at = gd.sel, n = sat.list.length, playing = guideIndex();
-    var now = Date.now(), from = now - 30 * 60000;
-    from = from - from % (30 * 60000);
+    var now = Date.now(), from = guideFrom();
     gd.from = from;
     head.innerHTML = '';
     for (var t = 0; t <= GD_SPAN; t += 30) {
-      var tick = el('div', 'tick', head, hm(from + t * 60000));
+      var tick = el('div', 'tick', head, (t === 0 ? dayLabel(from) + '  ' : '') + hm(from + t * 60000));
       tick.style.left = (t * GD_MIN) + 'px';
     }
-    var nowLine = $('gd-now');
-    nowLine.style.left = (300 + (now - from) / 60000 * GD_MIN) + 'px';
+    var nowLine = $('gd-now'), nx = (now - from) / 60000 * GD_MIN;
+    nowLine.style.left = (300 + nx) + 'px';
+    nowLine.style.display = nx >= 0 && nx <= GD_SPAN * GD_MIN ? '' : 'none';
     box.innerHTML = '';
     var lanes = {}, visible = [], others = [];
     var half = Math.min(10, Math.floor((n - 1) / 2)), last = Math.min(10, n - 1 - half);
@@ -1175,7 +1217,7 @@ var Plus = (function () {
       lanes[epgKey(ch)] = {lane: lane, cur: d === 0};
       visible.push(ch);
       var have = epgList(ch);
-      if (have) laneFill(lane, have, from, now);
+      if (have) laneFill(lane, have, from, now, d === 0 ? guidePick(have) : null);
       else el('div', 'gnone', lane, 'Programmdaten werden geladen …');
       if (d === 0) guideInfo(ch, have || []);
     }
@@ -1184,51 +1226,241 @@ var Plus = (function () {
       return function (list) {
         var l = lanes[epgKey(c)];
         if (!l) return;
-        if (!laneFill(l.lane, list, from, Date.now())) { l.lane.innerHTML = ''; el('div', 'gnone', l.lane, 'Keine Programmdaten vom Sender'); }
+        if (!laneFill(l.lane, list, from, Date.now(), l.cur ? guidePick(list) : null)) { l.lane.innerHTML = ''; el('div', 'gnone', l.lane, 'Keine Programmdaten vom Sender'); }
         if (l.cur) guideInfo(c, list);
       };
     });
+    paintGuideMenu();
   }
 
+  /** Rechts oben, kurz: Bild, Titel, Zeit, zwei, drei Zeilen. Mehr steht unter OK, Info. */
   function guideInfo(ch, list) {
-    var box = $('gd-info'), now = Date.now(), cur = null;
+    var box = $('gd-info'), cur = guidePick(list);
+    gd.prog = cur;
+    gd.ch = ch;
     box.innerHTML = '';
-    for (var i = 0; i < list.length; i++) if (list[i].start <= now && list[i].end > now) cur = list[i];
     if (!cur) { el('div', 'it', box, channelName(ch)); return; }
     var w = wikiFor(cur.title);
     if (w && w.img) { var im = el('div', 'iimg', box); im.style.backgroundImage = 'url("' + w.img + '")'; }
     el('div', 'it', box, cur.title);
-    el('div', 'itime', box, channelName(ch) + '  ·  ' + hm(cur.start) + '–' + hm(cur.end) + '  ·  noch ' + Math.max(0, Math.round((cur.end - now) / 60000)) + ' Min.');
+    var now = Date.now();
+    el('div', 'itime', box, channelName(ch) + '  ·  ' + (cur.start > now ? dayLabel(cur.start) + ' ' : '') + hm(cur.start) + '–' + hm(cur.end) +
+      (cur.start <= now && cur.end > now ? '  ·  noch ' + Math.max(0, Math.round((cur.end - now) / 60000)) + ' Min.' : ''));
     var text = cur.text || (w && w.text) || '';
-    if (text) el('div', 'itx', box, text);
+    if (text) el('div', 'itx short', box, text);
+    el('div', 'imore', box, 'OK: Ansehen · Info · Aufnehmen');
+  }
+  function guideWiki() {
+    if (gd.detail) paintDetail();
+    else if (gd.ch) guideInfo(gd.ch, epgList(gd.ch) || []);
+  }
+
+  // Menue auf OK: drei Kacheln ueber der Zeile
+  function menuItems() {
+    var p = gd.prog, now = Date.now(), future = p && p.start > now + 60000;
+    return [{id: 'watch', label: future ? 'Erinnern' : 'Programm ansehen', sym: future ? 'bell' : 'play'},
+      {id: 'info', label: 'Info', sym: 'sparkles'},
+      {id: 'rec', label: future ? 'Aufnahme planen' : 'Aufnehmen', sym: 'live_tv'}];
+  }
+  function paintGuideMenu() {
+    var m = $('gd-menu');
+    if (!m) { m = el('div', '', $('guide')); m.id = 'gd-menu'; }
+    m.innerHTML = '';
+    setClass(m, 'on', gd.menu >= 0);
+    if (gd.menu < 0) return;
+    var items = menuItems();
+    el('div', 'mh', m, (gd.prog ? gd.prog.title : channelName(gd.ch)) + '  ·  ' + channelName(gd.ch));
+    for (var i = 0; i < items.length; i++) {
+      var b = el('div', 'mtile' + (i === gd.menu ? ' focus' : ''), m);
+      var sy = el('span', 'sym', b);
+      sy.style.webkitMaskImage = sy.style.maskImage = 'url(symbols/' + items[i].sym + '.png)';
+      el('div', 'ml', b, items[i].label);
+    }
+  }
+
+  function menuRun(id) {
+    var ch = sat.list[gd.sel], p = gd.prog;
+    if (id === 'info') { gd.menu = -1; gd.detail = true; paintGuideMenu(); paintDetail(); legendChanged(); if (ui.onClose) ui.onClose('refresh'); return; }
+    if (id === 'rec') { gd.menu = -1; paintGuideMenu(); Recorder.sat(ch, p); return; }
+    // ansehen (oder erinnern)
+    gd.menu = -1;
+    if (p && p.start > Date.now() + 60000) { Recorder.remind(ch, p); paintGuide(); return; }
+    if (gd.sel !== guideIndex()) {
+      sat.channel = ch; sat.now = null; sat.next = null;
+      changed();
+      tune(ch, function () { changed(); });
+    }
+    closeGuide();
+    if (guideHooks.watch) guideHooks.watch();
+  }
+
+  // Die ausfuehrliche Info: grosse Schrift, Bild, wann, wo, wer, Genre, Aehnliches
+  var similar = {};
+  function similarFor(page, done) {
+    if (similar[page] !== undefined) return done(similar[page]);
+    similar[page] = [];
+    getText('https://de.wikipedia.org/w/api.php?action=query&list=search&srlimit=6&format=json&origin=*&srsearch=' +
+      encodeURIComponent('morelike:' + page), function (err, text) {
+      if (err) return;
+      try {
+        var j = JSON.parse(text), out = [], r = j.query && j.query.search || [];
+        for (var i = 0; i < r.length; i++) out.push(r[i].title);
+        similar[page] = out;
+        done(out);
+      } catch (e) {}
+    }, 8000);
+  }
+  /** Mitwirkende, Regie, Genre, Jahr aus dem EPG-Text (die Sender schreiben das meist ans Ende). */
+  function parseCredits(text) {
+    var out = {}, m;
+    if ((m = /(?:Darsteller|Mit|Besetzung)\s*:?\s*([^.]{3,300})/i.exec(text))) out.cast = m[1].replace(/\s+-\s+/g, ' als ').replace(/\s+/g, ' ');
+    if ((m = /Regie\s*:?\s*([^.,]{3,80})/i.exec(text))) out.director = m[1];
+    if ((m = /(?:Buch|Autor|Drehbuch)(?:\/Autor)?\s*:?\s*([^.,]{3,80})/i.exec(text))) out.writer = m[1];
+    if ((m = /(?:Moderation|Moderator|Moderatorin|mit)\s+([A-ZÄÖÜ][a-zäöüß]+ [A-ZÄÖÜ][a-zäöüß]+)/.exec(text))) out.host = m[1];
+    if ((m = /(Spielfilm|Fernsehfilm|Serie|Dokumentation|Doku|Reportage|Magazin|Nachrichten|Show|Talkshow|Krimi|Komödie|Drama|Thriller|Sitcom|Zeichentrick|Animation|Sport|Musik|Quiz|Gerichtsdrama|Actionfilm|Western|Science-Fiction|Abenteuer|Liebesfilm|Horrorfilm|Kinderserie|Naturdoku)[^.,]{0,40}?,?\s*([A-Z]{1,3}[a-z]*(?:\/[A-Z][a-z]+)*)?\s*((?:19|20)\d\d)?/.exec(text))) {
+      out.genre = m[1]; if (m[2]) out.country = m[2]; if (m[3]) out.year = m[3];
+    }
+    return out;
+  }
+  function paintDetail() {
+    var d = $('gd-detail');
+    if (!d) { d = el('div', '', $('guide')); d.id = 'gd-detail'; }
+    setClass(d, 'on', gd.detail);
+    if (!gd.detail) return;
+    d.innerHTML = '';
+    var p = gd.prog, ch = gd.ch, now = Date.now();
+    if (!p) { el('div', 'dt', d, channelName(ch)); el('div', 'dx', d, 'Zu dieser Zeit liefert der Sender keine Programmdaten.'); return; }
+    var w = wikiFor(p.title) || {}, cr = parseCredits(p.text || '');
+    var side = el('div', 'dside', d);
+    if (w.img) { var im = el('div', 'dimg', side); im.style.backgroundImage = 'url("' + w.img + '")'; }
+    var facts = el('div', 'dfacts', side);
+    function fact(k, v) { if (!v) return; var r = el('div', 'df', facts); el('span', 'dk', r, k); el('span', 'dv', r, v); }
+    fact('Wann', dayLabel(p.start) + ', ' + hm(p.start) + '–' + hm(p.end) + (p.start <= now && p.end > now ? '  (läuft, noch ' + Math.round((p.end - now) / 60000) + ' Min.)' : ''));
+    fact('Sender', channelName(ch) + '  ·  Programmplatz ' + ch.major);
+    fact('Genre', [cr.genre || w.desc || '', cr.country || '', cr.year || ''].join(' ').replace(/^\s+|\s+$/g, '').replace(/\s+/g, ' '));
+    fact('Mit', cr.cast || cr.host || '');
+    fact('Regie', cr.director || '');
+    fact('Buch', cr.writer || '');
+    fact('Sprache', p.lang || '');
+    fact('Alter', p.rating ? 'ab ' + p.rating : '');
+    var main = el('div', 'dmain', d);
+    el('div', 'dt', main, p.title);
+    el('div', 'dx', main, p.text || w.text || 'Der Sender liefert zu dieser Sendung keine Beschreibung.');
+    if (p.text && w.text && w.text !== p.text) { el('div', 'dsub', main, 'Aus der Wikipedia'); el('div', 'dx wiki', main, w.text); }
+    // weitere Termine im EPG und aehnliche Sendungen aus der Wikipedia
+    var more = [], seen = {};
+    for (var k in epg) {
+      if (!epg.hasOwnProperty(k)) continue;
+      var l = epg[k].list;
+      for (var i = 0; i < l.length; i++) if (l[i] !== p && l[i].title === p.title && l[i].start > now && !seen[l[i].start]) {
+        seen[l[i].start] = true;
+        more.push(dayLabel(l[i].start) + ' ' + hm(l[i].start) + '  ' + chanByKey(k));
+      }
+    }
+    if (more.length) { el('div', 'dsub', main, 'Weitere Termine'); el('div', 'dx', main, more.slice(0, 4).join('   ·   ')); }
+    var simBox = el('div', 'dx sim', main);
+    if (w.page) similarFor(w.page, function (list) {
+      simBox.innerHTML = '';
+      if (!list.length) return;
+      el('div', 'dsub', simBox, 'Ähnliche Sendungen');
+      simBox.appendChild(document.createTextNode(list.join('   ·   ')));
+    });
+  }
+  function chanByKey(k) {
+    for (var i = 0; i < sat.list.length; i++) if (epgKey(sat.list[i]) === k) return channelName(sat.list[i]);
+    return '';
   }
 
   function closeGuide() {
     ui.open = null;
+    clearTimeout(gdTimer);
+    gd.menu = -1;
+    gd.detail = false;
+    paintGuideMenu();
+    paintDetail();
     epgGen++;
     epgQ = [];
+    sweepStop();
     setClass($('guide'), 'open', false);
     if (ui.onClose) ui.onClose();
   }
 
-  // 1.4: ▲ ▼ waehlen nur aus, OK schaltet um (OK auf dem laufenden Sender: zurueck zur Startseite)
-  function guideKey(k, K) {
-    var n = sat.list.length;
-    if (k === K.back) { closeGuide(); return; }
-    if (k === K.ok) {
-      if (gd.sel === guideIndex()) { closeGuide(); return; }
-      var ch = sat.list[gd.sel];
-      sat.channel = ch; sat.now = null; sat.next = null;
-      changed();
-      tune(ch, function () { changed(); });
-      paintGuide();
+  // EPG-Suchlauf (rote Taste): je Transponder ein Sender fuer ein paar Sekunden, damit der Tuner dessen
+  // Programmdaten einsammelt. Danach zurueck zum Sender von vorher.
+  var sweep = null;
+  function sweepStart() {
+    if (sweep || !sat.list.length) return;
+    var seen = {}, list = [], n = sat.list.length;
+    for (var o = -40; o <= 40; o++) {
+      var c = sat.list[(gd.sel + o + n * 3) % n], ts = c && (String(c.originalNetworkID) + '.' + String(c.transportStreamID));
+      if (!c || (c.transportStreamID === undefined && seen[epgKey(c)])) continue;
+      var key = c.transportStreamID !== undefined ? ts : epgKey(c);
+      if (seen[key]) continue;
+      seen[key] = true;
+      list.push(c);
+    }
+    sweep = {list: list, i: 0, back: sat.channel, timer: 0};
+    sweepNext();
+  }
+  function sweepNext() {
+    if (!sweep) return;
+    var head = $('gd-sweep') || el('div', '', $('guide'));
+    head.id = 'gd-sweep';
+    if (sweep.i >= sweep.list.length) {
+      var back = sweep.back;
+      sweep = null;
+      head.textContent = 'EPG-Suchlauf fertig';
+      setTimeout(function () { if (!sweep) head.textContent = ''; }, 4000);
+      if (back) tune(back, function () { refreshSat(); });
+      for (var k in epg) if (epg.hasOwnProperty(k)) epg[k].at = 0;
+      if (ui.open === 'guide') paintGuide();
       return;
     }
-    if (k === K.left || k === K.right) { closeGuide(); if (guideHooks.fullTV) guideHooks.fullTV(); return; }   // raus zum Fernsehbild
-    if (k === K.up) { gd.sel = (gd.sel - 1 + n) % n; paintGuide(); return; }
-    if (k === K.down) { gd.sel = (gd.sel + 1) % n; paintGuide(); return; }
-    if (k === 427) { zap(1); gd.sel = guideIndex(); paintGuide(); return; }
-    if (k === 428) { zap(-1); gd.sel = guideIndex(); paintGuide(); return; }
+    var c = sweep.list[sweep.i++];
+    head.textContent = 'EPG-Suchlauf ' + sweep.i + ' von ' + sweep.list.length + ': ' + channelName(c) + '  ·  Zurück bricht ab';
+    tune(c, function () {});
+    sweep.timer = setTimeout(sweepNext, 9000);
+  }
+  function sweepStop() {
+    if (!sweep) return;
+    clearTimeout(sweep.timer);
+    var back = sweep.back;
+    sweep = null;
+    var head = $('gd-sweep');
+    if (head) head.textContent = '';
+    if (back) tune(back, function () { refreshSat(); });
+  }
+
+  function guideKey(k, K) {
+    var n = sat.list.length;
+    if (sweep) { if (k === K.back) { sweepStop(); paintGuide(); } return; }
+    if (gd.detail) {
+      if (k === K.back || k === K.ok || k === 457) { gd.detail = false; paintDetail(); paintGuide(); if (ui.onClose) ui.onClose('refresh'); }
+      else if (k === K.down) { $('gd-detail').scrollTop += 120; }
+      else if (k === K.up) { $('gd-detail').scrollTop -= 120; }
+      return;
+    }
+    if (gd.menu >= 0) {
+      var items = menuItems();
+      if (k === K.back) gd.menu = -1;
+      else if (k === K.left) gd.menu = Math.max(0, gd.menu - 1);
+      else if (k === K.right) gd.menu = Math.min(items.length - 1, gd.menu + 1);
+      else if (k === K.ok) { menuRun(items[gd.menu].id); return; }
+      paintGuideMenu();
+      return;
+    }
+    if (k === K.back) { closeGuide(); return; }
+    if (k === K.ok) { gd.menu = 0; paintGuideMenu(); return; }
+    if (k === 457) { gd.detail = true; paintDetail(); if (ui.onClose) ui.onClose('refresh'); return; }   // Info-Taste
+    if (k === 403) { sweepStart(); return; }   // rot: EPG-Suchlauf
+    if (k === K.up) gd.sel = (gd.sel - 1 + n) % n;
+    else if (k === K.down) gd.sel = (gd.sel + 1) % n;
+    else if (k === 427) gd.sel = (gd.sel + GD_PAGE) % n;   // P+: eine Seite weiter
+    else if (k === 428) gd.sel = (gd.sel - GD_PAGE + n * 3) % n;   // P−: eine Seite zurueck
+    else if (k === K.right) gd.t = Math.min(Date.now() + GD_AHEAD, Math.max(gd.t, Date.now()) + GD_STEP);
+    else if (k === K.left) gd.t = Math.max(Date.now(), gd.t - GD_STEP);
+    else return;
+    paintGuide();
   }
   var guideHooks = {};
 
@@ -1255,7 +1487,10 @@ var Plus = (function () {
       try {
         fs.listStorages(function (list) {
           for (var i = 0; i < list.length; i++) {
-            if (list[i].type === 'EXTERNAL' && list[i].state === 'MOUNTED') md.rows.push({label: 'USB: ' + list[i].label, kind: 'dir', path: list[i].label});
+            if (list[i].type === 'EXTERNAL' && list[i].state === 'MOUNTED') {
+              md.rows.push({label: 'USB: ' + list[i].label, kind: 'dir', path: list[i].label});
+              md.rows.splice(1, 0, {label: '● Aufnahmen auf dem USB-Stick', kind: 'dir', path: list[i].label + '/' + REC_DIR});
+            }
           }
           if (md.rows.length === 1) md.rows.push({label: 'Kein USB-Speicher gefunden. Stick einstecken, dann OK zum Neuladen.', kind: 'reload'});
           paintMedia();
@@ -1263,8 +1498,41 @@ var Plus = (function () {
       } catch (e) {}
     } else md.rows.push({label: 'USB-Speicher gibt es nur am Fernseher', kind: 'none'});
     md.rows.push({label: 'Eigene Quellen und Listen: in Welt-TV unter „Eigene Quellen“', kind: 'wtv'});
+    var c = Recorder.cfg();
+    if (c.nas) md.rows.push({label: '● Aufnahmen im Netzwerk', kind: 'nasrec'});
+    md.rows.push({label: 'Aufnahmen speichern auf:  ' + (c.target === 'nas' ? 'Netzwerkspeicher' : 'USB-Stick') + '   (OK wechselt)', kind: 'target'});
+    md.rows.push({label: 'Netzwerkspeicher (WebDAV-Adresse):  ' + (c.nas || 'nicht eingerichtet'), kind: 'input', field: 'recNas',
+      hint: 'WebDAV-Adresse, z. B. http://IP-vom-NAS:5005/aufnahmen/'});
+    md.rows.push({label: 'Netzwerk-Benutzer:  ' + (c.user || '–'), kind: 'input', field: 'recUser', hint: 'Benutzername für den Netzwerkspeicher'});
+    md.rows.push({label: 'Netzwerk-Passwort:  ' + (c.pass ? '••••••' : '–'), kind: 'input', field: 'recPass', hint: 'Passwort (bleibt nur auf diesem Fernseher)', secret: true});
     md.item = 0;
     paintMedia();
+  }
+
+  /** Aufnahmen im Netzwerkordner auflisten (WebDAV PROPFIND): jeder Unterordner mit playlist.m3u8 ist eine Aufnahme. */
+  function mediaNas() {
+    var c = Recorder.cfg(), base = c.nas.replace(/\/?$/, '/');
+    md.title = 'Aufnahmen im Netzwerk';
+    md.rows = [{label: 'Wird gelesen …', kind: 'none'}];
+    paintMedia();
+    var x = new XMLHttpRequest();
+    try { x.open('PROPFIND', base, true); } catch (e) { md.rows = [{label: 'Netzwerkspeicher nicht erreichbar', kind: 'none'}]; paintMedia(); return; }
+    if (c.user) x.setRequestHeader('Authorization', 'Basic ' + btoa(unescape(encodeURIComponent(c.user + ':' + c.pass))));
+    x.setRequestHeader('Depth', '1');
+    x.onload = function () {
+      var rows = [], re = /<[a-z]*:?href>([^<]+)<\/[a-z]*:?href>/gi, m, host = base.replace(/^([a-z]+:\/\/[^\/]+).*$/i, '$1');
+      while ((m = re.exec(x.responseText || ''))) {
+        var h = m[1], full = /^[a-z]+:\/\//i.test(h) ? h : host + h;
+        if (full.replace(/\/?$/, '/') === base || !/\/$/.test(h)) continue;
+        rows.push({label: decodeURIComponent(h.replace(/\/$/, '').replace(/^.*\//, '')), kind: 'file', url: full + 'playlist.m3u8'});
+      }
+      rows.sort(function (a, b) { return a.label < b.label ? 1 : -1; });
+      md.rows = rows.length ? rows : [{label: 'Noch keine Aufnahmen', kind: 'none'}];
+      md.item = 0;
+      paintMedia();
+    };
+    x.onerror = function () { md.rows = [{label: 'Netzwerkspeicher nicht erreichbar', kind: 'none'}]; paintMedia(); };
+    x.send();
   }
 
   function mediaDir(path, label) {
@@ -1311,13 +1579,25 @@ var Plus = (function () {
   function mediaKey(k, K) {
     var f = $('media-q');
     if (document.activeElement === f) {
+      if ((k === K.ok || k === 65376) && md.field) {
+        f.blur();
+        store(md.field, (f.value || '').replace(/^\s+|\s+$/g, ''));
+        md.field = null;
+        f.type = 'text';
+        setClass($('media-search'), 'on', false);
+        var keep = md.item;
+        mediaHome();
+        md.item = keep;
+        paintMedia();
+        return true;
+      }
       if (k === K.ok || k === 65376) {
         f.blur();
         var u = (f.value || '').replace(/^\s+|\s+$/g, '');
         if (/^(https?|rtsp|rtmp|udp|file):\/\//i.test(u)) { setClass($('media'), 'open', false); play([{name: u.replace(/^.*\//, '') || u, url: u, logo: '', tags: [], cc: ''}], 0, 'Mediaplayer'); }
         return true;
       }
-      if (k === K.back || k === 27 || k === 65385) { f.blur(); setClass($('media-search'), 'on', false); return true; }
+      if (k === K.back || k === 27 || k === 65385) { f.blur(); md.field = null; f.type = 'text'; setClass($('media-search'), 'on', false); return true; }
       return 'type';
     }
     if (k === K.back) {
@@ -1330,7 +1610,18 @@ var Plus = (function () {
     else if (k === K.ok) {
       var r = md.rows[md.item];
       if (!r) return true;
-      if (r.kind === 'url') { setClass($('media-search'), 'on', true); f.value = ''; f.focus(); return true; }
+      if (r.kind === 'url') { md.field = null; f.type = 'text'; f.placeholder = 'https://… oder rtsp://… eingeben, OK spielt ab'; setClass($('media-search'), 'on', true); f.value = ''; f.focus(); return true; }
+      if (r.kind === 'input') {
+        md.field = r.field;
+        f.type = r.secret ? 'password' : 'text';
+        f.placeholder = r.hint;
+        f.value = r.secret ? '' : (stored(r.field) || '');
+        setClass($('media-search'), 'on', true);
+        f.focus();
+        return true;
+      }
+      if (r.kind === 'target') { store('recTarget', Recorder.cfg().target === 'nas' ? 'usb' : 'nas'); var at2 = md.item; mediaHome(); md.item = at2; paintMedia(); return true; }
+      if (r.kind === 'nasrec') { md.stack.push(null); mediaNas(); return true; }
       if (r.kind === 'reload') { mediaHome(); return true; }
       if (r.kind === 'wtv') { setClass($('media'), 'open', false); ui.open = null; openWorld(); return true; }
       if (r.kind === 'dir') { md.stack.push(md.stack.length ? {path: md.curPath, label: md.title} : null); md.curPath = r.path; mediaDir(r.path, r.label.replace('▸  ', '')); return true; }
@@ -1812,9 +2103,11 @@ var Plus = (function () {
         ui.zone === 'bar' ? '▲ ▼ Buchstabe  ·  ◄ zurück ins Raster' : ui.zone === 'filter' ? '◄ ► Land  ·  OK filtern  ·  ▼ Sender' :
         ui.zone === 'search' ? 'OK tippen  ·  ▼ Ergebnisse  ·  ◄ Kategorien' : 'OK schließen  ·  ▼ Suche';
     }
-    if (ui.open === 'player') return 'OK oder ◄ ► Menü über dem Bild  ·  ▲ ▼ / P+/P− Sender  ·  Zurück';
+    if (ui.open === 'player') return 'OK oder ◄ ► Menü über dem Bild  ·  ▲ ▼ / P+/P− Sender  ·  Rot: ' + (Recorder.busy() ? 'Aufnahme beenden' : 'aufnehmen') + '  ·  Zurück';
     if (ui.open === 'tvlist') return tvl.info ? '▲ ▼ blättern  ·  ◄ zurück zur Liste' : '▲ ▼ Sender  ·  OK umschalten  ·  ► / Info Details  ·  P+/P−  ·  Zurück';
-    if (ui.open === 'guide') return '▲ ▼ Sender wählen  ·  OK umschalten  ·  P+/P− sofort  ·  ◄ ► Fernsehbild  ·  Zurück';
+    if (ui.open === 'light') return lt.dev ? '▲ ▼ wählen  ·  ◄ ► ändern  ·  OK schalten / anwenden  ·  Zurück: Geräte' : '▲ ▼ wählen  ·  OK öffnen  ·  Zurück';
+    if (ui.open === 'guide') return sweep ? 'Zurück: Suchlauf abbrechen' : gd.detail ? '▲ ▼ blättern  ·  OK oder Zurück: schließen' :
+      gd.menu >= 0 ? '◄ ► wählen  ·  OK  ·  Zurück' : '▲ ▼ Sender  ·  P+/P− Seite  ·  ◄ ► Zeit  ·  OK Menü  ·  Info  ·  Rot: EPG-Suchlauf  ·  Zurück';
     if (ui.open === 'topics') return tp.zone === 'letters' ? '◄ ► Buchstabe  ·  OK springen  ·  ▼ Themen' : tp.zone === 'slots' ? '▲ ▼ Kachel  ·  ► Thema wählen  ·  Zurück: fertig' : 'OK übernehmen  ·  ◄ ► ▲ ▼  ·  P+/P− Buchstaben  ·  ▲ ganz oben: A–Z';
     if (ui.open === 'wx') return 'OK aktualisieren  ·  Zurück';
     if (ui.open === 'privacy') return '▲ ▼ blättern  ·  OK neu prüfen  ·  Zurück';
@@ -1855,6 +2148,7 @@ var Plus = (function () {
     else if (ui.open === 'wx') weatherKey(k, K);
     else if (ui.open === 'topics') return topicsKey(k, K);
     else if (ui.open === 'guide') guideKey(k, K);
+    else if (ui.open === 'light') return lightKey(k, K);
     else if (ui.open === 'media') return mediaKey(k, K);
     return true;
   }
@@ -2006,11 +2300,11 @@ var Plus = (function () {
           rect: [80, 270, 920, 500], run: hooks.fullTV});
         var nx = sat.next, pic = nx ? picture(nx.title) : '';
         out.push({id: 'next' + (pic ? 'p' : ''), text: nx ? nx.title : 'Kein EPG vom Sender', kicker: (nx && nx.start ? 'Danach ' + hm(nx.start) : 'Danach') + '  ·  ' + channelName(sat.channel),
-          title: '', plain: true, inside: true, image: pic, rect: [1050, 270, 375, 360], run: hooks.fullTV});
+          title: '', plain: true, inside: true, image: pic, rect: [1053, 257, 374, 370], run: hooks.fullTV});
         out.push({id: 'zap' + (sat.channel ? sat.channel.major + '.' + sat.channel.minor : '') + (zapMode ? 'z' : ''), switcher: true, text: '', kicker: 'Sender umschalten', title: '', plain: true, inside: true,
-          rect: [1465, 270, 375, 360], draw: drawSwitcher, key: switcherKey, run: switcherOk});
+          rect: [1467, 257, 373, 370], draw: drawSwitcher, key: switcherKey, run: switcherOk});
         out.push({id: 'gsearch', text: 'Suchen: Sender, Sendungen, Apps & Mediatheken', kicker: '', title: '', plain: true, inside: true, flat: true, centered: true,
-          icon: 'search', rect: [1050, 670, 790, 100], run: function () { openWorld('search'); }});
+          icon: 'search', rect: [1053, 667, 787, 116], run: function () { openWorld('search'); }});
       } else {
         out.push({id: 'live', text: 'Fernsehen', kicker: 'Live-TV', title: 'Live-TV', meta: 'Sat / HD+', icon: 'live_tv', run: hooks.fullTV});
         for (var f = 0; f < featured.length && out.length < 3; f++) out.push(worldCard(featured[f], featured, f));
@@ -2080,9 +2374,10 @@ var Plus = (function () {
       try {
         var j = JSON.parse(text);
         if (j.type === 'disambiguation') return;
-        wiki[t] = {img: j.originalimage ? j.originalimage.source : j.thumbnail ? j.thumbnail.source : '', text: j.extract || ''};
+        wiki[t] = {img: j.originalimage ? j.originalimage.source : j.thumbnail ? j.thumbnail.source : '', text: j.extract || '', desc: j.description || '', page: j.title || t};
         changed();
         if (ui.open === 'tvlist') paintInfo();
+        if (ui.open === 'guide') guideWiki();
       } catch (e) {}
     }, 8000);
     return null;
@@ -2093,6 +2388,468 @@ var Plus = (function () {
     return {id: 'w' + i + ch.name, logo: ch.logo, title: ch.name, meta: 'Welt-TV' + (ch.quality ? '  ·  ' + ch.quality : ''),
       run: function () { play(list, i, 'Welt-TV'); }};
   }
+
+  // MARK: - Licht: Govee (1.5)
+  // Ueber die offizielle Govee-Cloud-API (die LAN-Steuerung braucht UDP, das koennen Samsung-Web-Apps nicht).
+  // Der API-Schluessel ist der eigene (Govee-Home-App: Profil, Einstellungen, API-Schluessel beantragen) und bleibt
+  // nur auf diesem Fernseher. Die Regler entstehen aus dem, was jedes Geraet selbst meldet.
+  var GOVEE = 'https://openapi.api.govee.com/router/api/v1/';
+  var COLORS = [['Warmweiß', 0xFFB46B], ['Weiß', 0xFFFFFF], ['Rot', 0xFF0000], ['Orange', 0xFF7A00], ['Gelb', 0xFFD400], ['Grün', 0x00D35A],
+    ['Türkis', 0x00D4C8], ['Blau', 0x0050FF], ['Violett', 0x8A2BE2], ['Pink', 0xFF2D95], ['Kino-Blau', 0x1A2A6C], ['Sonnenuntergang', 0xFF5E3A]];
+  var INSTANCE = {powerSwitch: 'Ein / Aus', brightness: 'Helligkeit', colorRgb: 'Farbe', colorTemperatureK: 'Weißton (Kelvin)',
+    lightScene: 'Szene', diyScene: 'Eigene Szene (DIY)', snapshot: 'Schnappschuss', musicMode: 'Musik-Modus', dreamViewToggle: 'DreamView (TV-Sync)',
+    gradientToggle: 'Farbverlauf', segmentedColorRgb: 'Alle Segmente: Farbe', segmentedBrightness: 'Alle Segmente: Helligkeit', nightlightToggle: 'Nachtlicht',
+    sceneStageToggle: 'Szenen-Bühne', presetScene: 'Voreinstellung', workMode: 'Arbeitsmodus', oscillationToggle: 'Schwenken', airDeflectorToggle: 'Luftklappe'};
+  var lt = {devices: [], dev: null, rows: [], item: 0, busy: false, pending: 0, msg: ''};
+  function goveeKey() { return stored('goveeKey') || ''; }
+  function govee(path, body, done) {
+    var x = new XMLHttpRequest();
+    try { x.open(body ? 'POST' : 'GET', GOVEE + path, true); } catch (e) { done(e); return; }
+    x.setRequestHeader('Govee-API-Key', goveeKey());
+    if (body) x.setRequestHeader('Content-Type', 'application/json');
+    x.timeout = 15000;
+    x.onload = function () {
+      var j = null;
+      try { j = JSON.parse(x.responseText); } catch (e) {}
+      if (x.status === 429) return done(new Error('Zu viele Befehle, kurz warten'));
+      if (x.status === 401 || x.status === 403) return done(new Error('API-Schlüssel ungültig'));
+      if (x.status !== 200 || !j) return done(new Error('Govee antwortet nicht (' + x.status + ')'));
+      done(null, j);
+    };
+    x.onerror = x.ontimeout = function () { done(new Error('Govee nicht erreichbar')); };
+    x.send(body ? JSON.stringify(body) : null);
+  }
+  function rid() { return String(Date.now()) + Math.floor(Math.random() * 1000); }
+  /** Beim Start der App: das gewaehlte Licht an und, wenn es das kann, TV-Sync (DreamView) an. */
+  function lightAuto() {
+    var id = stored('goveeAuto'), sku = stored('goveeAutoSku');
+    if (!id || !sku || !goveeKey()) return;
+    var dev = {sku: sku, device: id};
+    send(dev, {type: 'devices.capabilities.on_off', instance: 'powerSwitch'}, 1, function () {
+      setTimeout(function () { send(dev, {type: 'devices.capabilities.toggle', instance: 'dreamViewToggle'}, 1); }, 800);
+    });
+  }
+  setTimeout(lightAuto, 4000);
+
+  function openLight() {
+    ui.open = 'light';
+    setClass($('light'), 'open', true);
+    lt.dev = null;
+    lightHome();
+    legendChanged();
+    return true;
+  }
+  function lightHome() {
+    lt.dev = null;
+    lt.item = 0;
+    lt.rows = [{label: 'Govee-API-Schlüssel:  ' + (goveeKey() ? '••••••••  (OK ändert)' : 'noch nicht eingegeben (OK)'), kind: 'key'}];
+    if (!goveeKey()) {
+      lt.rows.push({label: 'Den Schlüssel gibt es kostenlos in der Govee-Home-App: Profil → Einstellungen → API-Schlüssel beantragen (kommt per E-Mail).', kind: 'none'});
+      paintLight();
+      return;
+    }
+    lt.rows.push({label: 'Geräte werden geladen …', kind: 'none'});
+    paintLight();
+    govee('user/devices', null, function (err, j) {
+      if (ui.open !== 'light' || lt.dev) return;
+      lt.rows = lt.rows.slice(0, 1);
+      if (err) { lt.rows.push({label: err.message, kind: 'none'}); paintLight(); return; }
+      lt.devices = j.data || [];
+      if (lt.devices.length > 1) {
+        lt.rows.push({label: 'Alle Lichter an', kind: 'all', on: 1});
+        lt.rows.push({label: 'Alle Lichter aus', kind: 'all', on: 0});
+      }
+      for (var i = 0; i < lt.devices.length; i++) lt.rows.push({label: '▸  ' + (lt.devices[i].deviceName || lt.devices[i].sku) + '   ·   ' + lt.devices[i].sku, kind: 'dev', dev: lt.devices[i]});
+      if (!lt.devices.length) lt.rows.push({label: 'Keine Geräte im Govee-Konto', kind: 'none'});
+      lt.item = Math.min(1, lt.rows.length - 1);
+      paintLight();
+    });
+  }
+  function capOf(dev, inst) { for (var i = 0; i < dev.capabilities.length; i++) if (dev.capabilities[i].instance === inst) return dev.capabilities[i]; return null; }
+
+  /** Ein Geraet: aus seinen Faehigkeiten werden die Zeilen. */
+  function lightDevice(dev) {
+    lt.dev = dev;
+    lt.item = 0;
+    lt.rows = [];
+    var caps = dev.capabilities || [];
+    for (var i = 0; i < caps.length; i++) {
+      var c = caps[i], t = c.type.replace('devices.capabilities.', ''), p = c.parameters || {}, name = INSTANCE[c.instance] || c.instance;
+      if (t === 'on_off' || t === 'toggle') lt.rows.push({label: name, kind: 'toggle', cap: c, val: 0});
+      else if (t === 'range') { var r = p.range || {min: 0, max: 100}; lt.rows.push({label: name, kind: 'range', cap: c, min: r.min, max: r.max, step: Math.max(1, Math.round((r.max - r.min) / 10)), val: r.max}); }
+      else if (t === 'color_setting' && c.instance === 'colorRgb') lt.rows.push({label: name, kind: 'enum', cap: c, opts: colorOpts(), at: 0});
+      else if (t === 'color_setting' && c.instance === 'colorTemperatureK') { var k = p.range || {min: 2000, max: 9000}; lt.rows.push({label: name, kind: 'range', cap: c, min: k.min, max: k.max, step: 500, val: 4000}); }
+      else if ((t === 'dynamic_scene' || t === 'mode') && p.options && p.options.length) lt.rows.push({label: name, kind: 'enum', cap: c, opts: p.options, at: 0});
+      else if (t === 'dynamic_scene') lt.rows.push({label: name + ' (wird geladen …)', kind: 'none', cap: c, load: true});
+      else if (t === 'music_setting') {
+        var f = musicField(p, 'musicMode');
+        if (f && f.options) lt.rows.push({label: name, kind: 'music', cap: c, opts: f.options, at: 0});
+      } else if (t === 'segment_color_setting' && c.instance === 'segmentedColorRgb') {
+        var seg = musicField(p, 'segment'), n = seg && seg.elementRange ? seg.elementRange.max + 1 : 15;
+        lt.rows.push({label: name, kind: 'segments', cap: c, segs: n, opts: colorOpts().concat([{name: 'Regenbogen', value: 'rainbow'}]), at: 0});
+      }
+    }
+    if (!lt.rows.length) lt.rows.push({label: 'Dieses Gerät meldet keine steuerbaren Funktionen', kind: 'none'});
+    // wichtigstes zuerst: Ein/Aus, TV-Sync (DreamView, beim H6099 die Kamera), Helligkeit, Farbe, Szenen, Musik
+    var ORDER = ['powerSwitch', 'dreamViewToggle', 'brightness', 'colorRgb', 'colorTemperatureK', 'lightScene', 'diyScene', 'musicMode', 'snapshot', 'segmentedColorRgb', 'segmentedBrightness', 'gradientToggle'];
+    function rank(r) { var i = r.cap ? ORDER.indexOf(r.cap.instance) : -1; return i < 0 ? 99 : i; }
+    lt.rows.sort(function (a, b) { return rank(a) - rank(b); });
+    if (capOf(dev, 'powerSwitch')) lt.rows.push({label: 'Mit Free My TV+ einschalten' + (capOf(dev, 'dreamViewToggle') ? ' (und TV-Sync an)' : ''), kind: 'auto',
+      val: stored('goveeAuto') === dev.device ? 1 : 0});
+    paintLight();
+    // aktuellen Zustand lesen und Szenen nachladen
+    govee('device/state', {requestId: rid(), payload: {sku: dev.sku, device: dev.device}}, function (err, j) {
+      if (err || lt.dev !== dev) return;
+      var st = j.payload && j.payload.capabilities || [];
+      for (var i = 0; i < st.length; i++) for (var r = 0; r < lt.rows.length; r++) {
+        var row = lt.rows[r];
+        if (!row.cap || row.cap.instance !== st[i].instance || !st[i].state) continue;
+        var v = st[i].state.value;
+        if (row.kind === 'toggle') row.val = v ? 1 : 0;
+        if (row.kind === 'range' && typeof v === 'number' && v) row.val = v;
+      }
+      paintLight();
+    });
+    var paths = [['device/scenes', 'lightScene'], ['device/diy-scenes', 'diyScene']];
+    for (var q = 0; q < paths.length; q++) (function (path, inst) {
+      if (!capOf(dev, inst)) return;
+      govee(path, {requestId: rid(), payload: {sku: dev.sku, device: dev.device}}, function (err, j) {
+        if (lt.dev !== dev) return;
+        var caps2 = !err && j.payload && j.payload.capabilities || [], opts = [];
+        for (var i = 0; i < caps2.length; i++) if (caps2[i].parameters && caps2[i].parameters.options) opts = opts.concat(caps2[i].parameters.options);
+        for (var r = 0; r < lt.rows.length; r++) if (lt.rows[r].cap && lt.rows[r].cap.instance === inst && lt.rows[r].load) {
+          lt.rows[r] = opts.length ? {label: INSTANCE[inst], kind: 'enum', cap: lt.rows[r].cap, opts: opts, at: 0} : {label: INSTANCE[inst] + ': keine vorhanden', kind: 'none'};
+        }
+        paintLight();
+      });
+    })(paths[q][0], paths[q][1]);
+  }
+  function colorOpts() { var o = []; for (var i = 0; i < COLORS.length; i++) o.push({name: COLORS[i][0], value: COLORS[i][1]}); return o; }
+  function musicField(p, name) { var f = p.fields || []; for (var i = 0; i < f.length; i++) if (f[i].fieldName === name) return f[i]; return null; }
+
+  function send(dev, cap, value, done) {
+    govee('device/control', {requestId: rid(), payload: {sku: dev.sku, device: dev.device, capability: {type: cap.type, instance: cap.instance, value: value}}}, function (err) {
+      lt.msg = err ? err.message : '';
+      if (done) done(err);
+      if (ui.open === 'light') paintLight();
+    });
+  }
+  function hsv(h) { var f = function (n) { var k = (n + h / 60) % 6; return Math.round(255 * (1 - Math.max(0, Math.min(k, 4 - k, 1)))); }; return (f(5) << 16) | (f(3) << 8) | f(1); }
+  function applyRow(row) {
+    var dev = lt.dev;
+    if (!dev || !row.cap) return;
+    if (row.kind === 'toggle') send(dev, row.cap, row.val);
+    else if (row.kind === 'range') send(dev, row.cap, row.val);
+    else if (row.kind === 'enum') send(dev, row.cap, row.opts[row.at].value);
+    else if (row.kind === 'music') send(dev, row.cap, {musicMode: row.opts[row.at].value, sensitivity: 100, autoColor: 1});
+    else if (row.kind === 'segments') {
+      var o = row.opts[row.at], all = [];
+      for (var i = 0; i < row.segs; i++) all.push(i);
+      if (o.value !== 'rainbow') { send(dev, row.cap, {segment: all, rgb: o.value}); return; }
+      // Regenbogen: sechs Farbgruppen nacheinander (Govee erlaubt 2 Befehle je Sekunde und Geraet)
+      var g = 0;
+      (function next() {
+        if (g >= 6 || lt.dev !== dev) return;
+        var part = [];
+        for (var s2 = 0; s2 < row.segs; s2++) if (Math.floor(s2 * 6 / row.segs) === g) part.push(s2);
+        var col = hsv(g * 60);
+        g++;
+        send(dev, row.cap, {segment: part, rgb: col}, function () { setTimeout(next, 600); });
+      })();
+    }
+  }
+  function rowValue(row) {
+    if (row.kind === 'toggle' || row.kind === 'auto') return row.val ? 'an' : 'aus';
+    if (row.kind === 'range') return '◄  ' + row.val + (row.cap.instance === 'colorTemperatureK' ? ' K' : ' %') + '  ►';
+    if (row.kind === 'enum' || row.kind === 'music' || row.kind === 'segments') return '◄  ' + (row.opts[row.at].name || '') + '  ►';
+    return '';
+  }
+  function paintLight() {
+    $('light-title').textContent = lt.dev ? (lt.dev.deviceName || lt.dev.sku) + (lt.msg ? '   ·   ' + lt.msg : '') : 'Govee-Licht' + (lt.msg ? '   ·   ' + lt.msg : '');
+    var box = $('light-rows');
+    box.innerHTML = '';
+    for (var i = 0; i < lt.rows.length; i++) {
+      var r = lt.rows[i], row = el('div', 'row' + (r.kind === 'none' ? ' dim' : '') + (i === lt.item ? ' focus' : ''), box, r.label);
+      var v = rowValue(r);
+      if (v) el('span', 'val', row, v);
+      if (r.kind === 'enum' && r.cap && r.cap.instance === 'colorRgb' || r.kind === 'segments') {
+        var c = r.opts[r.at].value;
+        if (typeof c === 'number') { var dot = el('span', 'dot', row); dot.style.background = '#' + ('00000' + c.toString(16)).slice(-6); }
+      }
+    }
+    var first = Math.max(0, Math.min(lt.rows.length - 10, lt.item - 4));
+    box.style.webkitTransform = box.style.transform = 'translateY(' + (-first * 76) + 'px)';
+  }
+  function lightKey(k, K) {
+    var f = $('light-q');
+    if (document.activeElement === f) {
+      if (k === K.ok || k === 65376) { f.blur(); store('goveeKey', (f.value || '').replace(/\s+/g, '')); setClass($('light-search'), 'on', false); lightHome(); return true; }
+      if (k === K.back || k === 27 || k === 65385) { f.blur(); setClass($('light-search'), 'on', false); return true; }
+      return 'type';
+    }
+    var row = lt.rows[lt.item];
+    if (k === K.back) {
+      if (lt.dev) lightHome();
+      else { ui.open = null; setClass($('light'), 'open', false); if (ui.onClose) ui.onClose(); }
+      return true;
+    }
+    if (k === K.up) lt.item = Math.max(0, lt.item - 1);
+    else if (k === K.down) lt.item = Math.min(lt.rows.length - 1, lt.item + 1);
+    else if ((k === K.left || k === K.right) && row) {
+      var d = k === K.right ? 1 : -1;
+      if (row.kind === 'range') { row.val = Math.max(row.min, Math.min(row.max, row.val + d * row.step)); }
+      else if (row.opts) { row.at = (row.at + d + row.opts.length) % row.opts.length; }
+      else if (row.kind === 'toggle') { row.val = d > 0 ? 1 : 0; }
+      else return true;
+      clearTimeout(lt.pending);
+      lt.pending = setTimeout(function () { applyRow(row); }, 450);   // erst senden, wenn die Taste ruht
+    } else if (k === K.ok && row) {
+      if (row.kind === 'key') { setClass($('light-search'), 'on', true); f.value = ''; f.focus(); return true; }
+      if (row.kind === 'dev') { lightDevice(row.dev); return true; }
+      if (row.kind === 'all') {
+        var i = 0;
+        (function next() {
+          if (i >= lt.devices.length) return;
+          var dv = lt.devices[i++], c = capOf(dv, 'powerSwitch');
+          if (c) send(dv, c, row.on, function () { setTimeout(next, 300); }); else next();
+        })();
+        lt.msg = row.on ? 'Alle an' : 'Alle aus';
+      } else if (row.kind === 'toggle') { row.val = row.val ? 0 : 1; applyRow(row); }
+      else if (row.kind === 'auto') { row.val = row.val ? 0 : 1; store('goveeAuto', row.val ? lt.dev.device : ''); store('goveeAutoSku', row.val ? lt.dev.sku : ''); }
+      else applyRow(row);
+    }
+    paintLight();
+    return true;
+  }
+
+  // MARK: - Recorder (1.5)
+  // Welt-TV (HLS) nimmt die App selbst auf: Segment fuer Segment auf den USB-Stick (eine .ts-Datei) oder in einen
+  // Netzwerkordner per WebDAV (Segmente und eine Wiedergabeliste, spielbar mit VLC oder hier im Mediaplayer).
+  // Sat-Sender kann keine fremde App aufnehmen: das macht der Fernseher selbst (REC-Taste im Fernsehbild).
+  // Adresse, Benutzer und Passwort fuers Netzwerk bleiben nur auf diesem Fernseher (localStorage).
+  var REC_DIR = 'FreeMyTV-Aufnahmen';
+  var Recorder = (function () {
+    var job = null;
+    function say(t) { if (guideHooks && guideHooks.toast) guideHooks.toast(t); }
+    function cfg() { return {target: stored('recTarget') || 'usb', nas: stored('recNas') || '', user: stored('recUser') || '', pass: stored('recPass') || ''}; }
+    function abs(base, u) {
+      if (/^[a-z]+:\/\//i.test(u)) return u;
+      if (u.charAt(0) === '/') return base.replace(/^([a-z]+:\/\/[^\/]+).*$/i, '$1') + u;
+      return base.replace(/[^\/]*([?#].*)?$/, '') + u;
+    }
+    function getBin(url, done) {
+      var x = new XMLHttpRequest();
+      try { x.open('GET', url, true); x.responseType = 'arraybuffer'; } catch (e) { done(e); return; }
+      x.timeout = 20000;
+      x.onload = function () { if (x.status >= 200 && x.status < 300 && x.response) done(null, x.response); else done(new Error('HTTP ' + x.status)); };
+      x.onerror = x.ontimeout = function () { done(new Error('net')); };
+      x.send();
+    }
+    function b64(buf) {
+      var u = new Uint8Array(buf), out = '', CH = 0x8000;
+      for (var i = 0; i < u.length; i += CH) out += String.fromCharCode.apply(null, u.subarray(i, i + CH));
+      return btoa(out);
+    }
+    function safe(name) { return (name || 'Aufnahme').replace(/[^A-Za-z0-9ÄÖÜäöüß _.-]+/g, '').replace(/\s+/g, '_').slice(0, 40); }
+    function stamp() { var d = new Date(); return d.getFullYear() + pad(d.getMonth() + 1) + pad(d.getDate()) + '-' + pad(d.getHours()) + pad(d.getMinutes()); }
+
+    // Ziel USB: erster eingesteckter Speicher, Ordner FreeMyTV-Aufnahmen, eine Datei, die waechst
+    function usbSink(name, ready) {
+      var fs = window.tizen && window.tizen.filesystem;
+      if (!fs || !fs.listStorages) return ready(new Error('Kein Dateizugriff'));
+      fs.listStorages(function (list) {
+        var st = null;
+        for (var i = 0; i < list.length; i++) if (list[i].type === 'EXTERNAL' && list[i].state === 'MOUNTED') st = list[i];
+        if (!st) return ready(new Error('Kein USB-Stick gefunden'));
+        fs.resolve(st.label, function (root) {
+          var dir;
+          try { dir = root.resolve(REC_DIR); } catch (e) { try { dir = root.createDirectory(REC_DIR); } catch (e2) { return ready(new Error('Ordner ließ sich nicht anlegen')); } }
+          var file, part = 1, size = 0, base = name;
+          function open() {
+            try { file = dir.createFile(base + (part > 1 ? '_teil' + part : '') + '.ts'); } catch (e) { return false; }
+            return true;
+          }
+          if (!open()) return ready(new Error('Datei ließ sich nicht anlegen'));
+          ready(null, {
+            label: 'USB ' + st.label + ' / ' + REC_DIR,
+            write: function (buf, done) {
+              // FAT32: hoechstens 4 GB je Datei, dann geht es in einer neuen weiter
+              if (size + buf.byteLength > 3900 * 1048576) { part++; size = 0; if (!open()) return done(new Error('voll')); }
+              try {
+                file.openStream('a', function (st2) {
+                  try { st2.writeBase64(b64(buf)); st2.close(); size += buf.byteLength; done(null); } catch (e) { try { st2.close(); } catch (e3) {} done(e); }
+                }, function (e) { done(e); });
+              } catch (e) { done(e); }
+            },
+            end: function () {}
+          });
+        }, function () { ready(new Error('USB-Stick ließ sich nicht öffnen')); }, 'rw');
+      }, function () { ready(new Error('Keine Speicher')); });
+    }
+
+    // Ziel Netzwerk (WebDAV): Ordner je Aufnahme, Segmente einzeln, dazu playlist.m3u8
+    function dav(method, url, body, c, done) {
+      var x = new XMLHttpRequest();
+      try { x.open(method, url, true); } catch (e) { done(e); return; }
+      if (c.user) x.setRequestHeader('Authorization', 'Basic ' + btoa(unescape(encodeURIComponent(c.user + ':' + c.pass))));
+      if (method === 'PROPFIND') x.setRequestHeader('Depth', '1');
+      x.timeout = 30000;
+      x.onload = function () { done(x.status >= 200 && x.status < 300 || x.status === 405 ? null : new Error('HTTP ' + x.status), x.responseText); };
+      x.onerror = x.ontimeout = function () { done(new Error('Netzwerkspeicher nicht erreichbar')); };
+      x.send(body || null);
+    }
+    function nasSink(name, ready) {
+      var c = cfg();
+      if (!c.nas) return ready(new Error('Kein Netzwerkspeicher eingerichtet (Mediaplayer)'));
+      var base = c.nas.replace(/\/?$/, '/'), folder = base + encodeURIComponent(name) + '/', n = 0, lines = [], target = 6;
+      dav('MKCOL', folder, null, c, function (err) {
+        if (err) return ready(err);
+        function playlist(end, done) {
+          var t = '#EXTM3U\n#EXT-X-VERSION:3\n#EXT-X-TARGETDURATION:' + target + '\n#EXT-X-MEDIA-SEQUENCE:0\n' + (end ? '#EXT-X-PLAYLIST-TYPE:VOD\n' : '') +
+            lines.join('') + (end ? '#EXT-X-ENDLIST\n' : '');
+          dav('PUT', folder + 'playlist.m3u8', t, c, done || function () {});
+        }
+        ready(null, {
+          label: 'Netzwerk ' + base.replace(/^[a-z]+:\/\/([^\/]+).*$/i, '$1'),
+          url: folder + 'playlist.m3u8',
+          write: function (buf, done, dur) {
+            var seg = 'seg' + ('0000' + (++n)).slice(-5) + '.ts';
+            target = Math.max(target, Math.ceil(dur || 6));
+            dav('PUT', folder + seg, buf, c, function (err2) {
+              if (err2) return done(err2);
+              lines.push('#EXTINF:' + (dur || 6).toFixed(3) + ',\n' + seg + '\n');
+              playlist(false);
+              done(null);
+            });
+          },
+          end: function () { playlist(true); }
+        });
+      });
+    }
+
+    function status() {
+      var b = $('recbadge');
+      if (!b) { b = el('div', '', $('stage') || document.body); b.id = 'recbadge'; }
+      setClass(b, 'on', !!job);
+      if (!job) return;
+      var sec = Math.round((Date.now() - job.started) / 1000);
+      b.textContent = '● REC  ' + job.name + '  ' + Math.floor(sec / 60) + ':' + pad(sec % 60) + '  ·  ' + Math.round(job.bytes / 1048576) + ' MB' + (job.err ? '  ·  ' + job.err : '');
+    }
+
+    function stop(why) {
+      if (!job) return;
+      var j = job;
+      job = null;
+      clearTimeout(j.timer);
+      clearInterval(j.tick);
+      try { j.sink.end(); } catch (e) {}
+      status();
+      say('Aufnahme beendet' + (why ? ' (' + why + ')' : '') + ': ' + j.name + ', ' + Math.round(j.bytes / 1048576) + ' MB auf ' + j.sink.label);
+    }
+
+    /** Welt-TV-Sender aufnehmen (HLS), bis gestoppt. */
+    function world(ch) {
+      if (job) { stop(); return; }
+      if (!ch || !/\.m3u8?(\?|$)/i.test(ch.url) && !/m3u8/i.test(ch.url)) { say('Aufnehmen geht bei Welt-TV-Sendern mit HLS-Stream (m3u8).'); return; }
+      var c = cfg(), name = safe(ch.name) + '_' + stamp();
+      (c.target === 'nas' ? nasSink : usbSink)(name, function (err, sink) {
+        if (err) { say('Aufnahme nicht möglich: ' + err.message); return; }
+        job = {name: ch.name, url: ch.url, sink: sink, started: Date.now(), bytes: 0, seen: {}, queue: [], busy: false, timer: 0, err: ''};
+        job.tick = setInterval(status, 1000);
+        status();
+        say('Aufnahme läuft: ' + ch.name + ' auf ' + sink.label + '. Rote Taste im Player beendet sie.');
+        poll(job, ch.url, true);
+      });
+    }
+    function poll(j, url, first) {
+      if (job !== j) return;
+      getText(url, function (err, text) {
+        if (job !== j) return;
+        if (err) { j.err = 'Stream hakt'; j.timer = setTimeout(function () { poll(j, url); }, 4000); return; }
+        if (/#EXT-X-STREAM-INF/.test(text)) {
+          // Hauptliste: die beste Qualitaet bis etwa 6 Mbit/s (USB-Stick und WLAN kommen da mit)
+          var lines = text.split(/\r?\n/), best = null, bw = -1, lowest = null, lbw = 1e12;
+          for (var i = 0; i < lines.length; i++) {
+            var m = /BANDWIDTH=(\d+)/.exec(lines[i]);
+            if (!m || !lines[i + 1]) continue;
+            var b = +m[1], u = abs(url, lines[i + 1].replace(/^\s+|\s+$/g, ''));
+            if (b <= 6000000 && b > bw) { bw = b; best = u; }
+            if (b < lbw) { lbw = b; lowest = u; }
+          }
+          return poll(j, best || lowest, true);
+        }
+        if (/#EXT-X-KEY:METHOD=(?!NONE)/.test(text)) { stop('der Sender verschlüsselt seinen Stream'); return; }
+        var map = /#EXT-X-MAP:URI="([^"]+)"/.exec(text);
+        if (map && first && !j.seen['map']) { j.seen['map'] = true; j.queue.push({url: abs(url, map[1]), dur: 0}); }
+        var td = +((/#EXT-X-TARGETDURATION:(\d+)/.exec(text) || [])[1] || 6), ls = text.split(/\r?\n/), dur = 0;
+        for (var k = 0; k < ls.length; k++) {
+          var l = ls[k].replace(/^\s+|\s+$/g, '');
+          if (/^#EXTINF:/.test(l)) dur = parseFloat(l.slice(8)) || td;
+          else if (l && l.charAt(0) !== '#') {
+            var su = abs(url, l);
+            if (!j.seen[su]) { j.seen[su] = true; j.queue.push({url: su, dur: dur}); }
+          }
+        }
+        // bei einer langen Liste am Anfang nur die letzten drei Stuecke (sonst beginnt die Aufnahme in der Vergangenheit)
+        if (first && j.queue.length > 4) j.queue = j.queue.slice(j.queue.length - 3);
+        drain(j);
+        if (/#EXT-X-ENDLIST/.test(text)) return;
+        j.timer = setTimeout(function () { poll(j, url); }, Math.max(2000, Math.min(10000, td * 1000 / 2)));
+      }, 15000);
+    }
+    function drain(j) {
+      if (j.busy || job !== j || !j.queue.length) return;
+      j.busy = true;
+      var s = j.queue.shift();
+      getBin(s.url, function (err, buf) {
+        if (job !== j) return;
+        if (err) { j.busy = false; j.err = 'Stück fehlt'; drain(j); return; }
+        j.sink.write(buf, function (err2) {
+          j.busy = false;
+          if (err2) { stop('Speichern fehlgeschlagen: ' + (err2.message || err2)); return; }
+          j.err = '';
+          j.bytes += buf.byteLength;
+          drain(j);
+        }, s.dur);
+      });
+    }
+
+    // Sat: der Fernseher nimmt selbst auf. Jetzt: umschalten und ins Fernsehbild, dort REC. Spaeter: Erinnerung, die
+    // zur Startzeit umschaltet und ins Fernsehbild wechselt.
+    function satRec(ch, p) {
+      if (p && p.start > Date.now() + 60000) {
+        timer({kind: 'rec', major: ch.major, minor: ch.minor, name: channelName(ch), title: p.title, start: p.start, end: p.end});
+        say('Geplant: ' + p.title + ' (' + dayLabel(p.start) + ' ' + hm(p.start) + '). Free My TV+ schaltet dann um und öffnet das Fernsehbild – dort REC drücken. Sat-Aufnahmen speichert der Fernseher selbst auf seinen USB-Stick.');
+        return;
+      }
+      say('Sat-Aufnahmen macht der Fernseher selbst: gleich öffnet sich das Fernsehbild auf ' + channelName(ch) + ' – dort die REC-Taste drücken (USB-Stick am TV). HD+-Sender erlauben das teils nicht.');
+      tune(ch, function () {
+        setTimeout(function () { try { window.tizen.application.launch('org.tizen.tv-viewer', function () {}, function () {}); } catch (e) {} }, 3500);
+      });
+    }
+    function remind(ch, p) {
+      timer({kind: 'remind', major: ch.major, minor: ch.minor, name: channelName(ch), title: p.title, start: p.start, end: p.end});
+      say('Erinnerung gesetzt: ' + p.title + ', ' + dayLabel(p.start) + ' ' + hm(p.start) + ' auf ' + channelName(ch));
+    }
+    function timers() { var t = stored('timers'); return t && t.length ? t : []; }
+    function timer(t) { var all = timers(); all.push(t); store('timers', all); }
+    setInterval(function () {
+      var all = timers(), keep = [], now = Date.now();
+      for (var i = 0; i < all.length; i++) {
+        var t = all[i];
+        if (t.start - now > 60000) { keep.push(t); continue; }
+        if (now > t.end) continue;   // verpasst (Fernseher aus)
+        var ch = null;
+        for (var k = 0; k < sat.list.length; k++) if (sat.list[k].major === t.major && sat.list[k].minor === t.minor) ch = sat.list[k];
+        if (!ch) continue;
+        if (t.kind === 'rec') satRec(ch, null);
+        else { say('Jetzt: ' + t.title + ' auf ' + t.name); sat.channel = ch; changed(); tune(ch, function () { changed(); }); }
+      }
+      if (keep.length !== all.length) store('timers', keep);
+    }, 20000);
+
+    return {world: world, stop: stop, sat: satRec, remind: remind, busy: function () { return !!job; }, cfg: cfg};
+  })();
 
   // MARK: - Start
 
@@ -2140,10 +2897,11 @@ var Plus = (function () {
     onLegend: function (fn) { legendHook = fn; },
     liveMorph: liveMorph,
     morphing: function () { return !!morph; },
-    cornerOk: function () { return sat.ok && !!sat.channel && ui.open !== 'player' && ui.open !== 'wx' && ui.open !== 'topics'; },
+    cornerOk: function () { return sat.ok && !!sat.channel && ui.open !== 'player' && ui.open !== 'wx' && ui.open !== 'topics' && ui.open !== 'wtv' && ui.open !== 'light' && !(ui.open === 'guide' && gd.detail); },
     // im Programmfuehrer 10 % kleiner und ueber der Legende, sonst rechts unten
     cornerRect: function () { return ui.open === 'guide' ? [1336, 724, 504, 284] : [1316, 728, 560, 315]; },
     openGuide: openGuide,
+    openLight: openLight,
     openMedia: openMedia,
     setApps: function (list, launch) { extApps = list || []; extLaunch = launch; },
     zapMode: function () { return zapMode; },

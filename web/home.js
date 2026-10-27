@@ -444,7 +444,8 @@
   var cardRects = [];
   var cardHooks = {
     fullTV: function () { var live = liveTV(); if (live) launcher(live.id, tr('Live TV'))(); else TV.launch('org.tizen.tv-viewer', null, function () {}); },
-    toast: function (t) { toast(t); }
+    toast: function (t) { toast(t); },
+    watch: function () { idleAt = Date.now(); setTimeout(function () { if (!tvFull) enterFull(); }, 50); }   // Programmfuehrer: "Programm ansehen"
   };
 
   function renderCards() {
@@ -515,17 +516,32 @@
   }
 
   /** Das Livebild in der grossen Karte: nur sichtbar, wenn sie es ist (kein Menue, keine Schublade, kein Bildschirmschoner). */
+  // Free My TV+ 1.5: nach der Schublade kommt das Livebild 0,75 s spaeter, nach Programmfuehrer und Senderliste 0,25 s,
+  // damit zuerst die Oberflaeche steht
+  var liveWas = {drawer: false, plus: false}, liveDelay = 0, liveTimer = 0;
   function syncLive() {
     var show = st.tab === 0 && cards[0] && cards[0].live && !sheetOpen() && st.zone !== Z.DRAWER && !saverOn &&
       !Plus.isOpen() && !document.hidden;
     if (Plus.morphing()) return;
+    if (show && !tvFull) {
+      if (liveWas.drawer) liveDelay = Date.now() + 750;
+      else if (liveWas.plus) liveDelay = Date.now() + 250;
+    }
+    liveWas.drawer = st.zone === Z.DRAWER;
+    liveWas.plus = Plus.isOpen();
+    if (show && Date.now() < liveDelay) {
+      Plus.live(null);
+      clearTimeout(liveTimer);
+      liveTimer = setTimeout(syncLive, liveDelay - Date.now() + 10);
+      return;
+    }
     if (tvFull && show) { Plus.live([0, 0, 1920, 1080]); return; }
     // Free My TV+ 1.3: ueber Menues und Suche wandert das Fernsehbild klein nach rechts unten
     if (!show && !saverOn && !document.hidden && Plus.isOpen() && Plus.cornerOk()) { Plus.live(Plus.cornerRect()); return; }
     Plus.live(show ? LIVE_RECT : null);
   }
 
-  // Free My TV+ 1.4: 20 Sekunden keine Taste, dann waechst das Livebild in 5 Sekunden stufenlos zum Vollbild, waehrend die
+  // Free My TV+ 1.5: 20 Sekunden keine Taste, dann waechst das Livebild in 3 Sekunden stufenlos zum Vollbild, waehrend die
   // Oberflaeche ausdimmt. Eine Taste dimmt sie in 1 Sekunde wieder auf und zieht das Bild zurueck in die Vorschau.
   var tvFull = false, tvTimer = null, IDLE_FULL = 20000;
   function tvClass(full, going, back) {
@@ -539,7 +555,7 @@
     document.documentElement.style.background = 'transparent';
     tvClass(false, true, false);
     legend();
-    Plus.liveMorph([0, 0, 1920, 1080], 5000, function () { if (tvFull) tvClass(true, false, false); });
+    Plus.liveMorph([0, 0, 1920, 1080], 3000, function () { if (tvFull) tvClass(true, false, false); });
   }
   function leaveFull() {
     tvFull = false;
@@ -757,6 +773,7 @@
     drawerItems.push({label: tr('Home Settings'), symbol: 'settings', run: openSettings});
     drawerItems.push({label: 'Mediaplayer', symbol: 'play', run: function () { Plus.openMedia(); updateFocus(); }});
     drawerItems.push({label: 'Werbefrei', symbol: 'shield', run: function () { Plus.openPrivacy(); updateFocus(); }});
+    drawerItems.push({label: 'Licht', symbol: 'bulb', run: function () { Plus.openLight(); updateFocus(); }});
     if (TV.canOpenSettings) drawerItems.push({label: tr('TV Settings'), symbol: 'tv_settings', run: tvSettings});
     var n = drawerItems.length, gap = 18, groupGap = 56, groups = drawerInputs > 0 && drawerInputs < n ? 2 : 1;
     var tw = Math.min(230, (1760 - Math.max(0, n - groups) * gap - (groups - 1) * groupGap) / Math.max(1, n));
@@ -1803,7 +1820,9 @@
     Plus.refresh();
     renderBand();
     if (st.tab === 0) renderCards();   // EPG-Zeit ("noch 12 Min.") aktuell halten
-    if (!saverOn && !tvFull && !sheetOpen() && Date.now() - idleAt > SAVER_AFTER) showSaver();
+    // 1.5: der Bildschirmschoner nur, wo kein Fernsehbild laeuft (Welt-TV- und News-Seite, Schublade), nie im laufenden Programm
+    var liveShows = (st.tab === 0 && cards[0] && cards[0].live) || Plus.isOpen();
+    if (!saverOn && !tvFull && !sheetOpen() && !liveShows && Date.now() - idleAt > SAVER_AFTER) showSaver();
     if (saverOn) tickSaverClock($('saver').querySelector('.clock'));
   }, 30000);
 

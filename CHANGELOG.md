@@ -3,6 +3,36 @@
 Neueste Version oben. Jede Version beginnt mit einer kurzen Übersicht, danach folgen die Einzelheiten. Der Abschnitt der
 aktuellen Version wird beim Bauen automatisch als Text der GitHub-Release übernommen.
 
+## 1.5.0
+
+**Kurz:** Neu: Govee-Licht steuern (Ein/Aus, Helligkeit, Farben, Weißton, Szenen, DIY, Musik-Modus, Segmente, DreamView,
+auf Wunsch beim Start an), Recorder für Welt-TV auf USB-Stick oder Netzwerkspeicher (WebDAV), Programmführer mit Menü
+(Ansehen/Erinnern, Info, Aufnehmen), ausführlicher Info-Seite, Zeitachse, Seitensprung und EPG-Suchlauf. Geändert:
+Vollbild-Zoom in 3 s und ruhiger, Hintergrundfoto über den ganzen Bildschirm, dünnerer Livebild-Rahmen ohne Überstände,
+Tageskarte aus Glas. Behoben: Bildschirmschoner im laufenden Programm, Fernsehbild in der Welt-TV-Senderwahl.
+
+- Startseite: Livebild-Rahmen halb so dick, fast eckige Ecken wie das Fernsehbild (keine Überstände mehr beim Fokus), die drei
+  Kacheln rechts schließen oben und unten mit dem Rahmen ab. Hintergrundfoto über den ganzen Bildschirm.
+- Vollbild: in 3 s hinein, 1 s zurück; der Fernseher bekommt nur noch Schritte, die sich wirklich ändern, und die Oberfläche
+  liegt auf eigenen Grafikebenen.
+- Das Livebild erscheint nach der Schublade 0,75 s und nach Programmführer oder Senderliste 0,25 s später, damit zuerst die
+  Oberfläche steht. In der Welt-TV-Senderwahl und der Licht-Steuerung ist kein Fernsehbild mehr in der Ecke.
+- Schublade: Tageskarte als durchsichtiges Glas, Schrift wie Uhrzeit und Datum. Neue Verknüpfung „Licht“.
+- Bildschirmschoner nur noch, wo kein Fernsehbild läuft (Welt-TV- und News-Seite), nie im laufenden Programm.
+- Programmführer: ◄ ► wandert auf der Zeitachse (bis 48 Stunden voraus), P+/P− springt eine Seite (21 Sender), OK öffnet
+  ein Menü mit „Programm ansehen“ (bei künftigen Sendungen „Erinnern“), „Info“ und „Aufnehmen“. Die Info-Seite zeigt groß
+  Bild, Zeit, Sender, Genre, Mitwirkende, Regie, Beschreibung, weitere Termine und ähnliche Sendungen (Wikipedia). Das kurze
+  Infofeld rechts endet über dem Fernsehbild. EPG frisch nach 1, 2 und 3 Minuten, dann alle 5 Minuten. Rote Taste:
+  EPG-Suchlauf, der je Transponder kurz einen Sender einschaltet, damit der Tuner dessen Programmdaten einsammelt.
+- Recorder: rote Taste im Welt-TV-Player nimmt auf (HLS), auf den USB-Stick (Ordner FreeMyTV-Aufnahmen) oder in einen
+  Netzwerkordner per WebDAV (Segmente und Wiedergabeliste). Ziel, Adresse, Benutzer und Passwort im Mediaplayer; sie bleiben
+  nur auf dem Fernseher. Aufnahmen sind im Mediaplayer abspielbar. Sat-Aufnahmen macht der Fernseher selbst: „Aufnehmen“
+  schaltet um und öffnet das Fernsehbild für die REC-Taste, „Aufnahme planen“ und „Erinnern“ schalten zur Startzeit um.
+- Licht (Govee, Cloud-API mit eigenem Schlüssel): Geräte und Regler entstehen aus dem, was jedes Gerät meldet; Regler senden
+  erst, wenn die Taste ruht (Govee erlaubt 2 Befehle je Sekunde). Optional schaltet Free My TV+ das gewählte Licht beim Start
+  an, mit DreamView, wo es das gibt.
+- Neues Recht: Dateien schreiben (für Aufnahmen auf dem USB-Stick).
+
 ## 1.4.0
 
 **Kurz:** Flüssiger: die App-Leiste ruckelt nicht mehr und reißt keine hellen Ecken mehr auf. Neu: das Livebild gleitet nach

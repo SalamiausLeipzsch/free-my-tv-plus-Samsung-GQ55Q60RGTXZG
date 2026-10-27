@@ -653,8 +653,8 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 .night #hole div { background: -webkit-linear-gradient(top, #0F0F11, #0B0B0D); background: linear-gradient(#0F0F11, #0B0B0D); background-size: 1920px 1080px; }
 .liveon #hole { display: block; }
 .liveon #sky { visibility: hidden; }
-.liveon .card .img.live { background: transparent; box-shadow: 0 0 0 26px #F2F2F4; }
-.night.liveon .card .img.live { box-shadow: 0 0 0 26px #0D0D0F; }
+.liveon .card .img.live { background: transparent; box-shadow: 0 0 0 13px #F2F2F4; }
+.night.liveon .card .img.live { box-shadow: 0 0 0 13px #0D0D0F; }
 .liveon .card .img.live .nolive { display: none; }
 
 /* Drawer: Schlagzeilen */
@@ -756,55 +756,55 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 .mood-sunrise #sky .day { background: -webkit-linear-gradient(top, #FFF1E6, #F3D5C3); background: linear-gradient(#FFF1E6, #F3D5C3); }
 .mood-sunrise #hole div { background: -webkit-linear-gradient(top, #FFF1E6, #F3D5C3); background: linear-gradient(#FFF1E6, #F3D5C3); background-size: 1920px 1080px; }
 .mood-sunrise #band .fade { background: -webkit-linear-gradient(top, rgba(0, 0, 0, 0.32) 0%, rgba(0, 0, 0, 0.06) 42%, rgba(255, 241, 230, 0.4) 62%, #FFF1E6 100%); background: linear-gradient(rgba(0, 0, 0, 0.32) 0%, rgba(0, 0, 0, 0.06) 42%, rgba(255, 241, 230, 0.4) 62%, #FFF1E6 100%); }
-.mood-sunrise.liveon .card .img.live { box-shadow: 0 0 0 26px #FFF1E6; }
+.mood-sunrise.liveon .card .img.live { box-shadow: 0 0 0 13px #FFF1E6; }
 .mood-day #sky .day { background: -webkit-linear-gradient(top, #F5F5F7, #E2E2E7); background: linear-gradient(#F5F5F7, #E2E2E7); }
 .mood-day #hole div { background: -webkit-linear-gradient(top, #F5F5F7, #E2E2E7); background: linear-gradient(#F5F5F7, #E2E2E7); background-size: 1920px 1080px; }
 .mood-day #band .fade { background: -webkit-linear-gradient(top, rgba(0, 0, 0, 0.32) 0%, rgba(0, 0, 0, 0.06) 42%, rgba(245, 245, 247, 0.4) 62%, #F5F5F7 100%); background: linear-gradient(rgba(0, 0, 0, 0.32) 0%, rgba(0, 0, 0, 0.06) 42%, rgba(245, 245, 247, 0.4) 62%, #F5F5F7 100%); }
-.mood-day.liveon .card .img.live { box-shadow: 0 0 0 26px #F5F5F7; }
+.mood-day.liveon .card .img.live { box-shadow: 0 0 0 13px #F5F5F7; }
 .mood-partly #sky .day { background: -webkit-linear-gradient(top, #F1F4F8, #DCE3EB); background: linear-gradient(#F1F4F8, #DCE3EB); }
 .mood-partly #hole div { background: -webkit-linear-gradient(top, #F1F4F8, #DCE3EB); background: linear-gradient(#F1F4F8, #DCE3EB); background-size: 1920px 1080px; }
 .mood-partly #band .fade { background: -webkit-linear-gradient(top, rgba(0, 0, 0, 0.32) 0%, rgba(0, 0, 0, 0.06) 42%, rgba(241, 244, 248, 0.4) 62%, #F1F4F8 100%); background: linear-gradient(rgba(0, 0, 0, 0.32) 0%, rgba(0, 0, 0, 0.06) 42%, rgba(241, 244, 248, 0.4) 62%, #F1F4F8 100%); }
-.mood-partly.liveon .card .img.live { box-shadow: 0 0 0 26px #F1F4F8; }
+.mood-partly.liveon .card .img.live { box-shadow: 0 0 0 13px #F1F4F8; }
 .mood-overcast #sky .day { background: -webkit-linear-gradient(top, #ECEEF1, #D3D8DE); background: linear-gradient(#ECEEF1, #D3D8DE); }
 .mood-overcast #hole div { background: -webkit-linear-gradient(top, #ECEEF1, #D3D8DE); background: linear-gradient(#ECEEF1, #D3D8DE); background-size: 1920px 1080px; }
 .mood-overcast #band .fade { background: -webkit-linear-gradient(top, rgba(0, 0, 0, 0.32) 0%, rgba(0, 0, 0, 0.06) 42%, rgba(236, 238, 241, 0.4) 62%, #ECEEF1 100%); background: linear-gradient(rgba(0, 0, 0, 0.32) 0%, rgba(0, 0, 0, 0.06) 42%, rgba(236, 238, 241, 0.4) 62%, #ECEEF1 100%); }
-.mood-overcast.liveon .card .img.live { box-shadow: 0 0 0 26px #ECEEF1; }
+.mood-overcast.liveon .card .img.live { box-shadow: 0 0 0 13px #ECEEF1; }
 .mood-rain #sky .day { background: -webkit-linear-gradient(top, #E6ECF2, #C9D3DD); background: linear-gradient(#E6ECF2, #C9D3DD); }
 .mood-rain #hole div { background: -webkit-linear-gradient(top, #E6ECF2, #C9D3DD); background: linear-gradient(#E6ECF2, #C9D3DD); background-size: 1920px 1080px; }
 .mood-rain #band .fade { background: -webkit-linear-gradient(top, rgba(0, 0, 0, 0.32) 0%, rgba(0, 0, 0, 0.06) 42%, rgba(230, 236, 242, 0.4) 62%, #E6ECF2 100%); background: linear-gradient(rgba(0, 0, 0, 0.32) 0%, rgba(0, 0, 0, 0.06) 42%, rgba(230, 236, 242, 0.4) 62%, #E6ECF2 100%); }
-.mood-rain.liveon .card .img.live { box-shadow: 0 0 0 26px #E6ECF2; }
+.mood-rain.liveon .card .img.live { box-shadow: 0 0 0 13px #E6ECF2; }
 .mood-snow #sky .day { background: -webkit-linear-gradient(top, #F7FAFD, #E1EAF4); background: linear-gradient(#F7FAFD, #E1EAF4); }
 .mood-snow #hole div { background: -webkit-linear-gradient(top, #F7FAFD, #E1EAF4); background: linear-gradient(#F7FAFD, #E1EAF4); background-size: 1920px 1080px; }
 .mood-snow #band .fade { background: -webkit-linear-gradient(top, rgba(0, 0, 0, 0.32) 0%, rgba(0, 0, 0, 0.06) 42%, rgba(247, 250, 253, 0.4) 62%, #F7FAFD 100%); background: linear-gradient(rgba(0, 0, 0, 0.32) 0%, rgba(0, 0, 0, 0.06) 42%, rgba(247, 250, 253, 0.4) 62%, #F7FAFD 100%); }
-.mood-snow.liveon .card .img.live { box-shadow: 0 0 0 26px #F7FAFD; }
+.mood-snow.liveon .card .img.live { box-shadow: 0 0 0 13px #F7FAFD; }
 .mood-fog #sky .day { background: -webkit-linear-gradient(top, #EFEFEB, #D9D9D2); background: linear-gradient(#EFEFEB, #D9D9D2); }
 .mood-fog #hole div { background: -webkit-linear-gradient(top, #EFEFEB, #D9D9D2); background: linear-gradient(#EFEFEB, #D9D9D2); background-size: 1920px 1080px; }
 .mood-fog #band .fade { background: -webkit-linear-gradient(top, rgba(0, 0, 0, 0.32) 0%, rgba(0, 0, 0, 0.06) 42%, rgba(239, 239, 235, 0.4) 62%, #EFEFEB 100%); background: linear-gradient(rgba(0, 0, 0, 0.32) 0%, rgba(0, 0, 0, 0.06) 42%, rgba(239, 239, 235, 0.4) 62%, #EFEFEB 100%); }
-.mood-fog.liveon .card .img.live { box-shadow: 0 0 0 26px #EFEFEB; }
+.mood-fog.liveon .card .img.live { box-shadow: 0 0 0 13px #EFEFEB; }
 .mood-sunset #sky .day { background: -webkit-linear-gradient(top, #FFE6D6, #F2C3AC); background: linear-gradient(#FFE6D6, #F2C3AC); }
 .mood-sunset #hole div { background: -webkit-linear-gradient(top, #FFE6D6, #F2C3AC); background: linear-gradient(#FFE6D6, #F2C3AC); background-size: 1920px 1080px; }
 .mood-sunset #band .fade { background: -webkit-linear-gradient(top, rgba(0, 0, 0, 0.32) 0%, rgba(0, 0, 0, 0.06) 42%, rgba(255, 230, 214, 0.4) 62%, #FFE6D6 100%); background: linear-gradient(rgba(0, 0, 0, 0.32) 0%, rgba(0, 0, 0, 0.06) 42%, rgba(255, 230, 214, 0.4) 62%, #FFE6D6 100%); }
-.mood-sunset.liveon .card .img.live { box-shadow: 0 0 0 26px #FFE6D6; }
+.mood-sunset.liveon .card .img.live { box-shadow: 0 0 0 13px #FFE6D6; }
 .mood-dusk #sky .night { background: -webkit-linear-gradient(top, #2B2542, #15121F); background: linear-gradient(#2B2542, #15121F); }
 .mood-dusk #hole div { background: -webkit-linear-gradient(top, #2B2542, #15121F); background: linear-gradient(#2B2542, #15121F); background-size: 1920px 1080px; }
 .mood-dusk #band .fade { background: -webkit-linear-gradient(top, rgba(0, 0, 0, 0.32) 0%, rgba(0, 0, 0, 0.06) 42%, rgba(43, 37, 66, 0.4) 62%, #2B2542 100%); background: linear-gradient(rgba(0, 0, 0, 0.32) 0%, rgba(0, 0, 0, 0.06) 42%, rgba(43, 37, 66, 0.4) 62%, #2B2542 100%); }
-.mood-dusk.liveon .card .img.live { box-shadow: 0 0 0 26px #2B2542; }
+.mood-dusk.liveon .card .img.live { box-shadow: 0 0 0 13px #2B2542; }
 .mood-night #sky .night { background: -webkit-linear-gradient(top, #141B2D, #0A0D17); background: linear-gradient(#141B2D, #0A0D17); }
 .mood-night #hole div { background: -webkit-linear-gradient(top, #141B2D, #0A0D17); background: linear-gradient(#141B2D, #0A0D17); background-size: 1920px 1080px; }
 .mood-night #band .fade { background: -webkit-linear-gradient(top, rgba(0, 0, 0, 0.32) 0%, rgba(0, 0, 0, 0.06) 42%, rgba(20, 27, 45, 0.4) 62%, #141B2D 100%); background: linear-gradient(rgba(0, 0, 0, 0.32) 0%, rgba(0, 0, 0, 0.06) 42%, rgba(20, 27, 45, 0.4) 62%, #141B2D 100%); }
-.mood-night.liveon .card .img.live { box-shadow: 0 0 0 26px #141B2D; }
+.mood-night.liveon .card .img.live { box-shadow: 0 0 0 13px #141B2D; }
 .mood-nightcloud #sky .night { background: -webkit-linear-gradient(top, #1F2126, #0E0F12); background: linear-gradient(#1F2126, #0E0F12); }
 .mood-nightcloud #hole div { background: -webkit-linear-gradient(top, #1F2126, #0E0F12); background: linear-gradient(#1F2126, #0E0F12); background-size: 1920px 1080px; }
 .mood-nightcloud #band .fade { background: -webkit-linear-gradient(top, rgba(0, 0, 0, 0.32) 0%, rgba(0, 0, 0, 0.06) 42%, rgba(31, 33, 38, 0.4) 62%, #1F2126 100%); background: linear-gradient(rgba(0, 0, 0, 0.32) 0%, rgba(0, 0, 0, 0.06) 42%, rgba(31, 33, 38, 0.4) 62%, #1F2126 100%); }
-.mood-nightcloud.liveon .card .img.live { box-shadow: 0 0 0 26px #1F2126; }
+.mood-nightcloud.liveon .card .img.live { box-shadow: 0 0 0 13px #1F2126; }
 .mood-nightsnow #sky .night { background: -webkit-linear-gradient(top, #1B2231, #0C1019); background: linear-gradient(#1B2231, #0C1019); }
 .mood-nightsnow #hole div { background: -webkit-linear-gradient(top, #1B2231, #0C1019); background: linear-gradient(#1B2231, #0C1019); background-size: 1920px 1080px; }
 .mood-nightsnow #band .fade { background: -webkit-linear-gradient(top, rgba(0, 0, 0, 0.32) 0%, rgba(0, 0, 0, 0.06) 42%, rgba(27, 34, 49, 0.4) 62%, #1B2231 100%); background: linear-gradient(rgba(0, 0, 0, 0.32) 0%, rgba(0, 0, 0, 0.06) 42%, rgba(27, 34, 49, 0.4) 62%, #1B2231 100%); }
-.mood-nightsnow.liveon .card .img.live { box-shadow: 0 0 0 26px #1B2231; }
+.mood-nightsnow.liveon .card .img.live { box-shadow: 0 0 0 13px #1B2231; }
 .mood-storm #sky .night { background: -webkit-linear-gradient(top, #242830, #101217); background: linear-gradient(#242830, #101217); }
 .mood-storm #hole div { background: -webkit-linear-gradient(top, #242830, #101217); background: linear-gradient(#242830, #101217); background-size: 1920px 1080px; }
 .mood-storm #band .fade { background: -webkit-linear-gradient(top, rgba(0, 0, 0, 0.32) 0%, rgba(0, 0, 0, 0.06) 42%, rgba(36, 40, 48, 0.4) 62%, #242830 100%); background: linear-gradient(rgba(0, 0, 0, 0.32) 0%, rgba(0, 0, 0, 0.06) 42%, rgba(36, 40, 48, 0.4) 62%, #242830 100%); }
-.mood-storm.liveon .card .img.live { box-shadow: 0 0 0 26px #242830; }
+.mood-storm.liveon .card .img.live { box-shadow: 0 0 0 13px #242830; }
 
 /* Free My TV+: Glas-Kacheln in der Leiste. In Ruhe quadratisch und milchig, im Fokus breit und in voller Farbe. */
 .tile.glass { box-shadow: inset 0 0 0 1.5px rgba(255, 255, 255, 0.75), 0 6px 22px rgba(0, 0, 0, 0.16);
@@ -1125,14 +1125,14 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 .card.livecard .lower .lm { margin-left: 20px; font-size: 22px; font-weight: 600; color: #2C2C2E; }
 .card.livecard .img .onair { z-index: 1; }
 /* Suche: Lupe und Text mittig */
-.card.centered .img .big { left: 0; right: 0; top: 0; bottom: 0; max-height: none; height: 100px; line-height: 100px; text-align: center; font-size: 28px; white-space: nowrap; }
+.card.centered .img .big { left: 0; right: 0; top: 0; bottom: 0; max-height: none; height: 116px; line-height: 116px; text-align: center; font-size: 28px; white-space: nowrap; }
 .card.centered .img.text .sym { display: inline-block; position: relative; left: auto; top: auto; vertical-align: -7px; margin-right: 16px; }
 .card.centered .img .big .sym { background: #1D1D1F; }
 .night .card.centered .img .big .sym { background: #FFF; }
 
 /* TV-Vollbild (1.4): Oberflaeche in 5 s sanft aus, auf Tastendruck in 1 s wieder auf */
 .tvgoing #home, .tvgoing #drawer, .tvgoing #hole, .tvgoing #sky, .tvgoing #legend {
-  opacity: 0 !important; -webkit-transition: opacity 5s ease-in-out !important; transition: opacity 5s ease-in-out !important; }
+  opacity: 0 !important; -webkit-transition: opacity 3s ease-in-out !important; transition: opacity 3s ease-in-out !important; }
 .tvback #home, .tvback #drawer, .tvback #hole, .tvback #sky, .tvback #legend {
   -webkit-transition: opacity 1s ease-out !important; transition: opacity 1s ease-out !important; }
 .tvgoing, .tvgoing body { background: transparent !important; }
@@ -1155,3 +1155,89 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 #gd-head { width: 1010px; }
 /* Einstellungen (1.4): Platz fuer den Auswahlrahmen, damit er links und rechts nicht abgeschnitten wird */
 .box .list { padding: 8px 10px; margin: -8px -10px; }
+
+/* MARK: - Free My TV+ 1.5 */
+/* Livebild: Rahmen halb so dick, Ecken fast eckig wie das Fernsehbild selbst (keine Ueberstaende) */
+.card.livecard .img, .card.livecard .img::after { border-radius: 6px; }
+.card.livecard .lower { border-radius: 0 0 6px 6px; }
+/* weniger Arbeit beim Ein- und Ausblenden fuers Vollbild: eigene Grafikebenen */
+#home { will-change: transform, opacity; }
+#sky, #hole { will-change: opacity; }
+
+/* Foto (1.5): ueber den ganzen Bildschirm, oben leicht abgedunkelt fuer die Uhr, unten sanft in die Farbstimmung */
+#band, #band .ph, #band .fade { height: 1080px; }
+#band .ph { background-position: center 40%; }
+.liveon #band { -webkit-clip-path: none; clip-path: none; }
+#band .fade { background: -webkit-linear-gradient(top, rgba(0, 0, 0, 0.3) 0%, rgba(0, 0, 0, 0.04) 26%, rgba(244, 244, 246, 0) 52%, rgba(244, 244, 246, 0.32) 80%, rgba(244, 244, 246, 0.55) 100%); background: linear-gradient(rgba(0, 0, 0, 0.3) 0%, rgba(0, 0, 0, 0.04) 26%, rgba(244, 244, 246, 0) 52%, rgba(244, 244, 246, 0.32) 80%, rgba(244, 244, 246, 0.55) 100%); }
+.night #band .fade { background: -webkit-linear-gradient(top, rgba(0, 0, 0, 0.3) 0%, rgba(0, 0, 0, 0.04) 26%, rgba(15, 15, 17, 0) 52%, rgba(15, 15, 17, 0.32) 80%, rgba(15, 15, 17, 0.55) 100%); background: linear-gradient(rgba(0, 0, 0, 0.3) 0%, rgba(0, 0, 0, 0.04) 26%, rgba(15, 15, 17, 0) 52%, rgba(15, 15, 17, 0.32) 80%, rgba(15, 15, 17, 0.55) 100%); }
+.mood-sunrise #band .fade { background: -webkit-linear-gradient(top, rgba(0, 0, 0, 0.3) 0%, rgba(0, 0, 0, 0.04) 26%, rgba(255, 241, 230, 0) 52%, rgba(255, 241, 230, 0.32) 80%, rgba(255, 241, 230, 0.55) 100%); background: linear-gradient(rgba(0, 0, 0, 0.3) 0%, rgba(0, 0, 0, 0.04) 26%, rgba(255, 241, 230, 0) 52%, rgba(255, 241, 230, 0.32) 80%, rgba(255, 241, 230, 0.55) 100%); }
+.mood-day #band .fade { background: -webkit-linear-gradient(top, rgba(0, 0, 0, 0.3) 0%, rgba(0, 0, 0, 0.04) 26%, rgba(245, 245, 247, 0) 52%, rgba(245, 245, 247, 0.32) 80%, rgba(245, 245, 247, 0.55) 100%); background: linear-gradient(rgba(0, 0, 0, 0.3) 0%, rgba(0, 0, 0, 0.04) 26%, rgba(245, 245, 247, 0) 52%, rgba(245, 245, 247, 0.32) 80%, rgba(245, 245, 247, 0.55) 100%); }
+.mood-partly #band .fade { background: -webkit-linear-gradient(top, rgba(0, 0, 0, 0.3) 0%, rgba(0, 0, 0, 0.04) 26%, rgba(241, 244, 248, 0) 52%, rgba(241, 244, 248, 0.32) 80%, rgba(241, 244, 248, 0.55) 100%); background: linear-gradient(rgba(0, 0, 0, 0.3) 0%, rgba(0, 0, 0, 0.04) 26%, rgba(241, 244, 248, 0) 52%, rgba(241, 244, 248, 0.32) 80%, rgba(241, 244, 248, 0.55) 100%); }
+.mood-overcast #band .fade { background: -webkit-linear-gradient(top, rgba(0, 0, 0, 0.3) 0%, rgba(0, 0, 0, 0.04) 26%, rgba(236, 238, 241, 0) 52%, rgba(236, 238, 241, 0.32) 80%, rgba(236, 238, 241, 0.55) 100%); background: linear-gradient(rgba(0, 0, 0, 0.3) 0%, rgba(0, 0, 0, 0.04) 26%, rgba(236, 238, 241, 0) 52%, rgba(236, 238, 241, 0.32) 80%, rgba(236, 238, 241, 0.55) 100%); }
+.mood-rain #band .fade { background: -webkit-linear-gradient(top, rgba(0, 0, 0, 0.3) 0%, rgba(0, 0, 0, 0.04) 26%, rgba(230, 236, 242, 0) 52%, rgba(230, 236, 242, 0.32) 80%, rgba(230, 236, 242, 0.55) 100%); background: linear-gradient(rgba(0, 0, 0, 0.3) 0%, rgba(0, 0, 0, 0.04) 26%, rgba(230, 236, 242, 0) 52%, rgba(230, 236, 242, 0.32) 80%, rgba(230, 236, 242, 0.55) 100%); }
+.mood-snow #band .fade { background: -webkit-linear-gradient(top, rgba(0, 0, 0, 0.3) 0%, rgba(0, 0, 0, 0.04) 26%, rgba(247, 250, 253, 0) 52%, rgba(247, 250, 253, 0.32) 80%, rgba(247, 250, 253, 0.55) 100%); background: linear-gradient(rgba(0, 0, 0, 0.3) 0%, rgba(0, 0, 0, 0.04) 26%, rgba(247, 250, 253, 0) 52%, rgba(247, 250, 253, 0.32) 80%, rgba(247, 250, 253, 0.55) 100%); }
+.mood-fog #band .fade { background: -webkit-linear-gradient(top, rgba(0, 0, 0, 0.3) 0%, rgba(0, 0, 0, 0.04) 26%, rgba(239, 239, 235, 0) 52%, rgba(239, 239, 235, 0.32) 80%, rgba(239, 239, 235, 0.55) 100%); background: linear-gradient(rgba(0, 0, 0, 0.3) 0%, rgba(0, 0, 0, 0.04) 26%, rgba(239, 239, 235, 0) 52%, rgba(239, 239, 235, 0.32) 80%, rgba(239, 239, 235, 0.55) 100%); }
+.mood-sunset #band .fade { background: -webkit-linear-gradient(top, rgba(0, 0, 0, 0.3) 0%, rgba(0, 0, 0, 0.04) 26%, rgba(255, 230, 214, 0) 52%, rgba(255, 230, 214, 0.32) 80%, rgba(255, 230, 214, 0.55) 100%); background: linear-gradient(rgba(0, 0, 0, 0.3) 0%, rgba(0, 0, 0, 0.04) 26%, rgba(255, 230, 214, 0) 52%, rgba(255, 230, 214, 0.32) 80%, rgba(255, 230, 214, 0.55) 100%); }
+.mood-dusk #band .fade { background: -webkit-linear-gradient(top, rgba(0, 0, 0, 0.3) 0%, rgba(0, 0, 0, 0.04) 26%, rgba(43, 37, 66, 0) 52%, rgba(43, 37, 66, 0.32) 80%, rgba(43, 37, 66, 0.55) 100%); background: linear-gradient(rgba(0, 0, 0, 0.3) 0%, rgba(0, 0, 0, 0.04) 26%, rgba(43, 37, 66, 0) 52%, rgba(43, 37, 66, 0.32) 80%, rgba(43, 37, 66, 0.55) 100%); }
+.mood-night #band .fade { background: -webkit-linear-gradient(top, rgba(0, 0, 0, 0.3) 0%, rgba(0, 0, 0, 0.04) 26%, rgba(20, 27, 45, 0) 52%, rgba(20, 27, 45, 0.32) 80%, rgba(20, 27, 45, 0.55) 100%); background: linear-gradient(rgba(0, 0, 0, 0.3) 0%, rgba(0, 0, 0, 0.04) 26%, rgba(20, 27, 45, 0) 52%, rgba(20, 27, 45, 0.32) 80%, rgba(20, 27, 45, 0.55) 100%); }
+.mood-nightcloud #band .fade { background: -webkit-linear-gradient(top, rgba(0, 0, 0, 0.3) 0%, rgba(0, 0, 0, 0.04) 26%, rgba(31, 33, 38, 0) 52%, rgba(31, 33, 38, 0.32) 80%, rgba(31, 33, 38, 0.55) 100%); background: linear-gradient(rgba(0, 0, 0, 0.3) 0%, rgba(0, 0, 0, 0.04) 26%, rgba(31, 33, 38, 0) 52%, rgba(31, 33, 38, 0.32) 80%, rgba(31, 33, 38, 0.55) 100%); }
+.mood-nightsnow #band .fade { background: -webkit-linear-gradient(top, rgba(0, 0, 0, 0.3) 0%, rgba(0, 0, 0, 0.04) 26%, rgba(27, 34, 49, 0) 52%, rgba(27, 34, 49, 0.32) 80%, rgba(27, 34, 49, 0.55) 100%); background: linear-gradient(rgba(0, 0, 0, 0.3) 0%, rgba(0, 0, 0, 0.04) 26%, rgba(27, 34, 49, 0) 52%, rgba(27, 34, 49, 0.32) 80%, rgba(27, 34, 49, 0.55) 100%); }
+.mood-storm #band .fade { background: -webkit-linear-gradient(top, rgba(0, 0, 0, 0.3) 0%, rgba(0, 0, 0, 0.04) 26%, rgba(36, 40, 48, 0) 52%, rgba(36, 40, 48, 0.32) 80%, rgba(36, 40, 48, 0.55) 100%); background: linear-gradient(rgba(0, 0, 0, 0.3) 0%, rgba(0, 0, 0, 0.04) 26%, rgba(36, 40, 48, 0) 52%, rgba(36, 40, 48, 0.32) 80%, rgba(36, 40, 48, 0.55) 100%); }
+/* Schublade: Tageskarte als durchsichtiges Glas wie die Kacheln, Schrift wie Uhrzeit und Datum */
+#dhead .dday { color: #FFF; text-shadow: 0 2px 10px rgba(0, 0, 0, 0.45);
+  background: -webkit-linear-gradient(top, rgba(255, 255, 255, 0.22), rgba(255, 255, 255, 0.08)); background: linear-gradient(rgba(255, 255, 255, 0.22), rgba(255, 255, 255, 0.08));
+  box-shadow: inset 0 1.5px 0 rgba(255, 255, 255, 0.6), inset 0 0 0 1.5px rgba(255, 255, 255, 0.35), 0 10px 26px rgba(0, 0, 0, 0.25); }
+#dhead .dday .sym { background: #FFF; }
+#dhead .dday .ds { color: rgba(255, 255, 255, 0.85); }
+
+/* Programmfuehrer (1.5): kurzes Info-Feld (endet ueber dem Fernsehbild), gewaehlte Sendung, Menue, ausfuehrliche Info */
+#gd-info { height: 540px; }
+#gd-info .iimg { height: 150px; }
+#gd-info .itx.short { max-height: 125px; overflow: hidden; }
+#gd-info .imore { margin-top: 12px; font-size: 16px; color: rgba(255, 255, 255, 0.55); }
+#guide .gprog.pick { box-shadow: inset 0 0 0 2px #FFF; }
+#guide .grow.cur .gprog.pick { background: #FFF; color: #1D1D1F; }
+#guide .grow.cur .gprog.pick .gh { color: #6E6E73; }
+#gd-head .tick:first-child { white-space: nowrap; }
+#gd-sweep { position: absolute; left: 300px; top: 118px; font-size: 20px; font-weight: 600; color: #FFD60A; }
+#gd-menu { position: absolute; left: 0; right: 0; bottom: 0; top: 0; z-index: 5; display: none; background: rgba(6, 8, 14, 0.55); text-align: center; }
+#gd-menu.on { display: block; }
+#gd-menu .mh { margin: 330px auto 34px; max-width: 1300px; font-size: 36px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#gd-menu .mtile { display: inline-block; vertical-align: top; width: 300px; height: 210px; margin: 0 18px; border-radius: 26px; text-align: center;
+  background: -webkit-linear-gradient(top, rgba(255, 255, 255, 0.22), rgba(255, 255, 255, 0.08)); background: linear-gradient(rgba(255, 255, 255, 0.22), rgba(255, 255, 255, 0.08));
+  box-shadow: inset 0 1.5px 0 rgba(255, 255, 255, 0.55), inset 0 0 0 1.5px rgba(255, 255, 255, 0.28), 0 16px 36px rgba(0, 0, 0, 0.35);
+  -webkit-transition: -webkit-transform 0.15s; transition: transform 0.15s; }
+#gd-menu .mtile .sym { display: block; width: 64px; height: 64px; margin: 46px auto 22px; background: #FFF; }
+#gd-menu .mtile .ml { font-size: 28px; font-weight: 600; }
+#gd-menu .mtile.focus { -webkit-transform: scale(1.06); transform: scale(1.06); box-shadow: 0 0 0 4px #0A84FF, 0 0 0 7px rgba(255, 255, 255, 0.85), 0 16px 36px rgba(0, 0, 0, 0.4); }
+#gd-detail { position: absolute; left: 0; top: 0; right: 0; bottom: 0; z-index: 6; display: none; overflow: hidden; padding: 70px 90px 80px;
+  background: #0A0C14; box-sizing: border-box; }
+#gd-detail.on { display: block; }
+#gd-detail .dside { float: right; width: 560px; margin-left: 60px; }
+#gd-detail .dimg { height: 315px; border-radius: 22px; background-size: cover; background-position: center 30%; margin-bottom: 26px; box-shadow: 0 16px 40px rgba(0, 0, 0, 0.45); }
+#gd-detail .df { font-size: 24px; line-height: 1.4; margin-bottom: 10px; }
+#gd-detail .dk { display: inline-block; width: 120px; color: rgba(255, 255, 255, 0.55); vertical-align: top; }
+#gd-detail .dv { display: inline-block; width: 430px; }
+#gd-detail .dt { font-size: 54px; font-weight: 700; line-height: 1.15; margin-bottom: 24px; }
+#gd-detail .dx { font-size: 28px; line-height: 1.5; color: rgba(255, 255, 255, 0.9); margin-bottom: 20px; }
+#gd-detail .dx.wiki { font-size: 24px; color: rgba(255, 255, 255, 0.75); }
+#gd-detail .dsub { font-size: 22px; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; color: rgba(255, 255, 255, 0.55); margin: 26px 0 8px; }
+
+/* Licht (Govee) */
+#light-title { position: absolute; left: 260px; top: 160px; font-size: 24px; color: rgba(255, 255, 255, 0.6); }
+#light-search { position: absolute; left: 260px; top: 200px; width: 1400px; height: 64px; border-radius: 32px; background: rgba(255, 255, 255, 0.1); display: none; }
+#light-search.on { display: block; box-shadow: 0 0 0 3px #FFF; }
+#light-q { position: absolute; left: 28px; right: 28px; top: 0; height: 64px; border: 0; outline: 0; background: transparent; color: #FFF; font: inherit; font-size: 25px; }
+#light-view { position: absolute; left: 260px; top: 290px; width: 1400px; height: 760px; overflow: hidden; padding: 6px 8px; margin: -6px -8px; }
+#light-rows { position: absolute; left: 8px; right: 8px; top: 6px; -webkit-transition: -webkit-transform 0.2s; transition: transform 0.2s; }
+#light .row { position: relative; height: 68px; margin-bottom: 8px; line-height: 68px; padding: 0 26px; border-radius: 16px; font-size: 26px; background: rgba(255, 255, 255, 0.06); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#light .row.dim { color: rgba(255, 255, 255, 0.5); white-space: normal; line-height: 1.3; height: auto; padding: 16px 26px; }
+#light .row.focus { background: #FFF; color: #1D1D1F; }
+#light .row .val { position: absolute; right: 26px; top: 0; font-weight: 600; }
+#light .row .dot { position: absolute; right: 330px; top: 20px; width: 28px; height: 28px; border-radius: 14px; box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.7); }
+.acc-blue #light .row.focus, .acc-blue #gd-menu .mtile.focus { box-shadow: 0 0 0 4px #0A84FF !important; }
+
+/* Aufnahme laeuft: rotes Schild oben rechts, auf jeder Seite */
+#recbadge { position: absolute; right: 40px; top: 24px; z-index: 60; padding: 8px 18px; border-radius: 16px; background: rgba(200, 20, 30, 0.88); color: #FFF;
+  font-size: 20px; font-weight: 700; display: none; box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35); }
+#recbadge.on { display: block; }

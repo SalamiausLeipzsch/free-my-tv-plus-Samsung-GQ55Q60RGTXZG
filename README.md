@@ -32,12 +32,14 @@ Free My TV+ ist Stück für Stück entstanden, jeweils aus dem, was im Alltag vo
 | Glas-Kacheln statt flacher Kacheln, später Glaswürfel auf altem Holz, flüssig auch auf älteren TVs | 1.1–1.4 |
 | Nach Netflix, Browser & Co. automatisch zurück zum Startbildschirm | 1.1 |
 | Welt-TV ohne Grenze, mit Suche, Kategorien, Ländern, eigenen Quellen, Zuletzt gesehen | 1.1–1.2 |
-| Senderliste und Programmführer mit Infos und Bildern zur Sendung | 1.2–1.4 |
+| Senderliste und Programmführer mit Infos, Bildern, Zeitachse, Erinnerung und EPG-Suchlauf | 1.2–1.5 |
 | Wetterbericht mit allen wichtigen Werten | 1.2–1.3 |
 | Bedienhilfe: sichtbarer Auswahlrahmen (Farbe wählbar) und Tasten-Legende auf jeder Seite | 1.2–1.3 |
 | TV-Vollbild ohne Taste, stufenlos hinein und zurück | 1.3–1.4 |
 | Bleibt vorne: holt sich nach Absturz oder vollem Speicher selbst zurück | 1.4 |
 | Mediaplayer für USB-Sticks und Stream-Adressen | 1.3 |
+| Recorder für Welt-TV auf USB-Stick oder Netzwerkspeicher (WebDAV) | 1.5 |
+| Govee-Licht steuern (Farben, Szenen, Musik, DreamView) | 1.5 |
 
 **Ideen für später:** KI-Assistent im Fernseher (Claude, GPT und andere Modelle über einen gemeinsamen, frei wählbaren
 Zugang), weitere Gratis-Senderlisten, Programmführer mit Erinnerungen.
