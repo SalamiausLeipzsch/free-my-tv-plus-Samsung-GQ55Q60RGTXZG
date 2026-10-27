@@ -1,0 +1,4 @@
+# Free My TV+ - Pi-hole RegEx (Gruppenverwaltung -> Domains -> RegEx-Filter), sperrt alle Unterdomains
+(^|\.)samsungads\.com$
+(^|\.)samsungadhub\.com$
+(^|\.)samsungacr\.com$

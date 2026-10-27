@@ -1,0 +1,59 @@
+# Free My TV+: baut und signiert die Samsung-App und legt sie als Release ab.
+# Danach installiert der TizenBrew Installer sie mit "deinname/repo" auf den Fernseher.
+# Start: GitHub -> Actions -> "Samsung-App bauen" -> "Run workflow".
+name: Samsung-App bauen
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  tizen:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: App bauen (ohne eigene Einstellungen, die Stadt kommt aus der Zeitzone des TVs)
+        run: python3 tizen/build.py --generic
+
+      - name: Tizen-Zertifikate laden (Entwickler-CA und oeffentliche Distributor-Signatur)
+        run: |
+          curl -fsSL https://download.tizen.org/sdk/tizenstudio/official/binary/certificate-generator_0.1.4_ubuntu-64.zip -o cg.zip
+          unzip -q cg.zip 'data/tools/certificate-generator/certificates/*' -d cg
+
+      # Das Autor-Zertifikat muss fuer Updates gleich bleiben: es liegt im Actions-Cache (nicht oeffentlich),
+      # oder dauerhaft in den Secrets TIZEN_AUTHOR_P12 (Base64) und TIZEN_AUTHOR_PWD.
+      - uses: actions/cache@v4
+        with:
+          path: tizen-author.p12
+          key: tizen-author-v1
+
+      - name: Autor-Zertifikat aus den Secrets (falls hinterlegt)
+        env:
+          P12: ${{ secrets.TIZEN_AUTHOR_P12 }}
+        run: |
+          if [ -n "$P12" ]; then echo "$P12" | base64 -d > tizen-author.p12; fi
+
+      - name: Signieren
+        env:
+          PWD_AUTHOR: ${{ secrets.TIZEN_AUTHOR_PWD }}
+        run: |
+          npm install --no-save --silent node-forge@1.3.1 jszip@3.10.1 github:reisxd/tizen.js
+          node tools/sign_tizen.js cg/data/tools/certificate-generator/certificates tizen-author.p12 "${PWD_AUTHOR:-freemytvplus}" FreeMyTVPlus-tizen.wgt
+
+      - name: Release anlegen
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          VERSION=$(grep -o 'version="[^"]*"' tizen/config.xml | head -1 | cut -d'"' -f2)
+          gh release create "v${VERSION}-${GITHUB_RUN_NUMBER}" FreeMyTVPlus-tizen.wgt \
+            --title "Free My TV+ ${VERSION} (Build ${GITHUB_RUN_NUMBER})" \
+            --notes "Samsung-App (Tizen 3 bis 6.5 signiert; ab 2023 signiert der TizenBrew Installer neu). Installieren: TizenBrew Installer -> ${GITHUB_REPOSITORY}"

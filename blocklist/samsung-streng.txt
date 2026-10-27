@@ -1,0 +1,26 @@
+# Free My TV+ - Sperrliste fuer Samsung-Fernseher (Stufe 2: streng, zusaetzlich zu Stufe 1)
+# Fuer Pi-hole, AdGuard Home, NextDNS, Fritz!Box-Filterliste und andere DNS-Filter.
+# Quelle: Perflyst/PiHoleBlocklist (SmartTV.txt, MIT-Lizenz), fuer Free My TV+ in Stufen sortiert.
+# Absichtlich NICHT gesperrt: samsungotn.net (Firmware- und Sicherheitsupdates), gpm.samsungqbe.com,
+# acr0.samsungcloudsolution.com, configprd.samsungcloudsolution.net (laut Perflyst/oisd fuehren sie zu Stoerungen).
+# Sperrt zusaetzlich Hinweise und Zustimmungs-Abfragen (z. B. personalisierte Werbung) sowie Promo-Dienste.
+# Kann Smart-Hub-Funktionen, das Samsung-Konto oder den App-Store stoeren. Bei Problemen diese Liste wieder entfernen.
+# Hinweise, Nutzungsbedingungen und Zustimmungs-Abfragen von Smart Hub
+notice.samsungcloudsolution.com
+noticecdn.samsungcloudsolution.com
+noticefile.samsungcloudsolution.com
+vdterms.samsungcloudsolution.com
+# Konto-, Promo- und Empfehlungsdienste
+sas.samsungcloudsolution.com
+prov.samsungcloudsolution.com
+fkp.samsungcloudsolution.com
+fkp.samsungcloudsolution.net
+abtauthprd.samsungcloudsolution.com
+amauthprd.samsungcloudsolution.com
+oempprd.samsungcloudsolution.com
+oempprd.samsungcloudsolution.net
+cdn.samsungcloudsolution.net
+openapi.samsung.com
+sca.samsung.com
+www.samsungrm.net
+test.samsungrm.net

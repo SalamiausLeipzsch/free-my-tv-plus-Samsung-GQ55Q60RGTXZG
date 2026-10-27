@@ -1,0 +1,43 @@
+# Free My TV+ - Sperrliste fuer Samsung-Fernseher (Stufe 1, AdGuard-Home-Format)
+# Fuer Pi-hole, AdGuard Home, NextDNS, Fritz!Box-Filterliste und andere DNS-Filter.
+# Quelle: Perflyst/PiHoleBlocklist (SmartTV.txt, MIT-Lizenz), fuer Free My TV+ in Stufen sortiert.
+# Absichtlich NICHT gesperrt: samsungotn.net (Firmware- und Sicherheitsupdates), gpm.samsungqbe.com,
+# acr0.samsungcloudsolution.com, configprd.samsungcloudsolution.net (laut Perflyst/oisd fuehren sie zu Stoerungen).
+# Format ||domain^: sperrt auch alle Unterdomains.
+! Werbung
+||samsungads.com^
+||ads.samsungads.com^
+||config.samsungads.com^
+||samsungadhub.com^
+||ad.samsungadhub.com^
+||rd.samsungadhub.com^
+! Zuschauer-Tracking (ACR: erkennt, was laeuft) und Nutzungsdaten
+||samsungacr.com^
+||log-1.samsungacr.com^
+||log-2.samsungacr.com^
+||log-3.samsungacr.com^
+||log-config.samsungacr.com^
+||log-ingestion.samsungacr.com^
+||log-ingestion-eu.samsungacr.com^
+||targeted-config-test.samsungacr.com^
+||musicid.samsungcloudsolution.com^
+||prderrordumphsm.samsungcloudsolution.com^
+||osb.samsungqbe.com^
+||osb-apps-v2.samsungqbe.com^
+||osb-eusvc.samsungqbe.com^
+||osb-krsvc.samsungqbe.com^
+||samsungelectronics.com^
+||apu.samsungelectronics.com^
+||bpu.samsungelectronics.com^
+||cpu.samsungelectronics.com^
+||dpu.samsungelectronics.com^
+||kpu.samsungelectronics.com^
+||upu.samsungelectronics.com^
+||xpu.samsungelectronics.com^
+||ypu.samsungelectronics.com^
+||zpu.samsungelectronics.com^
+||gld.samsungosp.com^
+||api-hub.samsungyosemite.com^
+||us-api.samsungyosemite.com^
+! Wetter-App-Tracking
+||connecttv.pelmorex.com^
