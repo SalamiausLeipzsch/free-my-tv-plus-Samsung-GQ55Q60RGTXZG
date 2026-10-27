@@ -56,6 +56,7 @@ var Prefs = (function () {
     showGeo: function () { return pick('showGeo', false) === true; },   // Free My TV+
     scene: function () { return pick('scene', 'auto'); },   // Free My TV+: Hintergrundbild
     backHome: function () { return pick('backHome', true) === true; },   // Free My TV+
+    epgNight: function () { return pick('epgNight', true) === true; },   // Free My TV+ 1.7
     hidePromo: function () { return pick('hidePromo', true) === true; },   // Free My TV+
     coin: function (i) { var c = pick('coins', null); return c ? c[i] !== false : true; },
     shelf: function () { return pick('shelf', null); },

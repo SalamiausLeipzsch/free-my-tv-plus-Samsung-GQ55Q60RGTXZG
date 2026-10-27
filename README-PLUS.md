@@ -41,7 +41,7 @@ Entwickler-Apps nicht. Dann im Workflow `python3 tizen/build.py --generic --no-c
 
 ## Bedienung in Kürze
 
-- **Startseite:** ▲ ▼ ◄ ► wählen, OK öffnet, OK lang (oder rot) verschiebt App-Kacheln, ▼ öffnet die Schublade, P+/P−
+- **Startseite:** ▲ ▼ ◄ ► wählen, ◄ ► am Rand der Kacheln wechselt die Seite (Jetzt im TV, Welt-TV, News), OK öffnet, OK lang (oder rot) verschiebt App-Kacheln, ▼ öffnet die Schublade, P+/P−
   schaltet Sat-Sender um. Nach 20 s ohne Taste geht das Livebild ins Vollbild, jede Taste holt die Oberfläche zurück.
 - **Programmführer** (OK auf der Senderkachel): ▲ ▼ Sender, P+/P− eine Seite, ◄ ► Zeitachse, OK Menü (Ansehen/Erinnern,
   Info, Aufnehmen), Info-Taste Info-Seite, rot EPG-Suchlauf (sammelt Programmdaten, schaltet dabei kurz durch die Sender).
@@ -56,7 +56,9 @@ Entwickler-Apps nicht. Dann im Workflow `python3 tizen/build.py --generic --no-c
   bleiben nur auf dem Fernseher. SMB- und NFS-Freigaben kann eine TV-Web-App nicht ansprechen; die meisten NAS bieten WebDAV
   als Zusatzdienst an. Verschlüsselte Streams lassen sich nicht aufnehmen.
 - **Sat-TV:** Eine fremde App kann Sat-Sender nicht aufnehmen. „Aufnehmen“ schaltet um und öffnet das Fernsehbild, dort die
-  REC-Taste drücken (USB-Stick am TV). HD+-Sender erlauben das teils nicht.
+  REC-Taste drücken. Der Fernseher nimmt dafür nur auf eine **USB-Festplatte** auf (mind. 5.400 U/min), nicht auf
+  USB-Sticks; seine Aufnahmen sind kopiergeschützt (DRM). HD+-Sender erlauben das teils nicht. Mit Twin-Tuner (Eingänge
+  SATELLITE MAIN und SUB, Verbindungstyp „Dual“) nimmt er auf, während du einen anderen Sender schaust.
 
 ## Licht (Govee)
 
@@ -105,8 +107,10 @@ Absichtlich **nie gesperrt**: `samsungotn.net` (Firmware- und Sicherheitsupdates
 
 - **Fernsehbild:** Auf Samsung-Fernsehern liegt das Sat-Bild über der App. Text direkt auf dem laufenden Bild geht deshalb
   nicht, und das Bild lässt sich nicht ruckelfrei vergrößern (darum der Rahmen beim Übergang ins Vollbild).
-- **EPG:** kommt vom Sat-Tuner. Er kennt nur Daten von Transpondern, auf denen er zuletzt war; der EPG-Suchlauf (rot im
-  Programmführer) sammelt sie ein. Einen direkten Zugriff aufs CI+-Modul gibt es für Apps nicht.
+- **EPG:** kommt vom Sat-Tuner. Er kennt nur Daten von Transpondern, auf denen er zuletzt war. Free My TV+ sammelt sie
+  automatisch: über den 2. Empfänger im Hintergrund, wenn Samsung das der App erlaubt, sonst nachts (3–5 Uhr, wenn lange
+  keine Taste gedrückt wurde; abschaltbar in den Start-Einstellungen). Die rote Taste im Programmführer startet es sofort.
+  Einen direkten Zugriff aufs CI+-Modul gibt es für Apps nicht.
 - **Home-Taste:** öffnet weiterhin Samsungs Leiste; der Rückkehr-Dienst holt Free My TV+ nach anderen Apps zurück.
 - **Welt-TV:** freie Sender laufen nicht immer; Pay-TV-Sender wie ESPN gibt es nicht legal kostenlos und sind nicht drin.
 - **Fotos, News, Wikipedia, Logos** kommen live aus dem Internet; fällt etwas aus, bleibt die Kachel schlicht.
@@ -170,7 +174,7 @@ To keep it for good, store a certificate as the secrets `TIZEN_AUTHOR_P12` (Base
 
 ## Controls in short
 
-- **Home:** ▲ ▼ ◄ ► select, OK opens, long OK (or red) moves app tiles, ▼ opens the drawer, P+/P− changes satellite channels.
+- **Home:** ▲ ▼ ◄ ► select, ◄ ► at the edge of the tiles changes the page (Jetzt im TV, Welt-TV, News), OK opens, long OK (or red) moves app tiles, ▼ opens the drawer, P+/P− changes satellite channels.
   After 20 s without a key the live picture goes full screen; any key brings the interface back.
 - **TV guide** (OK on the channel tile): ▲ ▼ channels, P+/P− a page, ◄ ► timeline, OK menu (watch/remind, info, record), Info
   key info page, red EPG scan (collects programme data, briefly tuning through the channels).
@@ -185,7 +189,9 @@ To keep it for good, store a certificate as the secrets `TIZEN_AUTHOR_P12` (Base
   media player). User and password stay on the TV only. A TV web app can't reach SMB or NFS shares; most NAS offer WebDAV as an
   add-on. Encrypted streams can't be recorded.
 - **Satellite TV:** a third-party app can't record satellite channels. "Record" tunes and opens the TV picture; press the TV's
-  REC button there (USB stick on the TV). Some HD+ channels don't allow it.
+  REC button there. The TV only records to a **USB hard drive** (at least 5,400 rpm), not to USB sticks; its
+  recordings are copy-protected (DRM). Some HD+ channels don't allow it. With the twin tuner (inputs SATELLITE MAIN and SUB,
+  connection type "Dual") it records while you watch another channel.
 
 ## Light (Govee)
 
@@ -233,8 +239,10 @@ Deliberately **never blocked**: `samsungotn.net` (firmware and security updates)
 
 - **TV picture:** on Samsung TVs the satellite picture lies above the app, so text can't sit on the moving picture, and the
   picture can't be scaled smoothly (hence the frame for the full-screen transition).
-- **EPG:** comes from the satellite tuner, which only knows data from transponders it was on recently; the EPG scan (red in the
-  TV guide) collects it. Apps have no direct access to the CI+ module.
+- **EPG:** comes from the satellite tuner, which only knows data from transponders it was on recently. Free My TV+ collects it
+  automatically: in the background over the second tuner if Samsung allows the app to use it, otherwise at night (3–5 am, after
+  a long time without a key press; can be turned off in the home settings). The red button in the TV guide starts it at once.
+  Apps have no direct access to the CI+ module.
 - **Home button:** still opens Samsung's bar; the return service brings Free My TV+ back after other apps.
 - **World TV:** free channels don't always run; pay-TV channels such as ESPN aren't legally free and aren't included.
 - **Photos, news, Wikipedia, logos** come live from the internet; if something fails, the tile stays plain.

@@ -552,11 +552,16 @@
   // 1.6: der Videoplan des Fernsehers laesst sich nicht fluessig vergroessern (jeder Schritt ruckelt). Deshalb waechst
   // jetzt ein schwarzer Rahmen per GPU stufenlos von der Vorschau zum Vollbild, die Oberflaeche blendet dabei aus, und erst
   // am Ende springt das Bild in einem einzigen Schritt auf Vollbild. Zurueck genauso, nur andersherum.
-  var ZOOM_IN = 1200, ZOOM_OUT = 800;
+  // 1.7: im Rahmen liegt in beide Richtungen das aktuelle Hintergrundbild der Startseite statt Schwarz.
+  // Gleichmaessig skaliert (kein Verzerren), nur per GPU.
+  var ZOOM_IN = 1800, ZOOM_OUT = 1400;   // 1.7: langsam, damit das Menue aus dem Hintergrundbild auftaucht
   function zoomFrame() {
     var z = $('zoomframe');
     if (!z) {
-      z = el('div', '', stage);
+      // 1.7: liegt direkt ueber dem Hintergrundbild und unter dem Menue, das darueber langsam aus- und einblendet
+      z = document.createElement('div');
+      var band = $('band');
+      band.parentNode.insertBefore(z, band.nextSibling);
       z.id = 'zoomframe';
       z.style.left = LIVE_RECT[0] + 'px'; z.style.top = LIVE_RECT[1] + 'px';
       z.style.width = LIVE_RECT[2] + 'px'; z.style.height = LIVE_RECT[3] + 'px';
@@ -564,16 +569,22 @@
     return z;
   }
   function zoomTo(full, ms) {
-    var z = zoomFrame(), t = full ? 'translate(' + (-LIVE_RECT[0]) + 'px, ' + (-LIVE_RECT[1]) + 'px) scale(' +
-      (1920 / LIVE_RECT[2]).toFixed(4) + ', ' + (1080 / LIVE_RECT[3]).toFixed(4) + ')' : 'none';
+    var z = zoomFrame(), s = Math.max(1920 / LIVE_RECT[2], 1080 / LIVE_RECT[3]);
+    var tx = (1920 - LIVE_RECT[2] * s) / 2 - LIVE_RECT[0], ty = (1080 - LIVE_RECT[3] * s) / 2 - LIVE_RECT[1];
+    var t = full ? 'translate(' + tx.toFixed(1) + 'px, ' + ty.toFixed(1) + 'px) scale(' + s.toFixed(4) + ')' : 'none';
     z.style.webkitTransitionDuration = z.style.transitionDuration = ms + 'ms';
     z.style.webkitTransform = z.style.transform = t;
+  }
+  function zoomPicture() {
+    var z = zoomFrame(), pic = Plus.bandUrl() || '';
+    z.style.backgroundImage = pic ? 'url("' + pic + '")' : 'none';
   }
   function enterFull() {
     tvFull = true;
     clearTimeout(tvTimer);
     document.documentElement.style.background = 'transparent';
     var z = zoomFrame();
+    zoomPicture();
     zoomTo(false, 0);
     setClass(z, 'on', true);
     void z.offsetWidth;   // Startgroesse festhalten, dann wachsen
@@ -582,7 +593,7 @@
     zoomTo(true, ZOOM_IN);
     tvTimer = setTimeout(function () {
       if (!tvFull) return;
-      Plus.live([0, 0, 1920, 1080]);   // ein einziger Sprung, wenn der Rahmen schon voll ist
+      Plus.live([0, 0, 1920, 1080]);   // ein einziger Schritt, wenn der Rahmen voll ist
       tvClass(true, false, false);
     }, ZOOM_IN);
   }
@@ -590,9 +601,12 @@
     tvFull = false;
     clearTimeout(tvTimer);
     var z = zoomFrame();
-    var show = st.tab === 0 && cards[0] && cards[0].live && !sheetOpen() && st.zone !== Z.DRAWER && !Plus.isOpen();
-    if (show) Plus.live(LIVE_RECT); else syncLive();   // das Bild sofort zurueck in die Vorschau, der Rahmen zieht nach
+    zoomPicture();
+    zoomTo(true, 0);
     setClass(z, 'on', true);
+    void z.offsetWidth;
+    var show = st.tab === 0 && cards[0] && cards[0].live && !sheetOpen() && st.zone !== Z.DRAWER && !Plus.isOpen();
+    if (show) Plus.live(LIVE_RECT); else syncLive();   // das Bild sofort zurueck in die Vorschau, das Hintergrundbild zieht nach
     zoomTo(false, ZOOM_OUT);
     tvClass(false, false, true);
     checkNight();
@@ -1009,6 +1023,8 @@
         step: function (d) { cycle('accent', Object.keys(ACCENTS), Prefs.accent(), d); applyAccent(); }},
       {label: 'Hintergrundbild', value: Plus.scenes[Prefs.scene()] ? Plus.scenes[Prefs.scene()].label : 'Wetter & Tageszeit',
         step: function (d) { cycle('scene', ['auto'].concat(Object.keys(Plus.scenes)), Prefs.scene(), d); renderBand(); }},
+      {label: 'EPG nachts sammeln, falls nötig (jetzt: ' + Plus.epgAuto() + ')', toggle: Prefs.epgNight(),
+        step: function () { Prefs.set('epgNight', !Prefs.epgNight()); }},
       {label: 'Nach anderen Apps zurück zu Free My TV+', toggle: Prefs.backHome(),
         step: function () { Prefs.set('backHome', !Prefs.backHome()); Plus.backHome(Prefs.backHome()); }},
       {label: 'Welt-TV: auch Sender mit Geo-Sperre zeigen', toggle: Prefs.showGeo(),
@@ -1415,21 +1431,32 @@
         else if (dy > 0) { openDrawer(); return; }
         else if (dy < 0) {
           if (cards.length) { st.zone = Z.CARDS; st.card = nearest(cardNodes, centerX(tiles[st.shelf])); }
-          else { st.zone = Z.TOP; st.top = st.tab; }
+          else { st.zone = Z.TOP; st.top = 3; }
         }
         break;
       case Z.CARDS:
         if (cards[st.card] && cards[st.card].key && cards[st.card].key(dx, dy)) return;   // Free My TV+: Senderkachel schaltet um
         var to = cardToward(dx, dy);
         if (to >= 0) st.card = to;
-        else if (dx) break;
-        else if (dy < 0) { st.zone = Z.TOP; st.top = st.tab; }
+        else if (dx) {
+          // Free My TV+ 1.7: am Rand weiter nach rechts oder links wechselt die Seite (Jetzt im TV, Welt-TV, News)
+          var nt = st.tab + (dx > 0 ? 1 : -1);
+          if (nt < 0 || nt > 2) break;
+          selectTab(nt);
+          var pick = 0, best = dx > 0 ? 1e9 : -1e9;
+          for (var ci = 0; ci < cardRects.length; ci++) {
+            var r = cardRects[ci], edge = dx > 0 ? r[0] * 10 + r[1] / 100 : (r[0] + r[2]) * 10 - r[1] / 100;
+            if (dx > 0 ? edge < best : edge > best) { best = edge; pick = ci; }
+          }
+          st.card = pick;
+          if (!cards.length) st.zone = Z.SHELF;
+        }
+        else if (dy < 0) { st.zone = Z.TOP; st.top = 3; }
         else if (shelf.length) { st.zone = Z.SHELF; st.shelf = nearest(tiles, centerX(cardNodes[st.card])); }
         break;
       case Z.TOP:
         if (dx) {
-          st.top = Math.max(0, Math.min(5, st.top + dx));
-          if (st.top < 3) selectTab(st.top);   // as on Apple TV: focusing a tab selects it
+          st.top = Math.max(3, Math.min(5, st.top + dx));   // 1.7: oben nur noch die Knoepfe, die Seite wechselt ◄ ► am Rand der Kacheln
         } else if (dy > 0) {
           if (cards.length) { st.zone = Z.CARDS; st.card = Math.min(cards.length - 1, st.top < 3 ? 0 : cards.length - 1); }
           else st.zone = Z.SHELF;
@@ -1545,8 +1572,8 @@
     else if (sheetOpen()) t = st.zone === Z.SETTINGS ? '▲ ▼ wählen  ·  ◄ ► ändern  ·  OK öffnen  ·  Zurück' : '▲ ▼ ◄ ► wählen  ·  OK  ·  Zurück';
     else if (st.zone === Z.DRAWER) t = st.wxFocus ? 'OK Wetterbericht  ·  ▼ Verknüpfungen  ·  ▲ schließen' : '◄ ► wählen  ·  OK öffnen  ·  ▲ Wetter  ·  Zurück';
     else if (st.zone === Z.SHELF) t = '◄ ► wählen  ·  OK öffnen  ·  OK lang: verschieben  ·  ▼ Schublade  ·  P+/P− Sender';
-    else if (st.zone === Z.CARDS) t = (cards[st.card] && cards[st.card].switcher ? 'OK Programmführer  ·  ' : 'OK öffnen  ·  ') + '◄ ► ▲ ▼ wählen  ·  P+/P− Sender';
-    else if (st.zone === Z.TOP) t = '◄ ► Tabs und Knöpfe  ·  ▼ Kacheln';
+    else if (st.zone === Z.CARDS) t = (cards[st.card] && cards[st.card].switcher ? 'OK Programmführer  ·  ' : 'OK öffnen  ·  ') + '◄ ► ▲ ▼ wählen, am Rand nächste Seite  ·  P+/P− Sender';
+    else if (st.zone === Z.TOP) t = '◄ ► Knöpfe  ·  ▼ Kacheln';
     if (box.textContent !== t) box.textContent = t;
     setClass(box, 'off', !t);
   }

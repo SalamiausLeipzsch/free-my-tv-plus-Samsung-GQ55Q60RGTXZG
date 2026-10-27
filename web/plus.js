@@ -498,8 +498,7 @@ var Plus = (function () {
     if (!ch) return;
     var v = document.createElement('video');
     v.className = 'pvideo';
-    v.muted = true;
-    v.setAttribute('muted', '');
+    v.muted = false;   // 1.7: mit Ton
     v.setAttribute('playsinline', '');
     v.autoplay = true;
     box.appendChild(v);
@@ -509,11 +508,12 @@ var Plus = (function () {
     pv.url = ch.url;
     var bad = setTimeout(function () { if (pv.video === v && v.readyState < 2) { sportTried[ch.url] = true; sportCh = null; store('sportCh', null); stopPreview(); loadSport(); } }, 20000);
     v.onplaying = function () { clearTimeout(bad); };
-    var native = v.canPlayType('application/vnd.apple.mpegurl') || v.canPlayType('application/x-mpegURL');
-    if (native) { v.src = ch.url; try { var pr = v.play(); if (pr && pr['catch']) pr['catch'](function () {}); } catch (e) {} return; }
+    // 1.7: schneller Start: hls.js (schon vorgeladen) beginnt mit der kleinsten Qualitaet und steigert dann
     loadHls(function () {
-      if (pv.video !== v || !window.Hls || !window.Hls.isSupported()) return;
-      pv.hls = new window.Hls({maxBufferLength: 8, maxMaxBufferLength: 12, backBufferLength: 4, maxBufferSize: 10 * 1000 * 1000, capLevelToPlayerSize: true});
+      if (pv.video !== v) return;
+      if (!window.Hls || !window.Hls.isSupported()) { v.src = ch.url; try { var pr = v.play(); if (pr && pr['catch']) pr['catch'](function () {}); } catch (e) {} return; }
+      pv.hls = new window.Hls({startLevel: 0, maxBufferLength: 6, maxMaxBufferLength: 10, backBufferLength: 4, maxBufferSize: 8 * 1000 * 1000,
+        liveSyncDurationCount: 2, startFragPrefetch: true, capLevelToPlayerSize: true, manifestLoadingTimeOut: 6000, fragLoadingTimeOut: 8000});
       pv.hls.loadSource(ch.url);
       pv.hls.attachMedia(v);
       try { var pr2 = v.play(); if (pr2 && pr2['catch']) pr2['catch'](function () {}); } catch (e) {}
@@ -1466,6 +1466,70 @@ var Plus = (function () {
     if (ui.onClose) ui.onClose();
   }
 
+  // Free My TV+ 1.7: EPG automatisch. Zuerst wird der 2. Empfaenger versucht (tune mit Fenster "SUB"): bleibt dabei das
+  // Hauptbild unveraendert, laeuft der Suchlauf alle 3 Stunden unsichtbar im Hintergrund. Laesst Samsung das nicht zu,
+  // sammelt die App nachts (3 bis 5 Uhr, 90 Minuten ohne Taste) und schaltet danach zurueck. Rote Taste geht weiter.
+  var auto = {busy: false, ok: stored('epgSub'), at: stored('epgAutoAt') || 0, idleAt: Date.now()};
+  function transponders(max) {
+    var seen = {}, list = [];
+    for (var i = 0; i < sat.list.length && list.length < max; i++) {
+      var c = sat.list[i], key = c.transportStreamID !== undefined ? String(c.originalNetworkID) + '.' + String(c.transportStreamID) : epgKey(c);
+      if (seen[key]) continue;
+      seen[key] = true;
+      list.push(c);
+    }
+    return list;
+  }
+  function sameMain(a) { try { var m = tv.getCurrentChannel('MAIN'); return m && a && m.major === a.major && m.minor === a.minor; } catch (e) { return true; } }
+  function subTune(c, done) {
+    var main = sat.channel, over = false;
+    function fin(ok) { if (over) return; over = true; done(ok && sameMain(main)); }
+    try {
+      tv.tune({major: c.major, minor: c.minor}, {onsuccess: function () { fin(true); }, onnosignal: function () { fin(true); }}, function () { fin(false); }, 'SUB');
+      setTimeout(function () { fin(false); }, 8000);
+    } catch (e) { fin(false); }
+  }
+  function autoEpg() {
+    if (auto.busy || sweep || !tv || !sat.list.length || Date.now() - auto.at < 3 * 3600000) return;
+    var list = transponders(80);
+    if (auto.ok !== false) {
+      auto.busy = true;
+      subTune(list[0], function (ok) {
+        if (!ok) {
+          // der 2. Empfaenger ist fuer Apps nicht erreichbar: das Hauptbild wieder herstellen, falls es sich doch bewegt hat
+          auto.ok = false; store('epgSub', false); auto.busy = false;
+          if (sat.channel && !sameMain(sat.channel)) tune(sat.channel, function () { refreshSat(); });
+          return;
+        }
+        auto.ok = true; store('epgSub', true);
+        var i = 1;
+        (function next() {
+          if (i >= list.length) { auto.busy = false; auto.at = Date.now(); store('epgAutoAt', auto.at); for (var k in epg) if (epg.hasOwnProperty(k)) epg[k].at = 0; return; }
+          subTune(list[i++], function () { setTimeout(next, 9000); });
+        })();
+      });
+      return;
+    }
+    // Rueckfall: nachts, wenn lange niemand eine Taste gedrueckt hat
+    var h = new Date().getHours();
+    if (!(window.Prefs && Prefs.epgNight && Prefs.epgNight()) || h < 3 || h >= 5 || Date.now() - auto.idleAt < 90 * 60000) return;
+    auto.busy = true;
+    var back = sat.channel, j = 0;
+    (function step() {
+      if (Date.now() - auto.idleAt < 60000 || j >= list.length) {   // jemand drueckt eine Taste: sofort zurueck
+        auto.busy = false;
+        if (j >= list.length) { auto.at = Date.now(); store('epgAutoAt', auto.at); }
+        if (back) tune(back, function () { refreshSat(); });
+        for (var k in epg) if (epg.hasOwnProperty(k)) epg[k].at = 0;
+        return;
+      }
+      tune(list[j++], function () {});
+      setTimeout(step, 9000);
+    })();
+  }
+  setInterval(autoEpg, 10 * 60000);
+  setTimeout(autoEpg, 2 * 60000);
+
   // EPG-Suchlauf (rote Taste): je Transponder ein Sender fuer ein paar Sekunden, damit der Tuner dessen
   // Programmdaten einsammelt. Danach zurueck zum Sender von vorher.
   var sweep = null;
@@ -2214,6 +2278,7 @@ var Plus = (function () {
 
   /** Tasten fuer die eigenen Ebenen; true = erledigt (home.js macht dann nichts mehr). */
   function key(k, K) {
+    auto.idleAt = Date.now();
     var r = keyInner(k, K);
     legendChanged();
     return r;
@@ -2905,10 +2970,10 @@ var Plus = (function () {
     function satRec(ch, p) {
       if (p && p.start > Date.now() + 60000) {
         timer({kind: 'rec', major: ch.major, minor: ch.minor, name: channelName(ch), title: p.title, start: p.start, end: p.end});
-        say('Geplant: ' + p.title + ' (' + dayLabel(p.start) + ' ' + hm(p.start) + '). Free My TV+ schaltet dann um und öffnet das Fernsehbild – dort REC drücken. Sat-Aufnahmen speichert der Fernseher selbst auf seinen USB-Stick.');
+        say('Geplant: ' + p.title + ' (' + dayLabel(p.start) + ' ' + hm(p.start) + '). Free My TV+ schaltet dann um und öffnet das Fernsehbild – dort REC drücken. Sat-Aufnahmen speichert der Fernseher selbst auf eine USB-Festplatte (USB-Sticks nimmt er dafür nicht).');
         return;
       }
-      say('Sat-Aufnahmen macht der Fernseher selbst: gleich öffnet sich das Fernsehbild auf ' + channelName(ch) + ' – dort die REC-Taste drücken (USB-Stick am TV). HD+-Sender erlauben das teils nicht.');
+      say('Sat-Aufnahmen macht der Fernseher selbst: gleich öffnet sich das Fernsehbild auf ' + channelName(ch) + ' – dort die REC-Taste drücken (USB-Festplatte am TV, kein Stick). HD+-Sender erlauben das teils nicht.');
       tune(ch, function () {
         setTimeout(function () { try { window.tizen.application.launch('org.tizen.tv-viewer', function () {}, function () {}); } catch (e) {} }, 3500);
       });
@@ -2939,7 +3004,12 @@ var Plus = (function () {
 
   // MARK: - Start
 
+  var preloaded = false;
   function refresh() {
+    if (!preloaded) {   // 1.7: hls.js und der Sportsender schon vorab, damit die Welt-TV-Vorschau schnell steht
+      preloaded = true;
+      setTimeout(function () { loadHls(function () {}); loadSport(); if (sportCh) getText(sportCh.url, function () {}, 8000); }, 5000);
+    }
     refreshNews();
     if (Date.now() - sat.at > 60000) refreshSat();
     if (!featured.length) loadFeatured();
@@ -2989,6 +3059,7 @@ var Plus = (function () {
     openGuide: openGuide,
     openLight: openLight,
     stopPreview: stopPreview,
+    epgAuto: function () { return auto.ok === true ? 'über den 2. Empfänger' : auto.ok === false ? 'nachts (2. Empfänger für Apps gesperrt)' : 'wird geprüft'; },
     openMedia: openMedia,
     setApps: function (list, launch) { extApps = list || []; extLaunch = launch; },
     zapMode: function () { return zapMode; },

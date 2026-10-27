@@ -8,6 +8,49 @@ Englisch. Der Abschnitt der aktuellen Version wird beim Bauen automatisch als Te
 *Newest version first. Each version starts with a short summary, then the details, then the same in English. The current
 version's section becomes the GitHub release text automatically.*
 
+## 1.7.0
+
+<img src="screenshots/1.7-startseite.jpg" width="49%" alt="1.7-startseite"> <img src="screenshots/1.7-welt-tv-reiter.jpg" width="49%" alt="1.7-welt-tv-reiter">
+<img src="screenshots/1.7-vollbild-uebergang.jpg" width="49%" alt="1.7-vollbild-uebergang"> <img src="screenshots/1.7-programmfuehrer.jpg" width="49%" alt="1.7-programmfuehrer">
+
+**Kurz:** Neu: Seitenwechsel einfach mit ◄ ► am Rand der Kacheln, EPG aktualisiert sich automatisch (über den 2. Empfänger,
+wenn Samsung das erlaubt, sonst nachts). Geändert: beim Vollbild blendet das Menü langsam ins Hintergrundbild aus und wieder
+daraus auf, Reiter nur noch mit Glasrahmen markiert, Programmführer markiert den Sender nur mit dem Auswahlrahmen,
+Welt-TV-Vorschau mit Ton und schnellerem Start. Korrigiert: Sat-Aufnahmen brauchen eine USB-Festplatte.
+
+- Seiten: Am rechten Rand der Kacheln wechselt ► zur nächsten Seite (Jetzt im TV → Welt-TV → News), am linken ◄ zurück.
+  Oben sind nur noch die Knöpfe anwählbar; der Reiter der aktuellen Seite trägt einen durchsichtigen Glasrahmen.
+- Vollbild: Das Hintergrundbild bleibt stehen, das Menü dimmt in 1,8 s darin aus, ein Rahmen mit demselben Bild wächst aus
+  der Vorschau, dann springt das Fernsehbild auf Vollbild. Zurück taucht das Menü in 1,4 s wieder aus dem Bild auf.
+- EPG automatisch: alle 3 Stunden ein Suchlauf über den 2. Empfänger (Twin-Tuner, Eingänge SATELLITE MAIN und SUB). Prüft
+  die App, dass Samsung das nicht zulässt, sammelt sie nachts zwischen 3 und 5 Uhr, wenn 90 Minuten keine Taste gedrückt
+  wurde, und schaltet danach zurück (abschaltbar in den Start-Einstellungen). Die rote Taste startet ihn weiter sofort.
+- Programmführer: Der gewählte Sender ist nicht mehr weiß hinterlegt, nur mit dem Auswahlrahmen markiert; die gewählte
+  Sendung auf der Zeitleiste bleibt weiß.
+- Welt-TV: Die Live-Vorschau spielt mit Ton, beginnt in der kleinsten Qualität und steigert dann; Player und Sender werden
+  schon beim Start der App vorbereitet.
+- Hinweise zur Sat-Aufnahme korrigiert: Der Fernseher nimmt nur auf eine USB-Festplatte auf, nicht auf USB-Sticks.
+
+**English**
+
+**Summary:** New: change pages simply with ◄ ► at the edge of the tiles, the EPG refreshes itself (over the second tuner if
+Samsung allows it, otherwise at night). Changed: for full screen the menu slowly fades into the background picture and back
+out of it, tabs only marked with a glass frame, the TV guide marks the channel with the focus frame only, World TV preview
+with sound and a faster start. Corrected: satellite recordings need a USB hard drive.
+
+- Pages: at the right edge of the tiles ► goes to the next page (Jetzt im TV → Welt-TV → News), at the left edge ◄ goes back.
+  Only the buttons can be focused at the top now; the current page's tab has a clear glass frame.
+- Full screen: the background picture stays, the menu fades out into it in 1.8 s, a frame with the same picture grows from the
+  preview, then the TV picture jumps to full screen. On the way back the menu reappears out of the picture in 1.4 s.
+- Automatic EPG: a scan every 3 hours over the second tuner (twin tuner, inputs SATELLITE MAIN and SUB). If the app finds that
+  Samsung doesn't allow this, it collects at night between 3 and 5 am after 90 minutes without a key press and tunes back
+  afterwards (can be turned off in the home settings). The red button still starts it at once.
+- TV guide: the selected channel is no longer filled white, only marked with the focus frame; the selected programme on the
+  timeline stays white.
+- World TV: the live preview plays with sound, starts at the lowest quality and steps up; the player and channel are prepared
+  when the app starts.
+- Satellite recording notes corrected: the TV only records to a USB hard drive, not to USB sticks.
+
 ## 1.6.0
 
 <img src="screenshots/1.6-programmfuehrer.jpg" width="32%" alt="1.6-programmfuehrer"> <img src="screenshots/1.6-schublade.jpg" width="32%" alt="1.6-schublade"> <img src="screenshots/1.6-startseite.jpg" width="32%" alt="1.6-startseite"> <img src="screenshots/1.6-welt-tv-sport-live.jpg" width="32%" alt="1.6-welt-tv-sport-live">

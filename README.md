@@ -21,18 +21,18 @@ sortierbar · Farbstimmungen und Hintergrundbilder · Anleitung und Sperrlisten 
 
 ## Vorher und nachher
 
-<img src="screenshots/vergleich-vorher-nachher.jpg" width="100%" alt="Vorher und nachher: TV-Startseite mit Werbung, Free My TV, Free My TV+ 1.0 und 1.6">
+<img src="screenshots/vergleich-vorher-nachher.jpg" width="100%" alt="Vorher und nachher: TV-Startseite mit Werbung, Free My TV, Free My TV+ 1.0 und 1.7">
 
 Oben: eine typische TV-Startseite voller Werbung (Illustration) und die Grundlage Free My TV (beide Bilder von der
-Free-My-TV-Website, MIT-Lizenz). Unten: der erste Rollout von Free My TV+ (1.0) und der aktuelle Stand (1.6).
+Free-My-TV-Website, MIT-Lizenz). Unten: der erste Rollout von Free My TV+ (1.0) und der aktuelle Stand (1.7).
 
-## Was mit dem letzten Update (1.6) möglich ist
+## Was mit dem letzten Update (1.7) möglich ist
 
-<img src="screenshots/1.6-startseite.jpg" width="49%" alt="Startseite"> <img src="screenshots/1.6-programmfuehrer.jpg" width="49%" alt="Programmführer">
-<img src="screenshots/1.6-welt-tv-sport-live.jpg" width="49%" alt="Welt-TV mit Live-Vorschau"> <img src="screenshots/1.6-schublade.jpg" width="49%" alt="Schublade">
+<img src="screenshots/1.7-startseite.jpg" width="49%" alt="Startseite"> <img src="screenshots/1.7-programmfuehrer.jpg" width="49%" alt="Programmführer">
+<img src="screenshots/1.7-welt-tv-reiter.jpg" width="49%" alt="Welt-TV mit Live-Vorschau"> <img src="screenshots/1.6-schublade.jpg" width="49%" alt="Schublade">
 <img src="screenshots/1.5-info-seite.jpg" width="49%" alt="Info-Seite zur Sendung"> <img src="screenshots/1.5-licht-govee.jpg" width="49%" alt="Govee-Licht">
 
-Startseite mit Livebild, Bauchbinde und Senderschalter · Programmführer mit Logos, Zeitachse, Menü und Info-Seite ·
+Startseite mit Livebild, Bauchbinde und Senderschalter, Seitenwechsel mit ◄ ► am Rand · Programmführer mit Logos, Zeitachse, Menü und Info-Seite ·
 Welt-TV mit Live-Vorschau · Schublade mit Uhrzeit, Tageskarte, Wetter, News und Verknüpfungen · Govee-Licht · Recorder.
 Die Bilder stammen aus der Browser-Vorschau mit Beispieldaten; auf dem Fernseher läuft an der Stelle des Platzhalters das
 echte Sat-Bild.
@@ -69,10 +69,10 @@ Free My TV+ ist Stück für Stück entstanden, jeweils aus dem, was im Alltag vo
 | Glas-Kacheln, später Glaswürfel auf altem Holz, flüssig auch auf älteren TVs | 1.1–1.4 |
 | Nach Netflix, Browser & Co. automatisch zurück zum Startbildschirm, auch nach einem Absturz | 1.1–1.4 |
 | Welt-TV ohne Grenze, mit Suche, Kategorien, Ländern, eigenen Quellen, Zuletzt gesehen | 1.1–1.2 |
-| Senderliste und Programmführer mit Infos, Bildern, Logos, Zeitachse, Erinnerung und EPG-Suchlauf | 1.2–1.6 |
+| Senderliste und Programmführer mit Infos, Bildern, Logos, Zeitachse, Erinnerung und automatischem EPG | 1.2–1.7 |
 | Wetterbericht mit allen wichtigen Werten | 1.2–1.3 |
 | Bedienhilfe: sichtbarer Auswahlrahmen (Farbe wählbar) und Tasten-Legende auf jeder Seite | 1.2–1.3 |
-| TV-Vollbild ohne Taste, mit weichem Übergang hinein und zurück | 1.3–1.6 |
+| TV-Vollbild ohne Taste, das Menü blendet ins Hintergrundbild aus und wieder auf | 1.3–1.7 |
 | Mediaplayer für USB-Sticks und Stream-Adressen | 1.3 |
 | Recorder für Welt-TV auf USB-Stick oder Netzwerkspeicher (WebDAV) | 1.5 |
 | Govee-Licht steuern (Farben, Szenen, Musik, DreamView) | 1.5 |
@@ -106,11 +106,11 @@ moods and background pictures · a guide and blocklists against Samsung's ads an
 ### Before and after
 
 The comparison picture above shows, top left to bottom right: a typical home screen full of ads (illustration), the base
-Free My TV, the first rollout of Free My TV+ (1.0) and the current version (1.6).
+Free My TV, the first rollout of Free My TV+ (1.0) and the current version (1.7).
 
-### What the latest update (1.6) can do
+### What the latest update (1.7) can do
 
-The pictures above: home with live picture, caption and channel switcher · TV guide with logos, timeline, menu and info page ·
+The pictures above: home with live picture, caption and channel switcher, page change with ◄ ► at the edge · TV guide with logos, timeline, menu and info page ·
 World TV with a live preview · drawer with time, day card, weather, news and shortcuts · Govee light · recorder. They come from
 the browser preview with sample data; on the TV the real satellite picture plays where the placeholder is.
 
@@ -144,10 +144,10 @@ Updates work the same way from step 2.
 | Glass tiles, later glass cubes on old wood, smooth on older TVs too | 1.1–1.4 |
 | Back to the home screen after Netflix, the browser and others, even after a crash | 1.1–1.4 |
 | World TV without limits, with search, categories, countries, custom sources, recently watched | 1.1–1.2 |
-| Channel list and TV guide with info, pictures, logos, timeline, reminders and EPG scan | 1.2–1.6 |
+| Channel list and TV guide with info, pictures, logos, timeline, reminders and automatic EPG | 1.2–1.7 |
 | Weather report with all the important values | 1.2–1.3 |
 | Easier control: a visible focus frame (colour selectable) and a key legend on every page | 1.2–1.3 |
-| Full-screen TV when idle, with a soft transition in and out | 1.3–1.6 |
+| Full-screen TV when idle, the menu fades into the background picture and back | 1.3–1.7 |
 | Media player for USB sticks and stream addresses | 1.3 |
 | Recorder for World TV to a USB stick or network storage (WebDAV) | 1.5 |
 | Govee light control (colours, scenes, music, DreamView) | 1.5 |
