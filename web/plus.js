@@ -263,9 +263,33 @@ var Plus = (function () {
   var liveShown = false, liveRect = '', liveHook = null;
   function liveState(on) { liveShown = on; if (liveHook) liveHook(on); }
 
+  // Free My TV+ 1.4: das Livebild stufenlos von einem Rechteck ins andere ziehen. Der naechste Schritt kommt erst,
+  // wenn der Fernseher den letzten gezeigt hat: so passt sich die Bildrate dem Geraet an und nichts staut sich.
+  var morph = null;
+  function liveMorph(to, ms, done) {
+    if (!tvw) { if (done) done(); return; }
+    var from = liveRect ? liveRect.split(',') : null, token = {};
+    for (var f = 0; from && f < 4; f++) from[f] = parseFloat(from[f]);
+    if (!from || from.length !== 4) { morph = null; live(to); if (done) done(); return; }
+    morph = token;
+    var t0 = Date.now();
+    function ease(x) { return x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2; }
+    function step() {
+      if (morph !== token) return;
+      var k = Math.min(1, (Date.now() - t0) / ms), e = ease(k), r = [];
+      for (var i = 0; i < 4; i++) r.push(Math.round(from[i] + (to[i] - from[i]) * e));
+      liveRect = r.join(',');
+      var next = function () { if (morph !== token) return; if (k >= 1) { morph = null; if (done) done(); } else setTimeout(step, 16); };
+      try { tvw.show(function () { liveState(true); next(); }, function () { next(); }, [r[0] + 'px', r[1] + 'px', r[2] + 'px', r[3] + 'px'], 'MAIN'); }
+      catch (e2) { morph = null; if (done) done(); }
+    }
+    step();
+  }
+
   /** Das Livebild des Fernsehers in einem Rechteck (Bildschirmpixel), oder aus. */
   function live(rect) {
     if (!tvw) return;
+    if (morph) { if (rect) return; morph = null; }   // waehrend des Ziehens bestimmt liveMorph das Rechteck
     var key = rect ? rect.join(',') : '';
     if (key === liveRect) return;
     liveRect = key;
@@ -876,7 +900,7 @@ var Plus = (function () {
     loadHls(function () {
       if (ui.playing !== idx || ui.open !== 'player') return;
       if (window.Hls && window.Hls.isSupported()) {
-        ui.hls = new window.Hls({maxBufferLength: 20});
+        ui.hls = new window.Hls({maxBufferLength: 20, maxMaxBufferLength: 30, backBufferLength: 10, maxBufferSize: 30 * 1000 * 1000});   // 1.4: Gesehenes nicht endlos im Speicher halten
         ui.hls.on(window.Hls.Events.ERROR, function (ev, data) { if (data && data.fatal) failed(); });
         ui.hls.loadSource(ch.url);
         ui.hls.attachMedia(v);
@@ -1011,24 +1035,83 @@ var Plus = (function () {
 
   // MARK: - Programmfuehrer (eigene Ebene): 10 Sender davor, der aktuelle, 10 danach, mit Zeitleiste
 
-  var gd = {at: 0, from: 0};
-  var GD_MIN = 6;   // Pixel pro Minute
+  var gd = {at: 0, from: 0, sel: 0};
+  var GD_MIN = 5.6;   // Pixel pro Minute (1.4: Zeilen enden vor dem Fernsehbild rechts unten)
   var GD_SPAN = 180;   // Minuten sichtbar
-  function plistOf(ch, done) {
-    var key = ch.major + '.' + ch.minor;
-    sat.plist = sat.plist || {};
-    var c = sat.plist[key];
-    if (c && c.at > Date.now() - 10 * 60000) return done(c.list);
+
+  // Free My TV+ 1.4: EPG nacheinander laden (der Fernseher verwirft viele gleichzeitige Anfragen). Zuerst alle sichtbaren
+  // Sender im sichtbaren Zeitfenster, dann dieselben Sender Fenster fuer Fenster bis Tagesende (oder bis Anzeigeende,
+  // wenn der Tag vorher endet), erst danach die Sender ausserhalb der Liste.
+  var epg = {}, epgQ = [], epgBusy = false, epgGen = 0;
+  function epgKey(ch) { return ch.major + '.' + ch.minor; }
+  function epgList(ch) { var e = epg[epgKey(ch)]; return e ? e.list : null; }
+  function epgHas(ch, from, to) {
+    var e = epg[epgKey(ch)];
+    if (!e || e.at < Date.now() - 15 * 60000) return false;
+    for (var i = 0; i < e.spans.length; i++) if (e.spans[i][0] <= from && e.spans[i][1] >= to) return true;
+    return false;
+  }
+  function epgMerge(ch, from, to, list) {
+    var key = epgKey(ch), e = epg[key];
+    if (!e || e.at < Date.now() - 15 * 60000) e = epg[key] = {list: [], spans: [], at: Date.now()};
+    var seen = {};
+    for (var i = 0; i < e.list.length; i++) seen[e.list[i].start + '|' + e.list[i].title] = true;
+    for (var j = 0; j < list.length; j++) {
+      var p = list[j];
+      if (!p.start || seen[p.start + '|' + p.title]) continue;
+      seen[p.start + '|' + p.title] = true;
+      e.list.push(p);
+    }
+    e.list.sort(function (x, y) { return x.start - y.start; });
+    e.spans.push([from, to]);
+  }
+  function epgRun() {
+    if (epgBusy || !epgQ.length) return;
+    var job = epgQ.shift();
+    if (epgHas(job.ch, job.from, job.to)) { if (job.done) job.done(epgList(job.ch)); setTimeout(epgRun, 0); return; }
+    epgBusy = true;
+    var finished = false;
+    function finish(list, ok) {
+      if (finished) return;
+      finished = true;
+      epgBusy = false;
+      if (ok) epgMerge(job.ch, job.from, job.to, list);
+      else if (!job.retry) { job.retry = true; epgQ.push(job); }   // einmal spaeter noch versuchen
+      if (job.done && (ok || job.retry === 'done')) job.done(epgList(job.ch) || []);
+      if (!ok && job.retry === true) job.retry = 'done';
+      setTimeout(epgRun, 30);
+    }
+    setTimeout(function () { finish([], false); }, 4000);   // keine Antwort: weiter mit dem naechsten
     try {
-      var from;
-      try { from = new window.tizen.TZDate(new Date(Date.now() - 2 * 3600000)); } catch (eT) { from = new window.tizen.TZDate(); }
-      tv.getProgramList(ch, from, function (list) {
+      var tz;
+      try { tz = new window.tizen.TZDate(new Date(job.from)); } catch (eT) { tz = new window.tizen.TZDate(); }
+      tv.getProgramList(job.ch, tz, function (list) {
         var out = [];
         for (var i = 0; list && i < list.length; i++) out.push(program(list[i]));
-        sat.plist[key] = {at: Date.now(), list: out};
-        done(out);
-      }, function () { done([]); }, 8);
-    } catch (e) { done([]); }
+        finish(out, true);
+      }, function () { finish([], false); }, Math.max(1, Math.round((job.to - job.from) / 3600000)));
+    } catch (e) { finish([], false); }
+  }
+  /** Die Ladeliste fuer den Programmfuehrer neu aufstellen: sichtbare Sender und Zeitfenster zuerst. */
+  function epgPlan(visible, others, from, onRow) {
+    epgGen++;
+    epgQ = [];
+    var span = GD_SPAN * 60000, end = from + span, day = new Date(from);
+    day.setHours(24, 0, 0, 0);
+    var until = Math.max(day.getTime(), end);
+    var t, i;
+    for (t = from; t < until; t += span) {
+      for (i = 0; i < visible.length; i++) epgQ.push({ch: visible[i], from: t, to: t + span, done: t === from ? onRow(visible[i]) : null});
+    }
+    for (i = 0; i < others.length; i++) epgQ.push({ch: others[i], from: from, to: end});
+    epgRun();
+  }
+  /** Fuer die Senderliste und das Info-Fenster: alles, was zu einem Sender schon da ist, sonst ein Abruf. */
+  function plistOf(ch, done) {
+    var now = Date.now(), from = now - 2 * 3600000;
+    if (epgHas(ch, from, from + 8 * 3600000)) return done(epgList(ch));
+    epgQ.unshift({ch: ch, from: from, to: from + 8 * 3600000, done: done});
+    epgRun();
   }
 
   function guideIndex() {
@@ -1040,14 +1123,34 @@ var Plus = (function () {
   function openGuide() {
     if (!sat.list.length) return false;
     ui.open = 'guide';
+    gd.sel = guideIndex();
     setClass($('guide'), 'open', true);
     paintGuide();
     legendChanged();
     return true;
   }
 
+  function laneFill(ln, list, from, now) {
+    ln.innerHTML = '';
+    var any = false;
+    for (var i = 0; i < list.length; i++) {
+      var p = list[i];
+      if (!p.start || !p.end || p.end < from || p.start > from + GD_SPAN * 60000) continue;
+      var x = Math.max(0, (p.start - from) / 60000 * GD_MIN), w = Math.min(GD_SPAN * GD_MIN, (p.end - from) / 60000 * GD_MIN) - x;
+      if (w < 8) continue;
+      var b = el('div', 'gprog' + (p.start <= now && p.end > now ? ' live' : ''), ln);
+      b.style.left = x + 'px';
+      b.style.width = (w - 4) + 'px';
+      el('div', 'gt', b, p.title);
+      el('div', 'gh', b, hm(p.start) + '–' + hm(p.end));
+      any = true;
+    }
+    if (!any) el('div', 'gnone', ln, 'Programmdaten werden geladen …');
+    return any;
+  }
+
   function paintGuide() {
-    var box = $('gd-rows'), head = $('gd-head'), at = guideIndex(), n = sat.list.length;
+    var box = $('gd-rows'), head = $('gd-head'), at = gd.sel, n = sat.list.length, playing = guideIndex();
     var now = Date.now(), from = now - 30 * 60000;
     from = from - from % (30 * 60000);
     gd.from = from;
@@ -1059,35 +1162,32 @@ var Plus = (function () {
     var nowLine = $('gd-now');
     nowLine.style.left = (300 + (now - from) / 60000 * GD_MIN) + 'px';
     box.innerHTML = '';
-    for (var d = -10; d <= 10; d++) {
-      var ch = sat.list[(at + d + n * 3) % n];
-      if (!ch) continue;
-      var row = el('div', 'grow' + (d === 0 ? ' cur' : ''), box);
+    var lanes = {}, visible = [], others = [];
+    var half = Math.min(10, Math.floor((n - 1) / 2)), last = Math.min(10, n - 1 - half);
+    for (var d = -half; d <= last; d++) {
+      var idx = (at + d + n * 3) % n, ch = sat.list[idx];
+      if (!ch || lanes[epgKey(ch)]) continue;
+      var row = el('div', 'grow' + (d === 0 ? ' cur' : '') + (idx === playing ? ' playing' : ''), box);
       var name = el('div', 'gname', row);
       el('span', 'gn', name, String(ch.major));
       el('span', 'gc', name, channelName(ch));
       var lane = el('div', 'glane', row);
-      (function (ln, c, isCur) {
-        plistOf(c, function (list) {
-          ln.innerHTML = '';
-          var any = false;
-          for (var i = 0; i < list.length; i++) {
-            var p = list[i];
-            if (!p.start || !p.end || p.end < from || p.start > from + GD_SPAN * 60000) continue;
-            var x = Math.max(0, (p.start - from) / 60000 * GD_MIN), w = Math.min(GD_SPAN * GD_MIN, (p.end - from) / 60000 * GD_MIN) - x;
-            if (w < 8) continue;
-            var b = el('div', 'gprog' + (p.start <= now && p.end > now ? ' live' : ''), ln);
-            b.style.left = x + 'px';
-            b.style.width = (w - 4) + 'px';
-            el('div', 'gt', b, p.title);
-            el('div', 'gh', b, hm(p.start) + '–' + hm(p.end));
-            any = true;
-          }
-          if (!any) el('div', 'gnone', ln, 'Keine Programmdaten');
-          if (isCur) guideInfo(c, list);
-        });
-      })(lane, ch, d === 0);
+      lanes[epgKey(ch)] = {lane: lane, cur: d === 0};
+      visible.push(ch);
+      var have = epgList(ch);
+      if (have) laneFill(lane, have, from, now);
+      else el('div', 'gnone', lane, 'Programmdaten werden geladen …');
+      if (d === 0) guideInfo(ch, have || []);
     }
+    for (var o = 11; o <= 40 && o * 2 < n; o++) { others.push(sat.list[(at + o) % n]); others.push(sat.list[(at - o + n * 3) % n]); }
+    epgPlan(visible, others, from, function (c) {
+      return function (list) {
+        var l = lanes[epgKey(c)];
+        if (!l) return;
+        if (!laneFill(l.lane, list, from, Date.now())) { l.lane.innerHTML = ''; el('div', 'gnone', l.lane, 'Keine Programmdaten vom Sender'); }
+        if (l.cur) guideInfo(c, list);
+      };
+    });
   }
 
   function guideInfo(ch, list) {
@@ -1105,15 +1205,30 @@ var Plus = (function () {
 
   function closeGuide() {
     ui.open = null;
+    epgGen++;
+    epgQ = [];
     setClass($('guide'), 'open', false);
     if (ui.onClose) ui.onClose();
   }
 
+  // 1.4: ▲ ▼ waehlen nur aus, OK schaltet um (OK auf dem laufenden Sender: zurueck zur Startseite)
   function guideKey(k, K) {
-    if (k === K.back || k === K.ok) { closeGuide(); return; }
+    var n = sat.list.length;
+    if (k === K.back) { closeGuide(); return; }
+    if (k === K.ok) {
+      if (gd.sel === guideIndex()) { closeGuide(); return; }
+      var ch = sat.list[gd.sel];
+      sat.channel = ch; sat.now = null; sat.next = null;
+      changed();
+      tune(ch, function () { changed(); });
+      paintGuide();
+      return;
+    }
     if (k === K.left || k === K.right) { closeGuide(); if (guideHooks.fullTV) guideHooks.fullTV(); return; }   // raus zum Fernsehbild
-    if (k === K.up || k === 427) { zap(-1); paintGuide(); return; }
-    if (k === K.down || k === 428) { zap(1); paintGuide(); return; }
+    if (k === K.up) { gd.sel = (gd.sel - 1 + n) % n; paintGuide(); return; }
+    if (k === K.down) { gd.sel = (gd.sel + 1) % n; paintGuide(); return; }
+    if (k === 427) { zap(1); gd.sel = guideIndex(); paintGuide(); return; }
+    if (k === 428) { zap(-1); gd.sel = guideIndex(); paintGuide(); return; }
   }
   var guideHooks = {};
 
@@ -1699,7 +1814,7 @@ var Plus = (function () {
     }
     if (ui.open === 'player') return 'OK oder ◄ ► Menü über dem Bild  ·  ▲ ▼ / P+/P− Sender  ·  Zurück';
     if (ui.open === 'tvlist') return tvl.info ? '▲ ▼ blättern  ·  ◄ zurück zur Liste' : '▲ ▼ Sender  ·  OK umschalten  ·  ► / Info Details  ·  P+/P−  ·  Zurück';
-    if (ui.open === 'guide') return '▲ ▼ / P+/P− Sender umschalten  ·  ◄ ► zum Fernsehbild  ·  OK oder Zurück: Startseite';
+    if (ui.open === 'guide') return '▲ ▼ Sender wählen  ·  OK umschalten  ·  P+/P− sofort  ·  ◄ ► Fernsehbild  ·  Zurück';
     if (ui.open === 'topics') return tp.zone === 'letters' ? '◄ ► Buchstabe  ·  OK springen  ·  ▼ Themen' : tp.zone === 'slots' ? '▲ ▼ Kachel  ·  ► Thema wählen  ·  Zurück: fertig' : 'OK übernehmen  ·  ◄ ► ▲ ▼  ·  P+/P− Buchstaben  ·  ▲ ganz oben: A–Z';
     if (ui.open === 'wx') return 'OK aktualisieren  ·  Zurück';
     if (ui.open === 'privacy') return '▲ ▼ blättern  ·  OK neu prüfen  ·  Zurück';
@@ -1708,11 +1823,13 @@ var Plus = (function () {
   }
 
   /** Startet den Hintergrund-Dienst, der Free My TV+ nach anderen Apps zurueckholt (oder schaltet ihn aus). */
-  function backHome(on) {
+  // 1.4: dazu sagt die Startseite dem Dienst, ob sie vorne ist. Wird sie vorne beendet (Speicher voll, Absturz), holt er sie zurueck.
+  function backHome(on, front) {
     if (!samsung || !window.tizen.ApplicationControl) return;
     try {
-      var d = new window.tizen.ApplicationControlData('enabled', [on ? '1' : '0']);
-      var ac = new window.tizen.ApplicationControl('http://tizen.org/appcontrol/operation/service', null, null, null, [d]);
+      var d = [new window.tizen.ApplicationControlData('enabled', [on ? '1' : '0']),
+        new window.tizen.ApplicationControlData('ui', [front === false ? 'back' : 'front'])];
+      var ac = new window.tizen.ApplicationControl('http://tizen.org/appcontrol/operation/service', null, null, null, d);
       window.tizen.application.launchAppControl(ac, 'FMTVplusDL.Rueckkehr', function () {}, function () {});
     } catch (e) {}
   }
@@ -1886,14 +2003,14 @@ var Plus = (function () {
         var now = sat.now, left = now && now.end ? Math.max(0, Math.round((now.end - Date.now()) / 60000)) : 0;
         out.push({id: 'live', live: true, title: channelName(sat.channel) + (now ? '  ·  ' + now.title : ''),
           meta: now && now.start ? 'Jetzt ' + hm(now.start) + (now.end ? '–' + hm(now.end) + '  ·  noch ' + left + ' Min.' : '') : 'Live',
-          run: hooks.fullTV});
+          rect: [80, 270, 920, 500], run: hooks.fullTV});
         var nx = sat.next, pic = nx ? picture(nx.title) : '';
         out.push({id: 'next' + (pic ? 'p' : ''), text: nx ? nx.title : 'Kein EPG vom Sender', kicker: (nx && nx.start ? 'Danach ' + hm(nx.start) : 'Danach') + '  ·  ' + channelName(sat.channel),
-          title: '', plain: true, inside: true, image: pic, rect: [1160, 262, 320, 380], run: hooks.fullTV});
+          title: '', plain: true, inside: true, image: pic, rect: [1050, 270, 375, 360], run: hooks.fullTV});
         out.push({id: 'zap' + (sat.channel ? sat.channel.major + '.' + sat.channel.minor : '') + (zapMode ? 'z' : ''), switcher: true, text: '', kicker: 'Sender umschalten', title: '', plain: true, inside: true,
-          rect: [1520, 262, 320, 380], draw: drawSwitcher, key: switcherKey, run: switcherOk});
-        out.push({id: 'gsearch', text: 'Suchen: Sender, Sendungen, Apps & Mediatheken', kicker: '', title: '', plain: true, inside: true, flat: true,
-          rect: [1160, 662, 680, 100], run: function () { openWorld('search'); }});
+          rect: [1465, 270, 375, 360], draw: drawSwitcher, key: switcherKey, run: switcherOk});
+        out.push({id: 'gsearch', text: 'Suchen: Sender, Sendungen, Apps & Mediatheken', kicker: '', title: '', plain: true, inside: true, flat: true, centered: true,
+          icon: 'search', rect: [1050, 670, 790, 100], run: function () { openWorld('search'); }});
       } else {
         out.push({id: 'live', text: 'Fernsehen', kicker: 'Live-TV', title: 'Live-TV', meta: 'Sat / HD+', icon: 'live_tv', run: hooks.fullTV});
         for (var f = 0; f < featured.length && out.length < 3; f++) out.push(worldCard(featured[f], featured, f));
@@ -2021,7 +2138,11 @@ var Plus = (function () {
     wood: wood,
     legendText: legendText,
     onLegend: function (fn) { legendHook = fn; },
-    cornerOk: function () { return sat.ok && !!sat.channel && ui.open !== 'player'; },
+    liveMorph: liveMorph,
+    morphing: function () { return !!morph; },
+    cornerOk: function () { return sat.ok && !!sat.channel && ui.open !== 'player' && ui.open !== 'wx' && ui.open !== 'topics'; },
+    // im Programmfuehrer 10 % kleiner und ueber der Legende, sonst rechts unten
+    cornerRect: function () { return ui.open === 'guide' ? [1336, 724, 504, 284] : [1316, 728, 560, 315]; },
     openGuide: openGuide,
     openMedia: openMedia,
     setApps: function (list, launch) { extApps = list || []; extLaunch = launch; },

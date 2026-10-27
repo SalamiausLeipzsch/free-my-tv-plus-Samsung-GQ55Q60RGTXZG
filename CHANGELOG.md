@@ -3,6 +3,31 @@
 Neueste Version oben. Jede Version beginnt mit einer kurzen Übersicht, danach folgen die Einzelheiten. Der Abschnitt der
 aktuellen Version wird beim Bauen automatisch als Text der GitHub-Release übernommen.
 
+## 1.4.0
+
+**Kurz:** Flüssiger: die App-Leiste ruckelt nicht mehr und reißt keine hellen Ecken mehr auf. Neu: das Livebild gleitet nach
+20 s ohne Taste stufenlos ins Vollbild und auf Tastendruck zurück, Bauchbinde mit Sender und Sendung im Livebild-Rahmen,
+Uhrzeit, Datum und Tageskarte oben in der Schublade. Behoben: Free My TV+ schloss sich nach längerem Schauen, im
+Programmführer schaltete ▲ ▼ sofort um, EPG kam nur für wenige Sender.
+
+- App-Leiste: Glaswürfel bleiben quadratisch und vergrößern sich im Fokus nur noch per GPU (transform). Das Holz kommt einmal
+  als CSS-Regel statt bei jedem Schritt auf jede Kachel, der Filter im Glas ist weg (er ließ die runden Ecken beim Bewegen
+  eckig und hell aufblitzen), nur sichtbare Kacheln werden angefasst.
+- TV-Vollbild: nach 20 s ohne Taste wächst die Vorschau in 5 s stufenlos zum Vollbild, die Oberfläche dimmt dabei aus. Eine
+  Taste dimmt sie in 1 s wieder auf und zieht das Bild zurück in die Vorschau.
+- Startseite: Kacheln neu ausgemittelt (gleiche Abstände, Block mittig zwischen Tabs und Leiste), Sender und Sendung als
+  Bauchbinde im Rahmen des Livebilds (schwarze Schrift mit zartem weißem Rand), Suche mit Lupe mittig.
+- Schublade: oben wieder Uhrzeit, Datum und Tageskarte (heute Tiefst/Höchst, Sonnenzeiten), App-Leiste etwas höher, alles
+  im gleichen Abstand.
+- Hintergrundfoto auf allen Seiten bis 50 % der Höhe, dann sauber über 15 % ausgeblendet.
+- Wetterbericht und Themenwahl ohne Fernsehbild in der Ecke.
+- Start-Einstellungen: der Auswahlrahmen wird links und rechts nicht mehr abgeschnitten.
+- Programmführer: ▲ ▼ wählt nur aus, OK schaltet um (OK auf dem laufenden Sender: zurück), P+/P− schaltet sofort. Der
+  laufende Sender hat einen roten Strich. EPG wird nacheinander geladen: erst alle sichtbaren Sender im sichtbaren
+  Zeitfenster, dann dieselben Sender bis Tagesende, danach die übrigen. Fernsehbild 10 % kleiner und über der Legende.
+- Absturzschutz: der Hintergrunddienst holt Free My TV+ sofort zurück, wenn es im Vordergrund beendet wird (etwa weil der
+  Speicher voll ist). Welt-TV-Streams halten nicht mehr alles Gesehene im Speicher (hls.js puffert nur noch kurz).
+
 ## 1.3.0
 
 **Kurz:** Neu: TV-Vollbild nach 10 s ohne Taste, Programmführer, Mediaplayer (USB und Adressen), Tasten-Legende auf jeder

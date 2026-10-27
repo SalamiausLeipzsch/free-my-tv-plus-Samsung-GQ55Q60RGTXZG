@@ -29,13 +29,14 @@ Free My TV+ ist Stück für Stück entstanden, jeweils aus dem, was im Alltag vo
 | Cybersecurity-News statt Kryptokursen | 1.0, Themen frei wählbar ab 1.2 |
 | YouTube ohne Werbung (TizenTube) | 1.0 |
 | Ein Foto-Streifen passend zu Wetter und Tageszeit, dazu Farbstimmungen und eigene Hintergrundbilder | 1.0–1.3 |
-| Glas-Kacheln statt flacher Kacheln, später Glaswürfel auf altem Holz | 1.1–1.3 |
+| Glas-Kacheln statt flacher Kacheln, später Glaswürfel auf altem Holz, flüssig auch auf älteren TVs | 1.1–1.4 |
 | Nach Netflix, Browser & Co. automatisch zurück zum Startbildschirm | 1.1 |
 | Welt-TV ohne Grenze, mit Suche, Kategorien, Ländern, eigenen Quellen, Zuletzt gesehen | 1.1–1.2 |
-| Senderliste und Programmführer mit Infos und Bildern zur Sendung | 1.2–1.3 |
+| Senderliste und Programmführer mit Infos und Bildern zur Sendung | 1.2–1.4 |
 | Wetterbericht mit allen wichtigen Werten | 1.2–1.3 |
 | Bedienhilfe: sichtbarer Auswahlrahmen (Farbe wählbar) und Tasten-Legende auf jeder Seite | 1.2–1.3 |
-| TV-Vollbild nach 10 Sekunden ohne Taste | 1.3 |
+| TV-Vollbild ohne Taste, stufenlos hinein und zurück | 1.3–1.4 |
+| Bleibt vorne: holt sich nach Absturz oder vollem Speicher selbst zurück | 1.4 |
 | Mediaplayer für USB-Sticks und Stream-Adressen | 1.3 |
 
 **Ideen für später:** KI-Assistent im Fernseher (Claude, GPT und andere Modelle über einen gemeinsamen, frei wählbaren

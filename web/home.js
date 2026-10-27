@@ -351,7 +351,7 @@
     for (i = 0; i < list.length; i++) setClass(list[i], 'focus', st.zone === Z.CARDS && st.card === i);
     list = $('tiles').children;
     for (i = 0; i < list.length; i++) setClass(list[i], 'focus', st.zone === Z.SHELF && st.shelf === i);
-    if (list.length) placeTiles();   // Free My TV+: die fokussierte Kachel wird breit
+    if (list.length) placeTiles();
     revealShelf();
     list = document.querySelectorAll('#drawer .key');
     for (i = 0; i < list.length; i++) setClass(list[i], 'focus', st.zone === Z.DRAWER && st.drawer === i && !st.wxFocus);
@@ -438,7 +438,9 @@
 
   // Free My TV+: die Karten kommen aus Plus.cards: Livebild + EPG, Welt-TV-Sender oder Cybersecurity-Schlagzeilen.
   // Free My TV+: Karten 500 hoch (das Livebild ist groesser), eine Karte kann ihr eigenes Rechteck mitbringen
-  var CARD_RECTS = [[80, 262, 1040, 500], [1160, 262, 320, 500], [1520, 262, 320, 500]], LIVE_RECT = CARD_RECTS[0];
+  var CARD_RECTS = [[80, 262, 1040, 500], [1160, 262, 320, 500], [1520, 262, 320, 500]];
+  // Free My TV+ 1.4: das Livebild oben in der Livekarte [80, 270, 920, 500], darunter 60 px Bauchbinde
+  var LIVE_RECT = [80, 270, 920, 440];
   var cardRects = [];
   var cardHooks = {
     fullTV: function () { var live = liveTV(); if (live) launcher(live.id, tr('Live TV'))(); else TV.launch('org.tizen.tv-viewer', null, function () {}); },
@@ -470,6 +472,10 @@
         setClass(card, 'livecard', true);
         el('div', 'onair', img, 'LIVE');
         el('div', 'nolive', img, 'Livebild');
+        // Free My TV+ 1.4: Sender und Sendung als Bauchbinde im Rahmen des Livebilds (das TV-Bild liegt ueber der Seite)
+        var low = el('div', 'lower', card);
+        el('span', 'lt', low, p.title);
+        if (p.meta) el('span', 'lm', low, p.meta);
       } else if (p.logo) {
         setClass(img, 'logo', true);
         var lg = el('img', '', img);
@@ -484,11 +490,18 @@
           img.style.backgroundImage = '-webkit-linear-gradient(top, rgba(0, 0, 0, 0) 30%, rgba(0, 0, 0, 0.78)), url("' + p.image + '")';
           img.style.backgroundImage = 'linear-gradient(rgba(0, 0, 0, 0) 30%, rgba(0, 0, 0, 0.78)), url("' + p.image + '")';
         }
-        if (p.icon) sym(p.icon, img, c === 0 ? 72 : 56);
-        if (p.kicker) el('div', 'kicker', img, p.kicker);
-        el('div', 'big', img, p.text || p.title);
+        if (p.centered) {
+          var bg = el('div', 'big', img);
+          if (p.icon) sym(p.icon, bg, 36);
+          bg.appendChild(document.createTextNode(p.text || p.title));
+        } else {
+          if (p.icon) sym(p.icon, img, c === 0 ? 72 : 56);
+          if (p.kicker) el('div', 'kicker', img, p.kicker);
+          el('div', 'big', img, p.text || p.title);
+        }
       }
-      if (p.title || !p.plain) {
+      if (p.centered) setClass(card, 'centered', true);
+      if ((p.title || !p.plain) && !p.live) {
         var nm = el('div', 'name', card, p.title);
         if (!p.inside) nm.style.top = (rc[3] + 14) + 'px';
         if (c === 0 && p.meta && !p.inside) el('span', 'm', nm, p.meta);
@@ -505,19 +518,45 @@
   function syncLive() {
     var show = st.tab === 0 && cards[0] && cards[0].live && !sheetOpen() && st.zone !== Z.DRAWER && !saverOn &&
       !Plus.isOpen() && !document.hidden;
+    if (Plus.morphing()) return;
     if (tvFull && show) { Plus.live([0, 0, 1920, 1080]); return; }
     // Free My TV+ 1.3: ueber Menues und Suche wandert das Fernsehbild klein nach rechts unten
-    if (!show && !saverOn && !document.hidden && Plus.isOpen() && Plus.cornerOk()) { Plus.live([1316, 728, 560, 315]); return; }
+    if (!show && !saverOn && !document.hidden && Plus.isOpen() && Plus.cornerOk()) { Plus.live(Plus.cornerRect()); return; }
     Plus.live(show ? LIVE_RECT : null);
   }
 
-  // Free My TV+ 1.3: 10 Sekunden keine Taste, und das Livebild geht auf Vollbild. Jede Taste holt die Oberflaeche zurueck.
-  var tvFull = false;
+  // Free My TV+ 1.4: 20 Sekunden keine Taste, dann waechst das Livebild in 5 Sekunden stufenlos zum Vollbild, waehrend die
+  // Oberflaeche ausdimmt. Eine Taste dimmt sie in 1 Sekunde wieder auf und zieht das Bild zurueck in die Vorschau.
+  var tvFull = false, tvTimer = null, IDLE_FULL = 20000;
+  function tvClass(full, going, back) {
+    setClass(body, 'tvgoing', going);
+    setClass(body, 'tvback', back);
+    setClass(body, 'tvfull', full);
+  }
+  function enterFull() {
+    tvFull = true;
+    clearTimeout(tvTimer);
+    document.documentElement.style.background = 'transparent';
+    tvClass(false, true, false);
+    legend();
+    Plus.liveMorph([0, 0, 1920, 1080], 5000, function () { if (tvFull) tvClass(true, false, false); });
+  }
+  function leaveFull() {
+    tvFull = false;
+    clearTimeout(tvTimer);
+    tvClass(false, false, true);
+    checkNight();
+    legend();
+    var show = st.tab === 0 && cards[0] && cards[0].live && !sheetOpen() && st.zone !== Z.DRAWER && !Plus.isOpen();
+    if (show) Plus.liveMorph(LIVE_RECT, 1000, function () { syncLive(); });
+    else syncLive();
+    tvTimer = setTimeout(function () { setClass(body, 'tvback', false); }, 1100);
+  }
   setInterval(function () {
     if (tvFull || saverOn || document.hidden) return;
     var can = st.tab === 0 && cards[0] && cards[0].live && body.className.indexOf('liveon') >= 0 && !sheetOpen() &&
       st.zone !== Z.DRAWER && !Plus.isOpen() && !moving;
-    if (can && Date.now() - idleAt > 10000) { tvFull = true; setClass(body, 'tvfull', true); document.documentElement.style.background = 'transparent'; syncLive(); legend(); }
+    if (can && Date.now() - idleAt > IDLE_FULL) enterFull();
   }, 1000);
 
   /** Der Rahmen um das Livebild (#hole) passend zum Rechteck der Livekarte. */
@@ -588,6 +627,7 @@
 
   function renderClock() {
     renderTitle();
+    renderDrawerHead();
     var d = new Date(), c = $('clock');
     c.firstChild.textContent = formatDate('format|h:mm', d.getTime());
     c.lastChild.textContent = formatDate('format|EEEE, MMMM d', d.getTime());
@@ -607,7 +647,7 @@
     var n = Math.min(shelf.length, SHELF_VISIBLE), gap = TILE_GAP, pad = 40;
     var tw = TILE, th = TILE;
     // Free My TV+ 1.3: die Leiste so breit wie die Kacheln darueber (80 bis 1840), die breite Kachel ragt nie hinaus
-    var spread = (TILE_WIDE - TILE) / 2, inner = 1760 - 2 * pad - 2 * spread;
+    var spread = Math.round(TILE * 0.08), inner = 1760 - 2 * pad - 2 * spread;
     gap = n > 1 ? (inner - n * tw) / (n - 1) : 0;
     var width = 1760 - 2 * pad, left = 80 + pad;
     var platter = $('platter');
@@ -645,34 +685,43 @@
   }
 
   /** Free My TV+: jede Glaskachel zeigt das Holz hinter sich vergroessert und versetzt, wie durch einen Glaswuerfel. */
+  // Free My TV+ 1.4: das Holz kommt einmal als CSS-Regel (nicht als Riesen-Bildadresse auf jeder Kachel bei jedem Schritt)
+  var woodRule = '', lastRefr = [];
   function refract() {
     var tiles = $('tiles').children, wood = Plus.wood(), pl = $('platter');
     if (!wood || !pl) return;
-    pl.style.backgroundImage = 'url(' + wood + ')';
     var px = parseFloat(pl.style.left) || 0, py = parseFloat(pl.style.top) || 0, pw = parseFloat(pl.style.width) || 1760, ph = parseFloat(pl.style.height) || 200;
-    var zoom = 1.18;
+    var zoom = 1.18, rule = pw + 'x' + ph;
+    if (woodRule !== rule) {
+      woodRule = rule;
+      var css = $('woodcss') || el('style', '', document.head);
+      css.id = 'woodcss';
+      css.textContent = '#platter{background-image:url(' + wood + ')}.tile.glass .refr{background-image:url(' + wood + ');background-size:' +
+        (pw * zoom) + 'px ' + (ph * zoom) + 'px}';
+      lastRefr = [];
+    }
+    var n = Math.min(shelf.length, SHELF_VISIBLE);
     for (var i = 0; i < tiles.length; i++) {
-      var r = tiles[i].querySelector('.refr');
-      if (!r) continue;
-      var wide = st.zone === Z.SHELF && st.shelf === i;
-      var x = tileLeft + (i - shelfFirst) * tileStep - (wide ? (TILE_WIDE - TILE) / 2 : 0) - px, y = parseFloat(tiles[i].style.top) - py, w = wide ? TILE_WIDE : TILE;
-      r.style.backgroundImage = 'url(' + wood + ')';
-      r.style.backgroundSize = (pw * zoom) + 'px ' + (ph * zoom) + 'px';
+      if (i < shelfFirst - 1 || i > shelfFirst + n) continue;   // unsichtbare Kacheln nicht anfassen
+      var r = tiles[i].lastChild;
+      if (!r || r.className !== 'refr') continue;
+      var x = tileLeft + (i - shelfFirst) * tileStep - px, y = parseFloat(tiles[i].style.top) - py, w = TILE;
       // Linse: vergroessert um die Kachelmitte, dazu leicht gegen die Bewegung versetzt (Brechung)
       var cx = x + w / 2, cy = y + TILE / 2;
-      r.style.backgroundPosition = (-(cx * zoom - w / 2) + (cx - pw / 2) * 0.06) + 'px ' + (-(cy * zoom - TILE / 2)) + 'px';
+      var pos = Math.round(-(cx * zoom - w / 2) + (cx - pw / 2) * 0.06) + 'px ' + Math.round(-(cy * zoom - TILE / 2)) + 'px';
+      if (lastRefr[i] !== pos) { lastRefr[i] = pos; r.style.backgroundPosition = pos; }
     }
   }
 
   /** The row slides (a transform on #tiles, which old TVs animate), and the apps it takes past the glass fade out. */
   function placeTiles() {
     var row = $('tiles'), tiles = row.children, n = Math.min(shelf.length, SHELF_VISIBLE);
+    // Free My TV+ 1.4: Glaswuerfel bleiben quadratisch, der Fokus vergroessert nur per transform (GPU, kein Layout)
     for (var i = 0; i < shelf.length; i++) {
-      var shown = i >= shelfFirst && i < shelfFirst + n, wide = st.zone === Z.SHELF && st.shelf === i;
-      tiles[i].style.width = (wide ? TILE_WIDE : TILE) + 'px';
-      tiles[i].style.left = (tileLeft + i * tileStep - (wide ? (TILE_WIDE - TILE) / 2 : 0)) + 'px';
-      tiles[i].style.opacity = shown ? '' : '0';
-      tiles[i].style.pointerEvents = shown ? '' : 'none';
+      var shown = i >= shelfFirst && i < shelfFirst + n, s = tiles[i].style;
+      var left = (tileLeft + i * tileStep) + 'px', op = shown ? '' : '0';
+      if (s.left !== left) s.left = left;
+      if (s.opacity !== op) { s.opacity = op; s.pointerEvents = shown ? '' : 'none'; }
     }
     row.style.webkitTransform = row.style.transform = 'translateX(' + (-shelfFirst * tileStep) + 'px)';
     refract();
@@ -727,7 +776,25 @@
       xPos += tw + gap;
     }
     renderPanels();
+    renderDrawerHead();
     updateFocus();
+  }
+
+  /** Free My TV+ 1.4: oben in der Schublade wieder Uhrzeit, Datum und die Tageskarte (heute: Wetter, Temperaturen, Sonne). */
+  function renderDrawerHead() {
+    var d = $('drawer');
+    if (!d) return;
+    var h = $('dhead') || el('div', '', d), now = Date.now(), w = Data.weather;
+    h.id = 'dhead';
+    h.innerHTML = '';
+    el('span', 'dtime', h, formatDate('format|h:mm', now));
+    el('span', 'ddate', h, formatDate('format|EEEE, MMMM d', now));
+    if (w) {
+      var card = el('span', 'dday glass', h);
+      sym(Data.symbol(w.code, w.isDay), card, 40);
+      el('span', 'dt', card, 'Heute ' + Data.degrees(w.min) + ' bis ' + Data.degrees(w.max));
+      if (w.sunrise && w.sunset) el('span', 'ds', card, 'Sonne ' + Data.time(w.sunrise) + '–' + Data.time(w.sunset));
+    }
   }
 
   function renderPanels() {
@@ -1432,7 +1499,7 @@
     else if (st.zone === Z.SHELF) t = '◄ ► wählen  ·  OK öffnen  ·  OK lang: verschieben  ·  ▼ Schublade  ·  P+/P− Sender';
     else if (st.zone === Z.CARDS) t = (cards[st.card] && cards[st.card].switcher ? 'OK Programmführer  ·  ' : 'OK öffnen  ·  ') + '◄ ► ▲ ▼ wählen  ·  P+/P− Sender';
     else if (st.zone === Z.TOP) t = '◄ ► Tabs und Knöpfe  ·  ▼ Kacheln';
-    box.textContent = t;
+    if (box.textContent !== t) box.textContent = t;
     setClass(box, 'off', !t);
   }
 
@@ -1523,7 +1590,7 @@
 
   function poke(ok) {
     idleAt = Date.now();
-    if (tvFull) { tvFull = false; setClass(body, 'tvfull', false); checkNight(); syncLive(); legend(); return true; }   // Free My TV+: zurueck aus dem TV-Vollbild
+    if (tvFull) { leaveFull(); return true; }   // Free My TV+: zurueck aus dem TV-Vollbild
     if (!saverOn) return false;
     var app = ok && saverPick && Prefs.saverWatch() && Data.appFor(saverPick.app);
     hideSaver();
@@ -1680,6 +1747,7 @@
     var w = Data.weather, info = $('band-info');
     Plus.band(w);
     renderTitle();
+    renderDrawerHead();
     checkNight();   // Free My TV+: die Farbstimmung folgt dem Wetter
     if (!info) return;
     info.innerHTML = '';
@@ -1709,7 +1777,8 @@
   document.addEventListener('webOSRelaunch', reopened);   // LG: opened again while running
   window.addEventListener('appcontrol', reopened);        // Samsung: the same
   document.addEventListener('visibilitychange', function () {
-    if (document.hidden) { hideSaver(); Plus.live(null); return; }
+    if (Prefs.backHome()) Plus.backHome(true, !document.hidden);
+    if (document.hidden) { hideSaver(); if (tvFull) { tvFull = false; tvClass(false, false, false); } Plus.live(null); return; }
     idleAt = Date.now();
     loadApps(function () { renderShelf(); renderDrawer(); updateFocus(); Data.refresh(); Plus.refresh(); renderCards(); });
   });
