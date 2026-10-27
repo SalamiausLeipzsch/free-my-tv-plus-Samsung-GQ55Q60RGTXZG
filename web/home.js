@@ -354,7 +354,9 @@
     if (list.length) placeTiles();   // Free My TV+: die fokussierte Kachel wird breit
     revealShelf();
     list = document.querySelectorAll('#drawer .key');
-    for (i = 0; i < list.length; i++) setClass(list[i], 'focus', st.zone === Z.DRAWER && st.drawer === i);
+    for (i = 0; i < list.length; i++) setClass(list[i], 'focus', st.zone === Z.DRAWER && st.drawer === i && !st.wxFocus);
+    setClass($('weather'), 'focus', st.zone === Z.DRAWER && !!st.wxFocus);
+    legend();
     list = document.querySelectorAll('#apps .cell');
     for (i = 0; i < list.length; i++) setClass(list[i], 'focus', st.zone === Z.APPS && st.grid === i);
     var rows = Math.max(1, Math.ceil(others.length / 5)), r = Math.floor(st.grid / 5), first = Math.max(0, Math.min(rows - 3, r - 1));
@@ -503,8 +505,20 @@
   function syncLive() {
     var show = st.tab === 0 && cards[0] && cards[0].live && !sheetOpen() && st.zone !== Z.DRAWER && !saverOn &&
       !Plus.isOpen() && !document.hidden;
+    if (tvFull && show) { Plus.live([0, 0, 1920, 1080]); return; }
+    // Free My TV+ 1.3: ueber Menues und Suche wandert das Fernsehbild klein nach rechts unten
+    if (!show && !saverOn && !document.hidden && Plus.isOpen() && Plus.cornerOk()) { Plus.live([1316, 728, 560, 315]); return; }
     Plus.live(show ? LIVE_RECT : null);
   }
+
+  // Free My TV+ 1.3: 10 Sekunden keine Taste, und das Livebild geht auf Vollbild. Jede Taste holt die Oberflaeche zurueck.
+  var tvFull = false;
+  setInterval(function () {
+    if (tvFull || saverOn || document.hidden) return;
+    var can = st.tab === 0 && cards[0] && cards[0].live && body.className.indexOf('liveon') >= 0 && !sheetOpen() &&
+      st.zone !== Z.DRAWER && !Plus.isOpen() && !moving;
+    if (can && Date.now() - idleAt > 10000) { tvFull = true; setClass(body, 'tvfull', true); document.documentElement.style.background = 'transparent'; syncLive(); legend(); }
+  }, 1000);
 
   /** Der Rahmen um das Livebild (#hole) passend zum Rechteck der Livekarte. */
   (function placeHole() {
@@ -592,7 +606,10 @@
   function renderShelf() {
     var n = Math.min(shelf.length, SHELF_VISIBLE), gap = TILE_GAP, pad = 40;
     var tw = TILE, th = TILE;
-    var width = n * tw + Math.max(0, n - 1) * gap, left = (1920 - width) / 2;
+    // Free My TV+ 1.3: die Leiste so breit wie die Kacheln darueber (80 bis 1840), die breite Kachel ragt nie hinaus
+    var spread = (TILE_WIDE - TILE) / 2, inner = 1760 - 2 * pad - 2 * spread;
+    gap = n > 1 ? (inner - n * tw) / (n - 1) : 0;
+    var width = 1760 - 2 * pad, left = 80 + pad;
     var platter = $('platter');
     platter.style.display = n ? '' : 'none';
     platter.style.left = (left - pad) + 'px';
@@ -603,7 +620,7 @@
     var tiles = $('tiles');
     tiles.innerHTML = '';
     tileStep = tw + gap;
-    tileLeft = left;
+    tileLeft = left + spread;
     shelfFirst = Math.max(0, Math.min(shelfFirst, shelf.length - n));
     for (var i = 0; i < shelf.length; i++) {
       var t = el('div', 'tile glass', tiles);
@@ -611,6 +628,7 @@
       t.style.width = tw + 'px';
       t.style.height = th + 'px';
       face(shelf[i], t, wordFit(shelf[i].title, tw, 22));
+      el('div', 'refr', t);   // Free My TV+: das Holz der Leiste, durch das Glas verzerrt
       hover(t, Z.SHELF, i);
     }
     // More apps than fit: a small arrow inside the glass's edge on each side that has more, where no tile reaches
@@ -626,6 +644,26 @@
     placeTiles();
   }
 
+  /** Free My TV+: jede Glaskachel zeigt das Holz hinter sich vergroessert und versetzt, wie durch einen Glaswuerfel. */
+  function refract() {
+    var tiles = $('tiles').children, wood = Plus.wood(), pl = $('platter');
+    if (!wood || !pl) return;
+    pl.style.backgroundImage = 'url(' + wood + ')';
+    var px = parseFloat(pl.style.left) || 0, py = parseFloat(pl.style.top) || 0, pw = parseFloat(pl.style.width) || 1760, ph = parseFloat(pl.style.height) || 200;
+    var zoom = 1.18;
+    for (var i = 0; i < tiles.length; i++) {
+      var r = tiles[i].querySelector('.refr');
+      if (!r) continue;
+      var wide = st.zone === Z.SHELF && st.shelf === i;
+      var x = tileLeft + (i - shelfFirst) * tileStep - (wide ? (TILE_WIDE - TILE) / 2 : 0) - px, y = parseFloat(tiles[i].style.top) - py, w = wide ? TILE_WIDE : TILE;
+      r.style.backgroundImage = 'url(' + wood + ')';
+      r.style.backgroundSize = (pw * zoom) + 'px ' + (ph * zoom) + 'px';
+      // Linse: vergroessert um die Kachelmitte, dazu leicht gegen die Bewegung versetzt (Brechung)
+      var cx = x + w / 2, cy = y + TILE / 2;
+      r.style.backgroundPosition = (-(cx * zoom - w / 2) + (cx - pw / 2) * 0.06) + 'px ' + (-(cy * zoom - TILE / 2)) + 'px';
+    }
+  }
+
   /** The row slides (a transform on #tiles, which old TVs animate), and the apps it takes past the glass fade out. */
   function placeTiles() {
     var row = $('tiles'), tiles = row.children, n = Math.min(shelf.length, SHELF_VISIBLE);
@@ -637,6 +675,7 @@
       tiles[i].style.pointerEvents = shown ? '' : 'none';
     }
     row.style.webkitTransform = row.style.transform = 'translateX(' + (-shelfFirst * tileStep) + 'px)';
+    refract();
     var arrows = $('platter').children;
     arrows[0].style.visibility = shelfFirst > 0 ? '' : 'hidden';
     arrows[1].style.visibility = shelfFirst + n < shelf.length ? '' : 'hidden';
@@ -645,7 +684,8 @@
   /** Scrolls the shelf, one app at a time, so the focused app is shown. */
   function revealShelf() {
     var n = Math.min(shelf.length, SHELF_VISIBLE);
-    var first = Math.max(0, Math.min(Math.max(shelfFirst, st.shelf - n + 1), Math.min(st.shelf, shelf.length - n)));
+    // Free My TV+ 1.3: ab etwa 60 % der Leiste wandern die Kacheln mit, erst am Ende laeuft der Fokus bis ganz nach rechts
+    var first = Math.max(0, Math.min(st.shelf - Math.floor(n * 0.6), shelf.length - n));
     if (first === shelfFirst || !shelf.length) return;
     shelfFirst = first;
     placeTiles();
@@ -666,7 +706,7 @@
     drawerInputs = drawerItems.length;
     drawerItems.push({label: tr('All Apps'), symbol: 'apps', run: openApps});
     drawerItems.push({label: tr('Home Settings'), symbol: 'settings', run: openSettings});
-    drawerItems.push({label: 'Wetterbericht', symbol: 'partly_cloudy_day', run: function () { Plus.openWeather(); updateFocus(); }});
+    drawerItems.push({label: 'Mediaplayer', symbol: 'play', run: function () { Plus.openMedia(); updateFocus(); }});
     drawerItems.push({label: 'Werbefrei', symbol: 'shield', run: function () { Plus.openPrivacy(); updateFocus(); }});
     if (TV.canOpenSettings) drawerItems.push({label: tr('TV Settings'), symbol: 'tv_settings', run: tvSettings});
     var n = drawerItems.length, gap = 18, groupGap = 56, groups = drawerInputs > 0 && drawerInputs < n ? 2 : 1;
@@ -725,6 +765,7 @@
     el('span', 'temp', now, Data.degrees(w.temp));
     el('div', 'cond', card, Data.condition(w.code, w.isDay));
     el('div', 'range', card, trf('H:{max}', {max: Data.degrees(w.max)}) + '   ' + trf('L:{min}', {min: Data.degrees(w.min)}));
+    el('div', 'hint', card, 'OK: ausführlicher Wetterbericht');
     el('div', 'split', card);
     // Home Settings → Forecast: the next 6 hours or the next 5 days (the hours until a forecast has days).
     var days = Prefs.forecast() === 'days' && w.days && w.days.length > 0, list = days ? w.days : w.hours, n = days ? 5 : 6;
@@ -773,6 +814,7 @@
 
   function openDrawer() {
     if (!drawerItems.length) return;
+    st.wxFocus = false;
     var tiles = $('tiles').children;
     st.zone = Z.DRAWER;
     st.drawer = Math.min(drawerItems.length - 1, nearest(document.querySelectorAll('#drawer .key'), centerX(tiles[st.shelf])));
@@ -848,6 +890,8 @@
       {label: 'Cybersecurity-News', toggle: Prefs.quotes(),
         step: function () { Prefs.set('quotes', !Prefs.quotes()); renderQuotes(); renderPanels(); }},
       {label: 'Werbung & Tracking', value: '›', step: function (d) { if (d >= 0) Plus.openPrivacy(); }},
+      {label: 'Farbe des Auswahlrahmens', value: ACCENTS[Prefs.accent()] ? ACCENTS[Prefs.accent()][0] : 'Blau',
+        step: function (d) { cycle('accent', Object.keys(ACCENTS), Prefs.accent(), d); applyAccent(); }},
       {label: 'Hintergrundbild', value: Plus.scenes[Prefs.scene()] ? Plus.scenes[Prefs.scene()].label : 'Wetter & Tageszeit',
         step: function (d) { cycle('scene', ['auto'].concat(Object.keys(Plus.scenes)), Prefs.scene(), d); renderBand(); }},
       {label: 'Nach anderen Apps zurück zu Free My TV+', toggle: Prefs.backHome(),
@@ -1218,6 +1262,7 @@
         if (shelf[st.shelf]) launcher(shelf[st.shelf].id, shelf[st.shelf].title)();
         return;
       case Z.DRAWER:
+        if (st.wxFocus) { Plus.openWeather(); updateFocus(); return; }
         if (drawerItems[st.drawer]) drawerItems[st.drawer].run();
         return;
       case Z.APPS:
@@ -1276,8 +1321,12 @@
         }
         break;
       case Z.DRAWER:
-        if (dx) st.drawer = Math.max(0, Math.min(drawerItems.length - 1, st.drawer + dx));
-        else if (dy < 0) { closeDrawer(); return; }
+        // Free My TV+ 1.3: oben Wetter und News, unten Eingaenge und Verknuepfungen. ▲ zum Wetter, OK oeffnet den Bericht.
+        if (st.wxFocus) {
+          if (dy > 0) st.wxFocus = false;
+          else if (dy < 0) { st.wxFocus = false; closeDrawer(); return; }
+        } else if (dx) st.drawer = Math.max(0, Math.min(drawerItems.length - 1, st.drawer + dx));
+        else if (dy < 0) { if (Prefs.weather()) st.wxFocus = true; else { closeDrawer(); return; } }
         break;
       case Z.APPS:
         var g = st.grid + dx + dy * 5;
@@ -1359,6 +1408,33 @@
   // MARK: - Night, clock, screensaver
 
   var lastNight = null;
+
+  // Free My TV+ 1.3: Farbe des Auswahlrahmens (home.css: .acc-…)
+  var ACCENTS = {blue: ['Blau'], green: ['Grün'], orange: ['Orange'], pink: ['Pink'], purple: ['Lila'], red: ['Rot'], yellow: ['Gelb'], white: ['Weiß'], teal: ['Türkis']};
+  var accentNow = '';
+  function applyAccent() {
+    var a = ACCENTS[Prefs.accent()] ? Prefs.accent() : 'blue';
+    if (accentNow) setClass(body, 'acc-' + accentNow, false);
+    setClass(body, 'acc-' + a, true);
+    accentNow = a;
+  }
+
+  /** Legende unten rechts: welche Tasten hier was tun. */
+  function legend() {
+    var box = $('legend');
+    if (!box) return;
+    var t = '';
+    if (Plus.isOpen()) t = Plus.legendText();
+    else if (tvFull) t = 'Beliebige Taste: Oberfläche zurück';
+    else if (moving) t = '◄ ► verschieben  ·  OK ablegen';
+    else if (sheetOpen()) t = st.zone === Z.SETTINGS ? '▲ ▼ wählen  ·  ◄ ► ändern  ·  OK öffnen  ·  Zurück' : '▲ ▼ ◄ ► wählen  ·  OK  ·  Zurück';
+    else if (st.zone === Z.DRAWER) t = st.wxFocus ? 'OK Wetterbericht  ·  ▼ Verknüpfungen  ·  ▲ schließen' : '◄ ► wählen  ·  OK öffnen  ·  ▲ Wetter  ·  Zurück';
+    else if (st.zone === Z.SHELF) t = '◄ ► wählen  ·  OK öffnen  ·  OK lang: verschieben  ·  ▼ Schublade  ·  P+/P− Sender';
+    else if (st.zone === Z.CARDS) t = (cards[st.card] && cards[st.card].switcher ? 'OK Programmführer  ·  ' : 'OK öffnen  ·  ') + '◄ ► ▲ ▼ wählen  ·  P+/P− Sender';
+    else if (st.zone === Z.TOP) t = '◄ ► Tabs und Knöpfe  ·  ▼ Kacheln';
+    box.textContent = t;
+    setClass(box, 'off', !t);
+  }
 
   // Free My TV+: Farbstimmungen (Name: [Grundfarbe, dunkel?]), passend zu den Fotos im Streifen
   var MOODS = {sunrise: ['#FFF1E6', false], day: ['#F5F5F7', false], partly: ['#F1F4F8', false], overcast: ['#ECEEF1', false], rain: ['#E6ECF2', false], snow: ['#F7FAFD', false], fog: ['#EFEFEB', false], sunset: ['#FFE6D6', false], dusk: ['#2B2542', true], night: ['#141B2D', true], nightcloud: ['#1F2126', true], nightsnow: ['#1B2231', true], storm: ['#242830', true]};
@@ -1447,6 +1523,7 @@
 
   function poke(ok) {
     idleAt = Date.now();
+    if (tvFull) { tvFull = false; setClass(body, 'tvfull', false); checkNight(); syncLive(); legend(); return true; }   // Free My TV+: zurueck aus dem TV-Vollbild
     if (!saverOn) return false;
     var app = ok && saverPick && Prefs.saverWatch() && Data.appFor(saverPick.app);
     hideSaver();
@@ -1458,6 +1535,7 @@
 
   document.addEventListener('keydown', function (e) {
     var k = e.keyCode;
+    setTimeout(function () { legend(); syncLive(); }, 0);   // Free My TV+: Legende und Fernsehbild nach jeder Taste
     if (poke(k === TV.keys.ok)) { e.preventDefault(); return; }   // the first press only wakes the screen (or OK watches)
     if (typing(k)) return;
     // Free My TV+: Kacheln der Leiste verschieben. OK lange halten (oder rote Taste), dann ← →, OK legt ab.
@@ -1594,6 +1672,8 @@
   });
   Plus.onClose(function () { updateFocus(); });
   Plus.backHome(Prefs.backHome());
+  applyAccent();
+  Plus.onLegend(function () { legend(); });
 
   /** Free My TV+: der Foto-Streifen oben mit Wetter, Ort und Uhrzeit. */
   function renderBand() {
@@ -1654,7 +1734,7 @@
     Plus.refresh();
     renderBand();
     if (st.tab === 0) renderCards();   // EPG-Zeit ("noch 12 Min.") aktuell halten
-    if (!saverOn && !sheetOpen() && Date.now() - idleAt > SAVER_AFTER) showSaver();
+    if (!saverOn && !tvFull && !sheetOpen() && Date.now() - idleAt > SAVER_AFTER) showSaver();
     if (saverOn) tickSaverClock($('saver').querySelector('.clock'));
   }, 30000);
 

@@ -1,10 +1,50 @@
-> **Free My TV+ (Samsung)** ist ein werbefreier Startbildschirm für Samsung-Fernseher ab 2017 (Tizen), auf Basis von
-> Free My TV. Er bündelt Sat-Fernsehen mit Livebild und Programm, tausende freie Sender aus aller Welt (Welt-TV),
-> News nach eigenen Themen, einen ausführlichen Wetterbericht, werbefreies YouTube (TizenTube) und eine Anleitung samt
-> Sperrlisten gegen Samsungs Werbung und Tracking. Gedacht für alle, die ihren Samsung-TV ohne Werbebanner und
-> Datensammelei nutzen wollen, ohne Root und ohne den Fernseher zu verändern: Free My TV+ ist eine normale App und
-> lässt sich jederzeit wieder löschen. Anleitung auf Deutsch: [README-PLUS.md](README-PLUS.md) ·
-> Änderungen je Version: [CHANGELOG.md](CHANGELOG.md).
+# Free My TV+
+
+**Ein eigener, werbefreier Startbildschirm für Samsung-Fernseher (Tizen, ab 2017) – entstanden als eigene Idee auf der
+Grundlage von [Free My TV](https://github.com/simbasjungles/free-my-tv) (MIT-Lizenz).**
+
+Free My TV+ ersetzt Samsungs Werbeleiste nicht per Root, sondern als ganz normale App: Sie wird über den Entwicklermodus
+installiert, verändert am Fernseher nichts und lässt sich jederzeit wieder löschen. Gedacht ist sie für alle, die Sat-TV,
+Streaming-Apps und freie Internetsender an einem Ort haben wollen – ohne Werbebanner, ohne Zuschauer-Tracking und mit
+einer Oberfläche, die sich nach Wetter, Tageszeit und eigenem Geschmack richtet.
+
+**Kurz, was drin ist:** Sat-Fernsehen mit Livebild, Programmführer und Infos zur Sendung · Welt-TV mit tausenden freien
+Sendern, Suche, Kategorien und Länderfiltern · News-Kacheln nach eigenen Themen (über 2.500) · ausführlicher
+Wetterbericht · Mediaplayer für USB-Speicher und Stream-Adressen · werbefreies YouTube über TizenTube · App-Leiste aus
+Glaswürfeln auf Holz, frei sortierbar · Farbstimmungen und Hintergrundbilder · Anleitung und Sperrlisten gegen Samsungs
+Werbung und Tracking.
+
+- Anleitung, Installation und Grenzen: [README-PLUS.md](README-PLUS.md)
+- Was sich mit jeder Version geändert hat: [CHANGELOG.md](CHANGELOG.md)
+
+## Wie die Idee gewachsen ist
+
+Free My TV+ ist Stück für Stück entstanden, jeweils aus dem, was im Alltag vor dem Fernseher fehlte:
+
+| Idee | Umgesetzt in |
+|---|---|
+| Samsungs Werbung, Tracking (ACR) und Zustimmungs-Abfragen loswerden – mit TV-Schaltern, DNS-Filter und Sperrlisten | 1.0 |
+| Sat-Programm mit Livebild und EPG direkt auf dem Startbildschirm | 1.0 |
+| Freie Internetsender aus aller Welt (Welt-TV) | 1.0, ausgebaut in 1.1–1.3 |
+| Cybersecurity-News statt Kryptokursen | 1.0, Themen frei wählbar ab 1.2 |
+| YouTube ohne Werbung (TizenTube) | 1.0 |
+| Ein Foto-Streifen passend zu Wetter und Tageszeit, dazu Farbstimmungen und eigene Hintergrundbilder | 1.0–1.3 |
+| Glas-Kacheln statt flacher Kacheln, später Glaswürfel auf altem Holz | 1.1–1.3 |
+| Nach Netflix, Browser & Co. automatisch zurück zum Startbildschirm | 1.1 |
+| Welt-TV ohne Grenze, mit Suche, Kategorien, Ländern, eigenen Quellen, Zuletzt gesehen | 1.1–1.2 |
+| Senderliste und Programmführer mit Infos und Bildern zur Sendung | 1.2–1.3 |
+| Wetterbericht mit allen wichtigen Werten | 1.2–1.3 |
+| Bedienhilfe: sichtbarer Auswahlrahmen (Farbe wählbar) und Tasten-Legende auf jeder Seite | 1.2–1.3 |
+| TV-Vollbild nach 10 Sekunden ohne Taste | 1.3 |
+| Mediaplayer für USB-Sticks und Stream-Adressen | 1.3 |
+
+**Ideen für später:** KI-Assistent im Fernseher (Claude, GPT und andere Modelle über einen gemeinsamen, frei wählbaren
+Zugang), weitere Gratis-Senderlisten, Programmführer mit Erinnerungen.
+
+---
+
+<details>
+<summary>Ursprüngliches README von Free My TV (Grundlage dieses Projekts)</summary>
 
 <div align="center">
 
@@ -306,3 +346,6 @@ No accounts, no analytics, no tracking. The app talks to TMDB, Open-Meteo (with 
 ## License
 
 [MIT](LICENSE). Fork it, change it, ship it.
+
+
+</details>

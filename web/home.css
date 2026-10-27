@@ -967,3 +967,142 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 #wx .wx-day .r .v { font-size: 18px; }
 #wx .wx-src { top: -70px; bottom: auto; left: auto; right: 0; }
 #topics .hint { top: auto; bottom: 30px; right: auto; left: 520px; }
+
+/* MARK: - Free My TV+ 1.3 */
+
+/* Foto-Streifen: bis 40 % der Hoehe voll, dann auf 15 % sauber ausblenden (262 -> 594 px) */
+#band, #band .ph, #band .fade { height: 594px; }
+#band .ph { background-position: center 45%; }
+#band .fade {
+  background: -webkit-linear-gradient(top, rgba(0, 0, 0, 0.3) 0%, rgba(0, 0, 0, 0.04) 30%, rgba(244, 244, 246, 0) 72.7%, #F4F4F6 100%);
+  background: linear-gradient(rgba(0, 0, 0, 0.3) 0%, rgba(0, 0, 0, 0.04) 30%, rgba(244, 244, 246, 0) 72.7%, #F4F4F6 100%); }
+.night #band .fade {
+  background: -webkit-linear-gradient(top, rgba(0, 0, 0, 0.32) 0%, rgba(0, 0, 0, 0.06) 30%, rgba(15, 15, 17, 0) 72.7%, #0F0F11 100%);
+  background: linear-gradient(rgba(0, 0, 0, 0.32) 0%, rgba(0, 0, 0, 0.06) 30%, rgba(15, 15, 17, 0) 72.7%, #0F0F11 100%); }
+/* waehrend das Livebild laeuft, ist der Streifen an seiner Stelle ausgeschnitten */
+.liveon #band { -webkit-clip-path: polygon(0 0, 1920px 0, 1920px 594px, 1120px 594px, 1120px 262px, 80px 262px, 80px 594px, 0 594px);
+  clip-path: polygon(0 0, 1920px 0, 1920px 594px, 1120px 594px, 1120px 262px, 80px 262px, 80px 594px, 0 594px); }
+.liveon .card .img.live { box-shadow: none; }
+.mood-sunrise #band .fade { background: -webkit-linear-gradient(top, rgba(0, 0, 0, 0.3) 0%, rgba(0, 0, 0, 0.04) 30%, rgba(255, 241, 230, 0) 72.7%, #FFF1E6 100%); background: linear-gradient(rgba(0, 0, 0, 0.3) 0%, rgba(0, 0, 0, 0.04) 30%, rgba(255, 241, 230, 0) 72.7%, #FFF1E6 100%); }
+.mood-day #band .fade { background: -webkit-linear-gradient(top, rgba(0, 0, 0, 0.3) 0%, rgba(0, 0, 0, 0.04) 30%, rgba(245, 245, 247, 0) 72.7%, #F5F5F7 100%); background: linear-gradient(rgba(0, 0, 0, 0.3) 0%, rgba(0, 0, 0, 0.04) 30%, rgba(245, 245, 247, 0) 72.7%, #F5F5F7 100%); }
+.mood-partly #band .fade { background: -webkit-linear-gradient(top, rgba(0, 0, 0, 0.3) 0%, rgba(0, 0, 0, 0.04) 30%, rgba(241, 244, 248, 0) 72.7%, #F1F4F8 100%); background: linear-gradient(rgba(0, 0, 0, 0.3) 0%, rgba(0, 0, 0, 0.04) 30%, rgba(241, 244, 248, 0) 72.7%, #F1F4F8 100%); }
+.mood-overcast #band .fade { background: -webkit-linear-gradient(top, rgba(0, 0, 0, 0.3) 0%, rgba(0, 0, 0, 0.04) 30%, rgba(236, 238, 241, 0) 72.7%, #ECEEF1 100%); background: linear-gradient(rgba(0, 0, 0, 0.3) 0%, rgba(0, 0, 0, 0.04) 30%, rgba(236, 238, 241, 0) 72.7%, #ECEEF1 100%); }
+.mood-rain #band .fade { background: -webkit-linear-gradient(top, rgba(0, 0, 0, 0.3) 0%, rgba(0, 0, 0, 0.04) 30%, rgba(230, 236, 242, 0) 72.7%, #E6ECF2 100%); background: linear-gradient(rgba(0, 0, 0, 0.3) 0%, rgba(0, 0, 0, 0.04) 30%, rgba(230, 236, 242, 0) 72.7%, #E6ECF2 100%); }
+.mood-snow #band .fade { background: -webkit-linear-gradient(top, rgba(0, 0, 0, 0.3) 0%, rgba(0, 0, 0, 0.04) 30%, rgba(247, 250, 253, 0) 72.7%, #F7FAFD 100%); background: linear-gradient(rgba(0, 0, 0, 0.3) 0%, rgba(0, 0, 0, 0.04) 30%, rgba(247, 250, 253, 0) 72.7%, #F7FAFD 100%); }
+.mood-fog #band .fade { background: -webkit-linear-gradient(top, rgba(0, 0, 0, 0.3) 0%, rgba(0, 0, 0, 0.04) 30%, rgba(239, 239, 235, 0) 72.7%, #EFEFEB 100%); background: linear-gradient(rgba(0, 0, 0, 0.3) 0%, rgba(0, 0, 0, 0.04) 30%, rgba(239, 239, 235, 0) 72.7%, #EFEFEB 100%); }
+.mood-sunset #band .fade { background: -webkit-linear-gradient(top, rgba(0, 0, 0, 0.3) 0%, rgba(0, 0, 0, 0.04) 30%, rgba(255, 230, 214, 0) 72.7%, #FFE6D6 100%); background: linear-gradient(rgba(0, 0, 0, 0.3) 0%, rgba(0, 0, 0, 0.04) 30%, rgba(255, 230, 214, 0) 72.7%, #FFE6D6 100%); }
+.mood-dusk #band .fade { background: -webkit-linear-gradient(top, rgba(0, 0, 0, 0.3) 0%, rgba(0, 0, 0, 0.04) 30%, rgba(43, 37, 66, 0) 72.7%, #2B2542 100%); background: linear-gradient(rgba(0, 0, 0, 0.3) 0%, rgba(0, 0, 0, 0.04) 30%, rgba(43, 37, 66, 0) 72.7%, #2B2542 100%); }
+.mood-night #band .fade { background: -webkit-linear-gradient(top, rgba(0, 0, 0, 0.3) 0%, rgba(0, 0, 0, 0.04) 30%, rgba(20, 27, 45, 0) 72.7%, #141B2D 100%); background: linear-gradient(rgba(0, 0, 0, 0.3) 0%, rgba(0, 0, 0, 0.04) 30%, rgba(20, 27, 45, 0) 72.7%, #141B2D 100%); }
+.mood-nightcloud #band .fade { background: -webkit-linear-gradient(top, rgba(0, 0, 0, 0.3) 0%, rgba(0, 0, 0, 0.04) 30%, rgba(31, 33, 38, 0) 72.7%, #1F2126 100%); background: linear-gradient(rgba(0, 0, 0, 0.3) 0%, rgba(0, 0, 0, 0.04) 30%, rgba(31, 33, 38, 0) 72.7%, #1F2126 100%); }
+.mood-nightsnow #band .fade { background: -webkit-linear-gradient(top, rgba(0, 0, 0, 0.3) 0%, rgba(0, 0, 0, 0.04) 30%, rgba(27, 34, 49, 0) 72.7%, #1B2231 100%); background: linear-gradient(rgba(0, 0, 0, 0.3) 0%, rgba(0, 0, 0, 0.04) 30%, rgba(27, 34, 49, 0) 72.7%, #1B2231 100%); }
+.mood-storm #band .fade { background: -webkit-linear-gradient(top, rgba(0, 0, 0, 0.3) 0%, rgba(0, 0, 0, 0.04) 30%, rgba(36, 40, 48, 0) 72.7%, #242830 100%); background: linear-gradient(rgba(0, 0, 0, 0.3) 0%, rgba(0, 0, 0, 0.04) 30%, rgba(36, 40, 48, 0) 72.7%, #242830 100%); }
+
+/* TV-Vollbild nach 10 s ohne Taste */
+.tvfull #home, .tvfull #drawer, .tvfull #hole, .tvfull #sky, .tvfull #legend { opacity: 0 !important; visibility: hidden; }
+.tvfull, .tvfull body { background: transparent !important; }
+
+/* Schublade: oben Wetter und News, unten Eingaenge und Verknuepfungen; Abendrot statt Weiss */
+.panel { top: 466px; }
+.key { top: 858px; }
+.row-title { top: 812px; }
+.drawer-open #sky .grad, .drawer-open #sky .day, .drawer-open #sky .night {
+  background: url("https://images.pexels.com/photos/29442877/pexels-photo-29442877.jpeg?auto=compress&cs=tinysrgb&w=1920") center 60% / cover !important; opacity: 1 !important; }
+.drawer-open #sky .veil { background: rgba(20, 10, 30, 0.18) !important; }
+.drawer-open #sky canvas { opacity: 0 !important; }
+.drawer-open .row-title { color: rgba(255, 255, 255, 0.9); text-shadow: 0 1px 8px rgba(0, 0, 0, 0.5); }
+#weather { -webkit-transition: -webkit-transform 0.2s, box-shadow 0.2s; transition: transform 0.2s, box-shadow 0.2s; }
+#weather.focus { -webkit-transform: scale(1.02); transform: scale(1.02); }
+#weather .hint { position: absolute; right: 30px; bottom: 22px; font-size: 18px; color: #6E6E73; }
+
+/* App-Leiste: warmes altes Holz, darin Glaswuerfel wie aus gruenem Glas: Holz scheint verzerrt hindurch */
+#platter { background-size: cover; background-color: #6B4423;
+  box-shadow: inset 0 2px 0 rgba(255, 220, 170, 0.35), inset 0 -8px 20px rgba(0, 0, 0, 0.35), 0 14px 34px rgba(0, 0, 0, 0.28) !important; }
+.night #platter { background-color: #3E2614; }
+.tile.glass { overflow: hidden; }
+.tile.glass .refr { position: absolute; left: 0; top: 0; right: 0; bottom: 0; z-index: 0; opacity: 0.55; border-radius: 26px;
+  -webkit-filter: saturate(1.2) brightness(1.15); filter: saturate(1.2) brightness(1.15); }
+.tile.glass::before { z-index: 1; opacity: 0.9;
+  background: -webkit-radial-gradient(50% 120%, ellipse, rgba(255, 255, 255, 0.55), rgba(255, 255, 255, 0) 55%), -webkit-linear-gradient(top, rgba(255, 255, 255, 0.55), rgba(255, 255, 255, 0.05) 45%, rgba(0, 0, 0, 0.12));
+  background: radial-gradient(ellipse at 50% 120%, rgba(255, 255, 255, 0.55), rgba(255, 255, 255, 0) 55%), linear-gradient(rgba(255, 255, 255, 0.55), rgba(255, 255, 255, 0.05) 45%, rgba(0, 0, 0, 0.12)); }
+.tile.glass.focus::before { opacity: 0.6; }
+.tile.glass img, .tile.glass .word { z-index: 3; }
+.tile.glass { box-shadow: inset 0 3px 0 rgba(255, 255, 255, 0.95), inset 0 -14px 22px rgba(0, 0, 0, 0.28), inset 0 0 0 2px rgba(255, 255, 255, 0.5),
+  inset 10px 0 18px rgba(255, 255, 255, 0.22), inset -10px 0 18px rgba(0, 0, 0, 0.12), 0 18px 26px rgba(30, 14, 4, 0.5), 0 4px 8px rgba(0, 0, 0, 0.2); }
+
+/* Legende unten rechts */
+#legend { position: absolute; right: 40px; bottom: 18px; z-index: 40; max-width: 1400px; padding: 8px 18px; border-radius: 18px;
+  background: rgba(10, 12, 20, 0.62); color: rgba(255, 255, 255, 0.9); font-size: 18px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  -webkit-transition: opacity 0.25s; transition: opacity 0.25s; }
+#legend.off { opacity: 0; }
+
+/* Programmfuehrer */
+#gd-head { position: absolute; left: 300px; top: 160px; width: 1260px; height: 34px; }
+#gd-head .tick { position: absolute; top: 0; font-size: 19px; color: rgba(255, 255, 255, 0.6); padding-left: 6px; border-left: 2px solid rgba(255, 255, 255, 0.25); }
+#gd-rows { position: absolute; left: 60px; top: 200px; width: 1500px; }
+#gd-now { position: absolute; top: 196px; width: 3px; height: 880px; background: #FF3B30; opacity: 0.8; }
+#gd .grow, #guide .grow { position: relative; height: 38px; margin-bottom: 3px; }
+#guide .gname { position: absolute; left: 0; top: 0; width: 232px; height: 38px; line-height: 38px; padding-left: 10px; border-radius: 8px; background: rgba(255, 255, 255, 0.08); font-size: 18px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#guide .gname .gn { display: inline-block; width: 40px; color: rgba(255, 255, 255, 0.5); }
+#guide .glane { position: absolute; left: 240px; top: 0; width: 1260px; height: 38px; overflow: hidden; }
+#guide .gprog { position: absolute; top: 0; height: 38px; padding: 2px 8px; box-sizing: border-box; border-radius: 8px; background: rgba(255, 255, 255, 0.1); overflow: hidden; white-space: nowrap; }
+#guide .gprog.live { background: rgba(255, 255, 255, 0.2); }
+#guide .gprog .gt { font-size: 16px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; line-height: 18px; }
+#guide .gprog .gh { font-size: 13px; color: rgba(255, 255, 255, 0.55); line-height: 15px; }
+#guide .gnone { font-size: 16px; line-height: 38px; color: rgba(255, 255, 255, 0.35); padding-left: 8px; }
+#guide .grow.cur .gname, #guide .grow.cur .gprog.live { background: #FFF; color: #1D1D1F; }
+#guide .grow.cur .gprog.live .gh, #guide .grow.cur .gname .gn { color: #6E6E73; }
+#gd-info { position: absolute; left: 1580px; top: 160px; width: 300px; height: 560px; overflow: hidden; }
+#gd-info .iimg { height: 170px; border-radius: 14px; margin-bottom: 14px; background-size: cover; background-position: center 30%; }
+#gd-info .it { font-size: 26px; font-weight: 700; line-height: 1.2; }
+#gd-info .itime { font-size: 17px; color: rgba(255, 255, 255, 0.6); margin: 8px 0 12px; }
+#gd-info .itx { font-size: 17px; line-height: 1.45; color: rgba(255, 255, 255, 0.85); }
+
+/* Mediaplayer */
+#media-title { position: absolute; left: 260px; top: 160px; font-size: 24px; color: rgba(255, 255, 255, 0.6); }
+#media-search { position: absolute; left: 260px; top: 200px; width: 1400px; height: 64px; border-radius: 32px; background: rgba(255, 255, 255, 0.1); display: none; }
+#media-search.on { display: block; box-shadow: 0 0 0 3px #FFF; }
+#media-q { position: absolute; left: 28px; right: 28px; top: 0; height: 64px; border: 0; outline: 0; background: transparent; color: #FFF; font: inherit; font-size: 25px; }
+#media-view { position: absolute; left: 260px; top: 290px; width: 1400px; height: 760px; overflow: hidden; }
+#media-rows { position: absolute; left: 0; right: 0; top: 0; -webkit-transition: -webkit-transform 0.2s; transition: transform 0.2s; }
+#media .row { height: 68px; margin-bottom: 8px; line-height: 68px; padding: 0 26px; border-radius: 16px; font-size: 26px; background: rgba(255, 255, 255, 0.06); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#media .row.dim { color: rgba(255, 255, 255, 0.45); }
+#media .row.focus { background: #FFF; color: #1D1D1F; }
+
+/* Themenwahl: A-Z-Leiste */
+#tp-letters { position: absolute; left: 520px; top: 168px; width: 1330px; height: 52px; white-space: nowrap; }
+#tp-letters .tl { display: inline-block; width: 44px; height: 46px; line-height: 46px; margin-right: 5px; text-align: center; border-radius: 10px; font-size: 21px; font-weight: 700; background: rgba(255, 255, 255, 0.08); }
+#tp-letters .tl.on { box-shadow: inset 0 0 0 2px #34C759; }
+#tp-letters .tl.focus { background: #FFF; color: #1D1D1F; }
+#tp-count { position: absolute; right: 70px; top: 120px; font-size: 19px; color: rgba(255, 255, 255, 0.55); }
+#tp-search { top: 236px; }
+#tp-view { top: 320px; height: 720px; }
+
+.acc-blue .card.focus .img, .acc-blue .card.switcher.zapping .img { box-shadow: 0 0 0 4px #0A84FF, 0 0 0 7px rgba(255, 255, 255, 0.85), 0 24px 46px rgba(0, 0, 0, 0.34) !important; }
+.acc-blue .tile.focus, .acc-blue .tile.glass.focus, .acc-blue .key.focus, .acc-blue .round.focus, .acc-blue .tab.focus, .acc-blue #weather.focus, .acc-blue .cell.focus .face { box-shadow: 0 0 0 4px #0A84FF, 0 0 0 7px rgba(255, 255, 255, 0.85), 0 16px 34px rgba(0, 0, 0, 0.34) !important; }
+.acc-blue .chan.focus, .acc-blue .srow.focus, .acc-blue .fchip.focus, .acc-blue .tchip.focus, .acc-blue .tslot.focus, .acc-blue .tl.focus, .acc-blue .row.focus, .acc-blue #wtv .btn.focus, .acc-blue #wtv-search.focus, .acc-blue #tp-search.focus, .acc-blue #wtv-bar.focus, .acc-blue #tvlist-info.focus, .acc-blue #guide .grow.cur .gname { box-shadow: 0 0 0 4px #0A84FF !important; }
+.acc-green .card.focus .img, .acc-green .card.switcher.zapping .img { box-shadow: 0 0 0 4px #30D158, 0 0 0 7px rgba(255, 255, 255, 0.85), 0 24px 46px rgba(0, 0, 0, 0.34) !important; }
+.acc-green .tile.focus, .acc-green .tile.glass.focus, .acc-green .key.focus, .acc-green .round.focus, .acc-green .tab.focus, .acc-green #weather.focus, .acc-green .cell.focus .face { box-shadow: 0 0 0 4px #30D158, 0 0 0 7px rgba(255, 255, 255, 0.85), 0 16px 34px rgba(0, 0, 0, 0.34) !important; }
+.acc-green .chan.focus, .acc-green .srow.focus, .acc-green .fchip.focus, .acc-green .tchip.focus, .acc-green .tslot.focus, .acc-green .tl.focus, .acc-green .row.focus, .acc-green #wtv .btn.focus, .acc-green #wtv-search.focus, .acc-green #tp-search.focus, .acc-green #wtv-bar.focus, .acc-green #tvlist-info.focus, .acc-green #guide .grow.cur .gname { box-shadow: 0 0 0 4px #30D158 !important; }
+.acc-orange .card.focus .img, .acc-orange .card.switcher.zapping .img { box-shadow: 0 0 0 4px #FF9F0A, 0 0 0 7px rgba(255, 255, 255, 0.85), 0 24px 46px rgba(0, 0, 0, 0.34) !important; }
+.acc-orange .tile.focus, .acc-orange .tile.glass.focus, .acc-orange .key.focus, .acc-orange .round.focus, .acc-orange .tab.focus, .acc-orange #weather.focus, .acc-orange .cell.focus .face { box-shadow: 0 0 0 4px #FF9F0A, 0 0 0 7px rgba(255, 255, 255, 0.85), 0 16px 34px rgba(0, 0, 0, 0.34) !important; }
+.acc-orange .chan.focus, .acc-orange .srow.focus, .acc-orange .fchip.focus, .acc-orange .tchip.focus, .acc-orange .tslot.focus, .acc-orange .tl.focus, .acc-orange .row.focus, .acc-orange #wtv .btn.focus, .acc-orange #wtv-search.focus, .acc-orange #tp-search.focus, .acc-orange #wtv-bar.focus, .acc-orange #tvlist-info.focus, .acc-orange #guide .grow.cur .gname { box-shadow: 0 0 0 4px #FF9F0A !important; }
+.acc-pink .card.focus .img, .acc-pink .card.switcher.zapping .img { box-shadow: 0 0 0 4px #FF375F, 0 0 0 7px rgba(255, 255, 255, 0.85), 0 24px 46px rgba(0, 0, 0, 0.34) !important; }
+.acc-pink .tile.focus, .acc-pink .tile.glass.focus, .acc-pink .key.focus, .acc-pink .round.focus, .acc-pink .tab.focus, .acc-pink #weather.focus, .acc-pink .cell.focus .face { box-shadow: 0 0 0 4px #FF375F, 0 0 0 7px rgba(255, 255, 255, 0.85), 0 16px 34px rgba(0, 0, 0, 0.34) !important; }
+.acc-pink .chan.focus, .acc-pink .srow.focus, .acc-pink .fchip.focus, .acc-pink .tchip.focus, .acc-pink .tslot.focus, .acc-pink .tl.focus, .acc-pink .row.focus, .acc-pink #wtv .btn.focus, .acc-pink #wtv-search.focus, .acc-pink #tp-search.focus, .acc-pink #wtv-bar.focus, .acc-pink #tvlist-info.focus, .acc-pink #guide .grow.cur .gname { box-shadow: 0 0 0 4px #FF375F !important; }
+.acc-purple .card.focus .img, .acc-purple .card.switcher.zapping .img { box-shadow: 0 0 0 4px #BF5AF2, 0 0 0 7px rgba(255, 255, 255, 0.85), 0 24px 46px rgba(0, 0, 0, 0.34) !important; }
+.acc-purple .tile.focus, .acc-purple .tile.glass.focus, .acc-purple .key.focus, .acc-purple .round.focus, .acc-purple .tab.focus, .acc-purple #weather.focus, .acc-purple .cell.focus .face { box-shadow: 0 0 0 4px #BF5AF2, 0 0 0 7px rgba(255, 255, 255, 0.85), 0 16px 34px rgba(0, 0, 0, 0.34) !important; }
+.acc-purple .chan.focus, .acc-purple .srow.focus, .acc-purple .fchip.focus, .acc-purple .tchip.focus, .acc-purple .tslot.focus, .acc-purple .tl.focus, .acc-purple .row.focus, .acc-purple #wtv .btn.focus, .acc-purple #wtv-search.focus, .acc-purple #tp-search.focus, .acc-purple #wtv-bar.focus, .acc-purple #tvlist-info.focus, .acc-purple #guide .grow.cur .gname { box-shadow: 0 0 0 4px #BF5AF2 !important; }
+.acc-red .card.focus .img, .acc-red .card.switcher.zapping .img { box-shadow: 0 0 0 4px #FF453A, 0 0 0 7px rgba(255, 255, 255, 0.85), 0 24px 46px rgba(0, 0, 0, 0.34) !important; }
+.acc-red .tile.focus, .acc-red .tile.glass.focus, .acc-red .key.focus, .acc-red .round.focus, .acc-red .tab.focus, .acc-red #weather.focus, .acc-red .cell.focus .face { box-shadow: 0 0 0 4px #FF453A, 0 0 0 7px rgba(255, 255, 255, 0.85), 0 16px 34px rgba(0, 0, 0, 0.34) !important; }
+.acc-red .chan.focus, .acc-red .srow.focus, .acc-red .fchip.focus, .acc-red .tchip.focus, .acc-red .tslot.focus, .acc-red .tl.focus, .acc-red .row.focus, .acc-red #wtv .btn.focus, .acc-red #wtv-search.focus, .acc-red #tp-search.focus, .acc-red #wtv-bar.focus, .acc-red #tvlist-info.focus, .acc-red #guide .grow.cur .gname { box-shadow: 0 0 0 4px #FF453A !important; }
+.acc-yellow .card.focus .img, .acc-yellow .card.switcher.zapping .img { box-shadow: 0 0 0 4px #FFD60A, 0 0 0 7px rgba(255, 255, 255, 0.85), 0 24px 46px rgba(0, 0, 0, 0.34) !important; }
+.acc-yellow .tile.focus, .acc-yellow .tile.glass.focus, .acc-yellow .key.focus, .acc-yellow .round.focus, .acc-yellow .tab.focus, .acc-yellow #weather.focus, .acc-yellow .cell.focus .face { box-shadow: 0 0 0 4px #FFD60A, 0 0 0 7px rgba(255, 255, 255, 0.85), 0 16px 34px rgba(0, 0, 0, 0.34) !important; }
+.acc-yellow .chan.focus, .acc-yellow .srow.focus, .acc-yellow .fchip.focus, .acc-yellow .tchip.focus, .acc-yellow .tslot.focus, .acc-yellow .tl.focus, .acc-yellow .row.focus, .acc-yellow #wtv .btn.focus, .acc-yellow #wtv-search.focus, .acc-yellow #tp-search.focus, .acc-yellow #wtv-bar.focus, .acc-yellow #tvlist-info.focus, .acc-yellow #guide .grow.cur .gname { box-shadow: 0 0 0 4px #FFD60A !important; }
+.acc-white .card.focus .img, .acc-white .card.switcher.zapping .img { box-shadow: 0 0 0 4px #FFFFFF, 0 0 0 7px rgba(255, 255, 255, 0.85), 0 24px 46px rgba(0, 0, 0, 0.34) !important; }
+.acc-white .tile.focus, .acc-white .tile.glass.focus, .acc-white .key.focus, .acc-white .round.focus, .acc-white .tab.focus, .acc-white #weather.focus, .acc-white .cell.focus .face { box-shadow: 0 0 0 4px #FFFFFF, 0 0 0 7px rgba(255, 255, 255, 0.85), 0 16px 34px rgba(0, 0, 0, 0.34) !important; }
+.acc-white .chan.focus, .acc-white .srow.focus, .acc-white .fchip.focus, .acc-white .tchip.focus, .acc-white .tslot.focus, .acc-white .tl.focus, .acc-white .row.focus, .acc-white #wtv .btn.focus, .acc-white #wtv-search.focus, .acc-white #tp-search.focus, .acc-white #wtv-bar.focus, .acc-white #tvlist-info.focus, .acc-white #guide .grow.cur .gname { box-shadow: 0 0 0 4px #FFFFFF !important; }
+.acc-teal .card.focus .img, .acc-teal .card.switcher.zapping .img { box-shadow: 0 0 0 4px #40C8E0, 0 0 0 7px rgba(255, 255, 255, 0.85), 0 24px 46px rgba(0, 0, 0, 0.34) !important; }
+.acc-teal .tile.focus, .acc-teal .tile.glass.focus, .acc-teal .key.focus, .acc-teal .round.focus, .acc-teal .tab.focus, .acc-teal #weather.focus, .acc-teal .cell.focus .face { box-shadow: 0 0 0 4px #40C8E0, 0 0 0 7px rgba(255, 255, 255, 0.85), 0 16px 34px rgba(0, 0, 0, 0.34) !important; }
+.acc-teal .chan.focus, .acc-teal .srow.focus, .acc-teal .fchip.focus, .acc-teal .tchip.focus, .acc-teal .tslot.focus, .acc-teal .tl.focus, .acc-teal .row.focus, .acc-teal #wtv .btn.focus, .acc-teal #wtv-search.focus, .acc-teal #tp-search.focus, .acc-teal #wtv-bar.focus, .acc-teal #tvlist-info.focus, .acc-teal #guide .grow.cur .gname { box-shadow: 0 0 0 4px #40C8E0 !important; }
+#weather .hint { top: 34px; bottom: auto; right: 34px; }
+#gd-head { width: 1100px; overflow: hidden; height: 34px; }

@@ -845,7 +845,7 @@ var Plus = (function () {
     if (!ch) return;
     if (ch.app) { closeWorld(); if (extLaunch) extLaunch(ch.app); return; }
     if (ch.sat) { closeWorld(); tune(ch.sat, function () { changed(); }); return; }
-    remember(ch);
+    if (label !== 'Mediaplayer' && ch.group !== md.title) remember(ch);
     ui.playList = list;
     ui.playing = idx;
     ui.playLabel = label || '';
@@ -1009,6 +1009,228 @@ var Plus = (function () {
     paintInfo();
   }
 
+  // MARK: - Programmfuehrer (eigene Ebene): 10 Sender davor, der aktuelle, 10 danach, mit Zeitleiste
+
+  var gd = {at: 0, from: 0};
+  var GD_MIN = 6;   // Pixel pro Minute
+  var GD_SPAN = 180;   // Minuten sichtbar
+  function plistOf(ch, done) {
+    var key = ch.major + '.' + ch.minor;
+    sat.plist = sat.plist || {};
+    var c = sat.plist[key];
+    if (c && c.at > Date.now() - 10 * 60000) return done(c.list);
+    try {
+      var from;
+      try { from = new window.tizen.TZDate(new Date(Date.now() - 2 * 3600000)); } catch (eT) { from = new window.tizen.TZDate(); }
+      tv.getProgramList(ch, from, function (list) {
+        var out = [];
+        for (var i = 0; list && i < list.length; i++) out.push(program(list[i]));
+        sat.plist[key] = {at: Date.now(), list: out};
+        done(out);
+      }, function () { done([]); }, 8);
+    } catch (e) { done([]); }
+  }
+
+  function guideIndex() {
+    var cur = sat.channel;
+    for (var i = 0; i < sat.list.length; i++) if (cur && sat.list[i].major === cur.major && sat.list[i].minor === cur.minor) return i;
+    return 0;
+  }
+
+  function openGuide() {
+    if (!sat.list.length) return false;
+    ui.open = 'guide';
+    setClass($('guide'), 'open', true);
+    paintGuide();
+    legendChanged();
+    return true;
+  }
+
+  function paintGuide() {
+    var box = $('gd-rows'), head = $('gd-head'), at = guideIndex(), n = sat.list.length;
+    var now = Date.now(), from = now - 30 * 60000;
+    from = from - from % (30 * 60000);
+    gd.from = from;
+    head.innerHTML = '';
+    for (var t = 0; t <= GD_SPAN; t += 30) {
+      var tick = el('div', 'tick', head, hm(from + t * 60000));
+      tick.style.left = (t * GD_MIN) + 'px';
+    }
+    var nowLine = $('gd-now');
+    nowLine.style.left = (300 + (now - from) / 60000 * GD_MIN) + 'px';
+    box.innerHTML = '';
+    for (var d = -10; d <= 10; d++) {
+      var ch = sat.list[(at + d + n * 3) % n];
+      if (!ch) continue;
+      var row = el('div', 'grow' + (d === 0 ? ' cur' : ''), box);
+      var name = el('div', 'gname', row);
+      el('span', 'gn', name, String(ch.major));
+      el('span', 'gc', name, channelName(ch));
+      var lane = el('div', 'glane', row);
+      (function (ln, c, isCur) {
+        plistOf(c, function (list) {
+          ln.innerHTML = '';
+          var any = false;
+          for (var i = 0; i < list.length; i++) {
+            var p = list[i];
+            if (!p.start || !p.end || p.end < from || p.start > from + GD_SPAN * 60000) continue;
+            var x = Math.max(0, (p.start - from) / 60000 * GD_MIN), w = Math.min(GD_SPAN * GD_MIN, (p.end - from) / 60000 * GD_MIN) - x;
+            if (w < 8) continue;
+            var b = el('div', 'gprog' + (p.start <= now && p.end > now ? ' live' : ''), ln);
+            b.style.left = x + 'px';
+            b.style.width = (w - 4) + 'px';
+            el('div', 'gt', b, p.title);
+            el('div', 'gh', b, hm(p.start) + '–' + hm(p.end));
+            any = true;
+          }
+          if (!any) el('div', 'gnone', ln, 'Keine Programmdaten');
+          if (isCur) guideInfo(c, list);
+        });
+      })(lane, ch, d === 0);
+    }
+  }
+
+  function guideInfo(ch, list) {
+    var box = $('gd-info'), now = Date.now(), cur = null;
+    box.innerHTML = '';
+    for (var i = 0; i < list.length; i++) if (list[i].start <= now && list[i].end > now) cur = list[i];
+    if (!cur) { el('div', 'it', box, channelName(ch)); return; }
+    var w = wikiFor(cur.title);
+    if (w && w.img) { var im = el('div', 'iimg', box); im.style.backgroundImage = 'url("' + w.img + '")'; }
+    el('div', 'it', box, cur.title);
+    el('div', 'itime', box, channelName(ch) + '  ·  ' + hm(cur.start) + '–' + hm(cur.end) + '  ·  noch ' + Math.max(0, Math.round((cur.end - now) / 60000)) + ' Min.');
+    var text = cur.text || (w && w.text) || '';
+    if (text) el('div', 'itx', box, text);
+  }
+
+  function closeGuide() {
+    ui.open = null;
+    setClass($('guide'), 'open', false);
+    if (ui.onClose) ui.onClose();
+  }
+
+  function guideKey(k, K) {
+    if (k === K.back || k === K.ok) { closeGuide(); return; }
+    if (k === K.left || k === K.right) { closeGuide(); if (guideHooks.fullTV) guideHooks.fullTV(); return; }   // raus zum Fernsehbild
+    if (k === K.up || k === 427) { zap(-1); paintGuide(); return; }
+    if (k === K.down || k === 428) { zap(1); paintGuide(); return; }
+  }
+  var guideHooks = {};
+
+  // MARK: - Mediaplayer (wie VLC, soweit Samsung es zulaesst): USB-Speicher durchsuchen, Adressen abspielen
+
+  var MEDIA_EXT = /\.(mp4|m4v|mkv|webm|mov|avi|ts|m2ts|mpg|mpeg|mp3|m4a|aac|flac|wav|ogg|opus|m3u8?|jpg|jpeg|png)$/i;
+  var md = {stack: [], rows: [], item: 0, title: 'Medien'};
+  function mediaLegend() { return '▲ ▼ wählen  ·  OK öffnen / abspielen  ·  Zurück: eine Ebene hoch'; }
+
+  function openMedia() {
+    ui.open = 'media';
+    setClass($('media'), 'open', true);
+    md.stack = [];
+    mediaHome();
+    legendChanged();
+    return true;
+  }
+
+  function mediaHome() {
+    md.title = 'Medien';
+    md.rows = [{label: 'Adresse abspielen (Video, Musik, Stream)', kind: 'url'}];
+    var fs = window.tizen && window.tizen.filesystem;
+    if (fs && fs.listStorages) {
+      try {
+        fs.listStorages(function (list) {
+          for (var i = 0; i < list.length; i++) {
+            if (list[i].type === 'EXTERNAL' && list[i].state === 'MOUNTED') md.rows.push({label: 'USB: ' + list[i].label, kind: 'dir', path: list[i].label});
+          }
+          if (md.rows.length === 1) md.rows.push({label: 'Kein USB-Speicher gefunden. Stick einstecken, dann OK zum Neuladen.', kind: 'reload'});
+          paintMedia();
+        }, function () { paintMedia(); });
+      } catch (e) {}
+    } else md.rows.push({label: 'USB-Speicher gibt es nur am Fernseher', kind: 'none'});
+    md.rows.push({label: 'Eigene Quellen und Listen: in Welt-TV unter „Eigene Quellen“', kind: 'wtv'});
+    md.item = 0;
+    paintMedia();
+  }
+
+  function mediaDir(path, label) {
+    md.title = label || path;
+    md.rows = [{label: 'Wird gelesen …', kind: 'none'}];
+    paintMedia();
+    try {
+      window.tizen.filesystem.resolve(path, function (dir) {
+        dir.listFiles(function (files) {
+          var rows = [];
+          files.sort(function (a, b) { return (b.isDirectory - a.isDirectory) || (a.name.toLowerCase() < b.name.toLowerCase() ? -1 : 1); });
+          for (var i = 0; i < files.length; i++) {
+            var f = files[i];
+            if (f.name.charAt(0) === '.') continue;
+            if (f.isDirectory) rows.push({label: '▸  ' + f.name, kind: 'dir', path: path + '/' + f.name});
+            else if (MEDIA_EXT.test(f.name)) rows.push({label: f.name, kind: 'file', url: f.toURI()});
+          }
+          md.rows = rows.length ? rows : [{label: 'Hier liegen keine Medien', kind: 'none'}];
+          md.item = 0;
+          paintMedia();
+        }, function () { md.rows = [{label: 'Ordner ließ sich nicht lesen', kind: 'none'}]; paintMedia(); });
+      }, function () { md.rows = [{label: 'Speicher ließ sich nicht öffnen', kind: 'none'}]; paintMedia(); }, 'r');
+    } catch (e) { md.rows = [{label: 'Speicher ließ sich nicht öffnen', kind: 'none'}]; paintMedia(); }
+  }
+
+  function paintMedia() {
+    $('media-title').textContent = md.title;
+    var box = $('media-rows');
+    box.innerHTML = '';
+    for (var i = 0; i < md.rows.length; i++) {
+      var r = el('div', 'row' + (md.rows[i].kind === 'none' ? ' dim' : ''), box, md.rows[i].label);
+      setClass(r, 'focus', i === md.item);
+    }
+    var first = Math.max(0, Math.min(md.rows.length - 10, md.item - 4));
+    box.style.webkitTransform = box.style.transform = 'translateY(' + (-first * 76) + 'px)';
+  }
+
+  function mediaFiles() {
+    var list = [];
+    for (var i = 0; i < md.rows.length; i++) if (md.rows[i].kind === 'file') list.push({name: md.rows[i].label, url: md.rows[i].url, logo: '', tags: [], cc: '', group: md.title});
+    return list;
+  }
+
+  function mediaKey(k, K) {
+    var f = $('media-q');
+    if (document.activeElement === f) {
+      if (k === K.ok || k === 65376) {
+        f.blur();
+        var u = (f.value || '').replace(/^\s+|\s+$/g, '');
+        if (/^(https?|rtsp|rtmp|udp|file):\/\//i.test(u)) { setClass($('media'), 'open', false); play([{name: u.replace(/^.*\//, '') || u, url: u, logo: '', tags: [], cc: ''}], 0, 'Mediaplayer'); }
+        return true;
+      }
+      if (k === K.back || k === 27 || k === 65385) { f.blur(); setClass($('media-search'), 'on', false); return true; }
+      return 'type';
+    }
+    if (k === K.back) {
+      if (md.stack.length) { var prev = md.stack.pop(); if (prev) mediaDir(prev.path, prev.label); else mediaHome(); }
+      else { ui.open = null; setClass($('media'), 'open', false); if (ui.onClose) ui.onClose(); }
+      return true;
+    }
+    if (k === K.up) md.item = Math.max(0, md.item - 1);
+    else if (k === K.down) md.item = Math.min(md.rows.length - 1, md.item + 1);
+    else if (k === K.ok) {
+      var r = md.rows[md.item];
+      if (!r) return true;
+      if (r.kind === 'url') { setClass($('media-search'), 'on', true); f.value = ''; f.focus(); return true; }
+      if (r.kind === 'reload') { mediaHome(); return true; }
+      if (r.kind === 'wtv') { setClass($('media'), 'open', false); ui.open = null; openWorld(); return true; }
+      if (r.kind === 'dir') { md.stack.push(md.stack.length ? {path: md.curPath, label: md.title} : null); md.curPath = r.path; mediaDir(r.path, r.label.replace('▸  ', '')); return true; }
+      if (r.kind === 'file') {
+        var files = mediaFiles(), at = 0;
+        for (var i = 0; i < files.length; i++) if (files[i].url === r.url) at = i;
+        setClass($('media'), 'open', false);
+        play(files, at, md.title);
+        return true;
+      }
+    }
+    paintMedia();
+    return true;
+  }
+
   // MARK: - News nach Themen: jede Kachel hat ihr Thema, blaettert durch die Artikel, mit Bild aus der Quelle
 
   var TOPICS = window.NEWS_TOPICS || [];
@@ -1078,7 +1300,9 @@ var Plus = (function () {
   setInterval(function () { if (!ui.open) changed(); }, 9000);   // die News-Kacheln blaettern weiter
 
   // Themenwahl (eigene Ebene)
-  var tp = {zone: 'slots', slot: 0, item: 0, scroll: 0, list: TOPICS};
+  var tp = {zone: 'slots', slot: 0, item: 0, scroll: 0, list: TOPICS, letter: 0};
+  var LETTERS = '#ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
+  function firstLetter(t) { var c = (t || '').charAt(0).toUpperCase().replace('Ä', 'A').replace('Ö', 'O').replace('Ü', 'U'); return /[A-Z]/.test(c) ? c : '#'; }
   var TP_COLS = 4, TP_RH = 64, TP_VIS = 12;
   function openTopics() {
     ui.open = 'topics';
@@ -1097,6 +1321,15 @@ var Plus = (function () {
       setClass(s, 'focus', tp.zone === 'slots' && i === tp.slot);
     }
     setClass($('tp-search'), 'focus', tp.zone === 'search');
+    var lb = $('tp-letters');
+    lb.innerHTML = '';
+    var curL = firstLetter(tp.list[tp.item]);
+    for (i = 0; i < LETTERS.length; i++) {
+      var L = el('div', 'tl', lb, LETTERS[i]);
+      setClass(L, 'on', LETTERS[i] === curL);
+      setClass(L, 'focus', tp.zone === 'letters' && i === tp.letter);
+    }
+    $('tp-count').textContent = tp.list.length + ' Themen';
     var grid = $('tp-grid'), rows = Math.ceil(tp.list.length / TP_COLS), r = Math.floor(tp.item / TP_COLS);
     if (r < tp.scroll) tp.scroll = r;
     if (r > tp.scroll + TP_VIS - 2) tp.scroll = r - TP_VIS + 2;
@@ -1145,9 +1378,17 @@ var Plus = (function () {
       if (k === K.up) tp.slot = Math.max(0, tp.slot - 1);
       else if (k === K.down) tp.slot = Math.min(NEWS_SLOTS - 1, tp.slot + 1);
       else if (k === K.right || k === K.ok) { tp.zone = 'grid'; var at = tp.list.indexOf(topicsChosen()[tp.slot]); if (at >= 0) tp.item = at; }
+    } else if (tp.zone === 'letters') {
+      if (k === K.left) { if (tp.letter > 0) tp.letter--; else tp.zone = 'slots'; }
+      else if (k === K.right) tp.letter = Math.min(LETTERS.length - 1, tp.letter + 1);
+      else if (k === K.down) tp.zone = 'search';
+      else if (k === K.ok) {
+        for (var j = 0; j < tp.list.length; j++) if (firstLetter(tp.list[j]) === LETTERS[tp.letter]) { tp.item = j; tp.zone = 'grid'; break; }
+      }
     } else if (tp.zone === 'search') {
       if (k === K.ok) { f.focus(); return true; }
       if (k === K.down && n) tp.zone = 'grid';
+      else if (k === K.up) { tp.zone = 'letters'; tp.letter = Math.max(0, LETTERS.indexOf(firstLetter(tp.list[tp.item]))); }
       else if (k === K.left) tp.zone = 'slots';
     } else {
       var col = tp.item % TP_COLS;
@@ -1403,6 +1644,69 @@ var Plus = (function () {
     return out;
   }
 
+  // Holz fuer die App-Leiste: warm, alt, rustikal, einmal gezeichnet (Canvas), als Bild-URL
+  var woodUrl = '';
+  function wood() {
+    if (woodUrl) return woodUrl;
+    try {
+      var W = 1760, H = 220, c = document.createElement('canvas');
+      c.width = W; c.height = H;
+      var g = c.getContext('2d');
+      var planks = 4, ph = H / planks;
+      for (var p = 0; p < planks; p++) {
+        var base = [120 + p * 9 % 30, 74 + p * 7 % 18, 42 + p * 5 % 12];
+        g.fillStyle = 'rgb(' + base.join(',') + ')';
+        g.fillRect(0, p * ph, W, ph);
+        // Maserung: viele feine, leicht gewellte Linien
+        for (var l = 0; l < 70; l++) {
+          var y0 = p * ph + Math.random() * ph, amp = 1 + Math.random() * 3.5, freq = 0.003 + Math.random() * 0.01, ph0 = Math.random() * 6;
+          var dark = Math.random() < 0.6;
+          g.strokeStyle = dark ? 'rgba(52, 28, 12, ' + (0.08 + Math.random() * 0.22) + ')' : 'rgba(255, 214, 160, ' + (0.04 + Math.random() * 0.1) + ')';
+          g.lineWidth = 0.6 + Math.random() * 1.8;
+          g.beginPath();
+          for (var x = 0; x <= W; x += 16) { var yy = y0 + Math.sin(x * freq + ph0) * amp; if (x === 0) g.moveTo(x, yy); else g.lineTo(x, yy); }
+          g.stroke();
+        }
+        // Aeste
+        for (var k = 0; k < 2; k++) {
+          var kx = Math.random() * W, ky = p * ph + ph * (0.3 + Math.random() * 0.4), kr = 6 + Math.random() * 10;
+          var rg = g.createRadialGradient(kx, ky, 1, kx, ky, kr * 2.4);
+          rg.addColorStop(0, 'rgba(40, 20, 8, 0.85)'); rg.addColorStop(0.45, 'rgba(70, 38, 16, 0.5)'); rg.addColorStop(1, 'rgba(70, 38, 16, 0)');
+          g.fillStyle = rg; g.beginPath(); g.ellipse ? g.ellipse(kx, ky, kr * 2.6, kr, 0, 0, Math.PI * 2) : g.arc(kx, ky, kr * 2, 0, Math.PI * 2); g.fill();
+        }
+        // Fuge zwischen den Brettern und Kanten
+        g.fillStyle = 'rgba(30, 14, 4, 0.75)'; g.fillRect(0, p * ph, W, 2.5);
+        g.fillStyle = 'rgba(255, 220, 170, 0.12)'; g.fillRect(0, p * ph + 3, W, 1.5);
+      }
+      // Gebrauchsspuren und warmer Schimmer
+      for (var s2 = 0; s2 < 900; s2++) { g.fillStyle = 'rgba(30, 15, 5, ' + Math.random() * 0.12 + ')'; g.fillRect(Math.random() * W, Math.random() * H, 1 + Math.random() * 3, 1); }
+      var vg = g.createLinearGradient(0, 0, 0, H);
+      vg.addColorStop(0, 'rgba(255, 190, 120, 0.14)'); vg.addColorStop(0.5, 'rgba(0, 0, 0, 0)'); vg.addColorStop(1, 'rgba(20, 8, 0, 0.3)');
+      g.fillStyle = vg; g.fillRect(0, 0, W, H);
+      woodUrl = c.toDataURL('image/jpeg', 0.86);
+    } catch (e) { woodUrl = ''; }
+    return woodUrl;
+  }
+
+  var legendHook = null;
+  function legendChanged() { if (legendHook) try { legendHook(); } catch (e) {} }
+  function legendText() {
+    if (ui.open === 'wtv') {
+      return ui.zone === 'side' ? '▲ ▼ wählen  ·  OK öffnen/aufklappen  ·  ► Sender  ·  Zurück' + (ui.over ? ' zum Bild' : '') :
+        ui.zone === 'grid' ? 'OK ansehen  ·  ◄ ► ▲ ▼ wählen  ·  P+/P− blättern  ·  ► am Rand: Buchstaben  ·  Zurück' :
+        ui.zone === 'bar' ? '▲ ▼ Buchstabe  ·  ◄ zurück ins Raster' : ui.zone === 'filter' ? '◄ ► Land  ·  OK filtern  ·  ▼ Sender' :
+        ui.zone === 'search' ? 'OK tippen  ·  ▼ Ergebnisse  ·  ◄ Kategorien' : 'OK schließen  ·  ▼ Suche';
+    }
+    if (ui.open === 'player') return 'OK oder ◄ ► Menü über dem Bild  ·  ▲ ▼ / P+/P− Sender  ·  Zurück';
+    if (ui.open === 'tvlist') return tvl.info ? '▲ ▼ blättern  ·  ◄ zurück zur Liste' : '▲ ▼ Sender  ·  OK umschalten  ·  ► / Info Details  ·  P+/P−  ·  Zurück';
+    if (ui.open === 'guide') return '▲ ▼ / P+/P− Sender umschalten  ·  ◄ ► zum Fernsehbild  ·  OK oder Zurück: Startseite';
+    if (ui.open === 'topics') return tp.zone === 'letters' ? '◄ ► Buchstabe  ·  OK springen  ·  ▼ Themen' : tp.zone === 'slots' ? '▲ ▼ Kachel  ·  ► Thema wählen  ·  Zurück: fertig' : 'OK übernehmen  ·  ◄ ► ▲ ▼  ·  P+/P− Buchstaben  ·  ▲ ganz oben: A–Z';
+    if (ui.open === 'wx') return 'OK aktualisieren  ·  Zurück';
+    if (ui.open === 'privacy') return '▲ ▼ blättern  ·  OK neu prüfen  ·  Zurück';
+    if (ui.open === 'media') return mediaLegend();
+    return '';
+  }
+
   /** Startet den Hintergrund-Dienst, der Free My TV+ nach anderen Apps zurueckholt (oder schaltet ihn aus). */
   function backHome(on) {
     if (!samsung || !window.tizen.ApplicationControl) return;
@@ -1419,6 +1723,11 @@ var Plus = (function () {
 
   /** Tasten fuer die eigenen Ebenen; true = erledigt (home.js macht dann nichts mehr). */
   function key(k, K) {
+    var r = keyInner(k, K);
+    legendChanged();
+    return r;
+  }
+  function keyInner(k, K) {
     if (!ui.open && (k === 427 || k === 428) && sat.list.length) { zap(k === 427 ? 1 : -1); return true; }
     if (!ui.open) return false;
     if (k === 27 || k === 8) k = K.back;   // Esc/Backspace in der Vorschau
@@ -1428,6 +1737,8 @@ var Plus = (function () {
     else if (ui.open === 'privacy') privacyKey(k, K);
     else if (ui.open === 'wx') weatherKey(k, K);
     else if (ui.open === 'topics') return topicsKey(k, K);
+    else if (ui.open === 'guide') guideKey(k, K);
+    else if (ui.open === 'media') return mediaKey(k, K);
     return true;
   }
 
@@ -1570,6 +1881,7 @@ var Plus = (function () {
   function cards(tab, hooks) {
     var out = [];
     if (tab === 0) {
+      guideHooks = hooks;
       if (sat.ok && sat.channel) {
         var now = sat.now, left = now && now.end ? Math.max(0, Math.round((now.end - Date.now()) / 60000)) : 0;
         out.push({id: 'live', live: true, title: channelName(sat.channel) + (now ? '  ·  ' + now.title : ''),
@@ -1614,7 +1926,7 @@ var Plus = (function () {
   var zapMode = false;
   function drawSwitcher(box) {
     box.innerHTML = '';
-    el('div', 'kicker zk', box, zapMode ? '▲ ▼ schaltet um  ·  OK fertig' : 'Sender  ·  OK zum Umschalten');
+    el('div', 'kicker zk', box, 'Sender  ·  OK: Programmführer');
     var at = 0, cur = sat.channel;
     for (var i = 0; i < sat.list.length; i++) if (cur && sat.list[i].major === cur.major && sat.list[i].minor === cur.minor) at = i;
     var rows = el('div', 'zrows', box);
@@ -1630,7 +1942,7 @@ var Plus = (function () {
       }
     }
   }
-  function switcherOk() { zapMode = !zapMode; changed(); }
+  function switcherOk() { zapMode = false; if (!openGuide()) loadChannels(0); }
   function switcherKey(dx, dy) {
     if (!zapMode) return false;
     if (dy) { zap(dy); return true; }
@@ -1706,6 +2018,12 @@ var Plus = (function () {
     isPromo: isPromo,
     memory: memory,
     backHome: backHome,
+    wood: wood,
+    legendText: legendText,
+    onLegend: function (fn) { legendHook = fn; },
+    cornerOk: function () { return sat.ok && !!sat.channel && ui.open !== 'player'; },
+    openGuide: openGuide,
+    openMedia: openMedia,
     setApps: function (list, launch) { extApps = list || []; extLaunch = launch; },
     zapMode: function () { return zapMode; },
     endZap: function () { if (zapMode) { zapMode = false; changed(); return true; } return false; },

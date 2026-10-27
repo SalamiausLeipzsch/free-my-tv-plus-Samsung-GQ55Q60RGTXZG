@@ -85,10 +85,25 @@
   </div>
   <div id="topics" class="layer sheet plus">
     <h2>News-Themen</h2>
-    <div class="hint">Links Kachel wählen, rechts das Thema  ·  P+/P−: Buchstaben  ·  Zurück: fertig</div>
+    <div class="hint">Links Kachel wählen, rechts das Thema</div>
     <div id="tp-slots"></div>
+    <div id="tp-letters"></div>
+    <div id="tp-count"></div>
     <div id="tp-search"><input id="tp-q" type="text" autocomplete="off" spellcheck="false" placeholder="Thema suchen oder eigenes eintippen (OK)"></div>
     <div id="tp-view"><div id="tp-grid"></div></div>
+  </div>
+  <div id="guide" class="layer sheet plus">
+    <h2>Programmführer</h2>
+    <div id="gd-head"></div>
+    <div id="gd-rows"></div>
+    <div id="gd-now"></div>
+    <div id="gd-info"></div>
+  </div>
+  <div id="media" class="layer sheet plus">
+    <h2>Mediaplayer</h2>
+    <div id="media-title"></div>
+    <div id="media-search"><input id="media-q" type="text" autocomplete="off" spellcheck="false" placeholder="https://… oder rtsp://… eingeben, OK spielt ab"></div>
+    <div id="media-view"><div id="media-rows"></div></div>
   </div>
   <div id="player" class="layer">
     <video id="video" autoplay></video>
@@ -97,6 +112,7 @@
     <div id="player-msg"></div>
   </div>
   <div id="toast"></div>
+  <div id="legend" class="off"></div>
 </div>
 <script src="config.js"></script>
 <script src="coins.js"></script>
