@@ -662,7 +662,7 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 #newspanel .newsrow .n { display: inline-block; max-width: 560px; overflow: hidden; text-overflow: ellipsis; vertical-align: top; font-weight: 500; }
 #newspanel .newsrow .c { position: absolute; right: 0; top: 0; color: #8E8E93; font-size: 19px; }
 
-/* Welt-TV und Senderliste */
+/* IP-TV und Senderliste */
 .sheet.plus { background: #0B0D14; }
 #wtv .btn, #tvlist .hint { position: absolute; right: 90px; top: 78px; font-size: 24px; padding: 12px 28px; border-radius: 30px; background: rgba(255, 255, 255, 0.1); }
 #tvlist .hint { background: none; color: rgba(255, 255, 255, 0.55); }
@@ -822,7 +822,7 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 .night .tile.glass { box-shadow: inset 0 0 0 1.5px rgba(255, 255, 255, 0.35), 0 6px 22px rgba(0, 0, 0, 0.4); }
 .night .tile.glass::before { background: rgba(255, 255, 255, 0.14); }
 
-/* Free My TV+ 1.2: Laenderfilter, "Jetzt laeuft" unter dem Sender, Welt-TV halb durchsichtig ueber dem laufenden Sender */
+/* Free My TV+ 1.2: Laenderfilter, "Jetzt laeuft" unter dem Sender, IP-TV halb durchsichtig ueber dem laufenden Sender */
 #wtv-filter { position: absolute; left: 470px; top: 236px; width: 1380px; height: 46px; white-space: nowrap; overflow: hidden; }
 #wtv-filter .fchip { display: inline-block; height: 40px; line-height: 40px; padding: 0 18px; margin-right: 10px; border-radius: 20px; font-size: 20px; font-weight: 600; background: rgba(255, 255, 255, 0.1); }
 #wtv-filter .fchip.on { box-shadow: inset 0 0 0 2px #34C759; }
@@ -1269,7 +1269,7 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
   -webkit-transition: -webkit-transform 1.2s cubic-bezier(0.4, 0, 0.2, 1); transition: transform 1.2s cubic-bezier(0.4, 0, 0.2, 1); }
 #zoomframe.on { opacity: 1; visibility: visible; }
 .tvfull #zoomframe { opacity: 1; visibility: visible; }
-/* Welt-TV: Live-Vorschau in der grossen Kachel */
+/* IP-TV: Live-Vorschau in der grossen Kachel */
 .card .img .pvideo { position: absolute; left: 0; top: 0; width: 100%; height: 100%; object-fit: cover; background: #000; }
 .card .img .pvk { z-index: 1; bottom: 96px; color: rgba(255, 255, 255, 0.9); text-shadow: 0 1px 6px rgba(0, 0, 0, 0.7); }
 .card .img .pvk::before { content: '● '; color: #FF3B30; }

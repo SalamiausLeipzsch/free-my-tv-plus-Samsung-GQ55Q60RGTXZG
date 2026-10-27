@@ -10,14 +10,14 @@ steht in [CHANGELOG.md](CHANGELOG.md).
 
 | Bereich | Free My TV | Free My TV+ |
 |---|---|---|
-| Mitte (Tabs) | Film- und Serientipps (TMDB-Schlüssel nötig) | **Jetzt im TV**: Livebild des Sat-Senders, laufende und nächste Sendung, Senderschalter, Programmführer · **Welt-TV**: freie Live-Sender aus aller Welt · **News** nach eigenen Themen |
+| Mitte (Tabs) | Film- und Serientipps (TMDB-Schlüssel nötig) | **Jetzt im TV**: Livebild des Sat-Senders, laufende und nächste Sendung, Senderschalter, Programmführer · **IP-TV**: freie Live-Sender aus aller Welt · **News** nach eigenen Themen |
 | Schublade | Kryptokurse | Uhrzeit, Tageskarte, Wetter, Cybersecurity-Schlagzeilen, Mediaplayer, Licht (Govee), Werbefrei-Seite |
 | YouTube | normale App mit Werbung | **werbefrei**: öffnet TizenTube in TizenBrew (fehlt TizenBrew, die normale App) |
 | Hintergrund | hell | Foto passend zu Wetter und Tageszeit oder frei gewählt (Pexels), Farbstimmungen |
 | App-Leiste | Netflix, YouTube, Prime … | Glaswürfel auf Holz, frei sortierbar, mit Logos (Simple Icons, CC0) |
 | Werbung & Tracking | – | Selbsttest und Anleitung (Schublade → *Werbefrei*), Sperrlisten (`blocklist/`), Samsung-Werbe-Apps ausgeblendet |
 
-Welt-TV nutzt die Senderlisten von [iptv-org](https://github.com/iptv-org/iptv) und [Free-TV/IPTV](https://github.com/Free-TV/IPTV),
+IP-TV nutzt die Senderlisten von [iptv-org](https://github.com/iptv-org/iptv) und [Free-TV/IPTV](https://github.com/Free-TV/IPTV),
 dazu eigene M3U-Adressen. Manche Sender laufen nur zeitweise oder nur im Herkunftsland („Geo“); solche werden ausgeblendet.
 
 ## Installieren (ohne Tizen Studio)
@@ -41,16 +41,16 @@ Entwickler-Apps nicht. Dann im Workflow `python3 tizen/build.py --generic --no-c
 
 ## Bedienung in Kürze
 
-- **Startseite:** ▲ ▼ ◄ ► wählen, ◄ ► am Rand der Kacheln wechselt die Seite (Jetzt im TV, Welt-TV, News), OK öffnet, OK lang (oder rot) verschiebt App-Kacheln, ▼ öffnet die Schublade, P+/P−
+- **Startseite:** ▲ ▼ ◄ ► wählen, ◄ ► am Rand der Kacheln wechselt die Seite (Jetzt im TV, IP-TV, News), OK öffnet, OK lang (oder rot) verschiebt App-Kacheln, ▼ öffnet die Schublade, P+/P−
   schaltet Sat-Sender um. Nach 20 s ohne Taste geht das Livebild ins Vollbild, jede Taste holt die Oberfläche zurück.
 - **Programmführer** (OK auf der Senderkachel): ▲ ▼ Sender, P+/P− eine Seite, ◄ ► Zeitachse, OK Menü (Ansehen/Erinnern,
   Info, Aufnehmen), Info-Taste Info-Seite, rot EPG-Suchlauf (sammelt Programmdaten, schaltet dabei kurz durch die Sender).
-- **Welt-TV-Player:** ▲ ▼ Sender, OK Menü über dem Bild, rot Aufnahme starten/beenden.
+- **IP-TV-Player:** ▲ ▼ Sender, OK Menü über dem Bild, rot Aufnahme starten/beenden.
 - **Unten rechts** steht auf jeder Seite, welche Tasten gerade gehen.
 
 ## Recorder
 
-- **Welt-TV** (HLS-Streams): rote Taste im Player. Ziel im Mediaplayer wählen: **USB-Stick** (Ordner `FreeMyTV-Aufnahmen`,
+- **IP-TV** (HLS-Streams): rote Taste im Player. Ziel im Mediaplayer wählen: **USB-Stick** (Ordner `FreeMyTV-Aufnahmen`,
   eine `.ts`-Datei, ab 3,9 GB eine neue) oder **Netzwerkspeicher per WebDAV** (z. B. `http://IP-vom-NAS:5005/aufnahmen/`,
   je Aufnahme ein Ordner mit Segmenten und `playlist.m3u8`, spielbar mit VLC oder im Mediaplayer). Benutzer und Passwort
   bleiben nur auf dem Fernseher. SMB- und NFS-Freigaben kann eine TV-Web-App nicht ansprechen; die meisten NAS bieten WebDAV
@@ -112,7 +112,7 @@ Absichtlich **nie gesperrt**: `samsungotn.net` (Firmware- und Sicherheitsupdates
   keine Taste gedrückt wurde; abschaltbar in den Start-Einstellungen). Die rote Taste im Programmführer startet es sofort.
   Einen direkten Zugriff aufs CI+-Modul gibt es für Apps nicht.
 - **Home-Taste:** öffnet weiterhin Samsungs Leiste; der Rückkehr-Dienst holt Free My TV+ nach anderen Apps zurück.
-- **Welt-TV:** freie Sender laufen nicht immer; Pay-TV-Sender wie ESPN gibt es nicht legal kostenlos und sind nicht drin.
+- **IP-TV:** freie Sender laufen nicht immer; Pay-TV-Sender wie ESPN gibt es nicht legal kostenlos und sind nicht drin.
 - **Fotos, News, Wikipedia, Logos** kommen live aus dem Internet; fällt etwas aus, bleibt die Kachel schlicht.
 
 ## Datenschutz
@@ -123,7 +123,7 @@ Netzwerkspeicher-Zugang). Es gibt kein Konto und keine Auswertung. Abgerufen wer
 
 ## Dateien
 
-- `web/plus.js` – alles Neue: Sat-TV, Programmführer, Welt-TV mit Player und Recorder, News, Wetter, Mediaplayer, Licht
+- `web/plus.js` – alles Neue: Sat-TV, Programmführer, IP-TV mit Player und Recorder, News, Wetter, Mediaplayer, Licht
 - `web/home.js`, `web/home.css`, `web/index.html` – Startseite, angepasst (markiert mit „Free My TV+“)
 - `web/service/service.js` – Rückkehr-Dienst
 - `web/topics.js`, `web/logos.js` – News-Themen und Namen der Senderlogos
@@ -144,14 +144,14 @@ in each version is in [CHANGELOG.md](CHANGELOG.md).
 
 | Area | Free My TV | Free My TV+ |
 |---|---|---|
-| Middle (tabs) | film and series picks (TMDB key needed) | **Jetzt im TV** (now on TV): live satellite picture, current and next programme, channel switcher, TV guide · **Welt-TV** (World TV): free live channels from around the world · **News** by your own topics |
+| Middle (tabs) | film and series picks (TMDB key needed) | **Jetzt im TV** (now on TV): live satellite picture, current and next programme, channel switcher, TV guide · **IP-TV** (IP TV): free live channels from around the world · **News** by your own topics |
 | Drawer | crypto prices | time, day card, weather, cybersecurity headlines, media player, light (Govee), ad-free page |
 | YouTube | regular app with ads | **ad-free**: opens TizenTube in TizenBrew (the regular app without TizenBrew) |
 | Background | light | a photo matching weather and time of day, or one you pick (Pexels), colour moods |
 | App bar | Netflix, YouTube, Prime … | glass cubes on wood, freely sortable, with logos (Simple Icons, CC0) |
 | Ads & tracking | – | self-test and guide (drawer → *Werbefrei*), blocklists (`blocklist/`), Samsung promo apps hidden |
 
-World TV uses the channel lists of [iptv-org](https://github.com/iptv-org/iptv) and [Free-TV/IPTV](https://github.com/Free-TV/IPTV),
+IP TV uses the channel lists of [iptv-org](https://github.com/iptv-org/iptv) and [Free-TV/IPTV](https://github.com/Free-TV/IPTV),
 plus your own M3U addresses. Some channels only run part-time or only in their home country ("geo"); those are hidden.
 
 ## Install (without Tizen Studio)
@@ -174,16 +174,16 @@ To keep it for good, store a certificate as the secrets `TIZEN_AUTHOR_P12` (Base
 
 ## Controls in short
 
-- **Home:** ▲ ▼ ◄ ► select, ◄ ► at the edge of the tiles changes the page (Jetzt im TV, Welt-TV, News), OK opens, long OK (or red) moves app tiles, ▼ opens the drawer, P+/P− changes satellite channels.
+- **Home:** ▲ ▼ ◄ ► select, ◄ ► at the edge of the tiles changes the page (Jetzt im TV, IP-TV, News), OK opens, long OK (or red) moves app tiles, ▼ opens the drawer, P+/P− changes satellite channels.
   After 20 s without a key the live picture goes full screen; any key brings the interface back.
 - **TV guide** (OK on the channel tile): ▲ ▼ channels, P+/P− a page, ◄ ► timeline, OK menu (watch/remind, info, record), Info
   key info page, red EPG scan (collects programme data, briefly tuning through the channels).
-- **World TV player:** ▲ ▼ channels, OK menu over the picture, red starts/stops recording.
+- **IP TV player:** ▲ ▼ channels, OK menu over the picture, red starts/stops recording.
 - **Bottom right** every page shows which keys work right now.
 
 ## Recorder
 
-- **World TV** (HLS streams): red button in the player. Pick the target in the media player: **USB stick** (folder
+- **IP TV** (HLS streams): red button in the player. Pick the target in the media player: **USB stick** (folder
   `FreeMyTV-Aufnahmen`, one `.ts` file, a new one after 3.9 GB) or **network storage via WebDAV** (e.g.
   `http://IP-of-the-NAS:5005/recordings/`, one folder per recording with segments and `playlist.m3u8`, playable in VLC or the
   media player). User and password stay on the TV only. A TV web app can't reach SMB or NFS shares; most NAS offer WebDAV as an
@@ -244,7 +244,7 @@ Deliberately **never blocked**: `samsungotn.net` (firmware and security updates)
   a long time without a key press; can be turned off in the home settings). The red button in the TV guide starts it at once.
   Apps have no direct access to the CI+ module.
 - **Home button:** still opens Samsung's bar; the return service brings Free My TV+ back after other apps.
-- **World TV:** free channels don't always run; pay-TV channels such as ESPN aren't legally free and aren't included.
+- **IP TV:** free channels don't always run; pay-TV channels such as ESPN aren't legally free and aren't included.
 - **Photos, news, Wikipedia, logos** come live from the internet; if something fails, the tile stays plain.
 
 ## Privacy
@@ -255,7 +255,7 @@ Wikipedia, Pexels, tv-logos, Govee if you set it up).
 
 ## Files
 
-- `web/plus.js` – everything new: satellite TV, TV guide, World TV with player and recorder, news, weather, media player, light
+- `web/plus.js` – everything new: satellite TV, TV guide, IP TV with player and recorder, news, weather, media player, light
 - `web/home.js`, `web/home.css`, `web/index.html` – the home screen, adapted (marked "Free My TV+")
 - `web/service/service.js` – return service
 - `web/topics.js`, `web/logos.js` – news topics and channel logo names

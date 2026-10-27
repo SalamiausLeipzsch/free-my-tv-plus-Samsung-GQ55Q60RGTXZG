@@ -8,6 +8,14 @@ Englisch. Der Abschnitt der aktuellen Version wird beim Bauen automatisch als Te
 *Newest version first. Each version starts with a short summary, then the details, then the same in English. The current
 version's section becomes the GitHub release text automatically.*
 
+## 1.7.1
+
+**Kurz:** „Welt-TV“ heißt jetzt „IP-TV“ (Reiter, Kacheln, Menüs, Einstellungen). Sonst wie 1.7.0.
+
+**English**
+
+**Summary:** "Welt-TV" (World TV) is now called "IP-TV" (tab, tiles, menus, settings). Otherwise the same as 1.7.0.
+
 ## 1.7.0
 
 <img src="screenshots/1.7-startseite.jpg" width="49%" alt="1.7-startseite"> <img src="screenshots/1.7-welt-tv-reiter.jpg" width="49%" alt="1.7-welt-tv-reiter">

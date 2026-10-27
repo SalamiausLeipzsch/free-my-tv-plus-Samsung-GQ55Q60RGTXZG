@@ -3,7 +3,7 @@
  *  - Cybersecurity-News statt Kryptokursen (RSS/Atom, heise Security und Golem)
  *  - YouTube werbefrei: oeffnet TizenTube ueber TizenBrew statt der normalen YouTube-App
  *  - "Jetzt im TV": das laufende Sat-Programm (EPG des Fernsehers) mit Livebild in der grossen Karte
- *  - Welt-TV: frei empfangbare Live-Sender aus der iptv-org-Liste (dieselbe Quelle wie tvgarden.world)
+ *  - IP-TV: frei empfangbare Live-Sender aus der iptv-org-Liste (dieselbe Quelle wie tvgarden.world)
  *  - der Foto-Streifen oben, passend zu Wetter und Tageszeit (freie Pexels-Fotos, sonst eine gezeichnete Szene)
  * ES5 wie der Rest von web/: aeltere TVs (Tizen 3 bis 5) laufen mit einem Chromium von 2015 bis 2018.
  */
@@ -324,7 +324,7 @@ var Plus = (function () {
     } catch (e) { if (done) done(false); }
   }
 
-  // MARK: - Welt-TV: Quellen (iptv-org, Free-TV, eigene)
+  // MARK: - IP-TV: Quellen (iptv-org, Free-TV, eigene)
 
   var WTV_BASE = 'https://iptv-org.github.io/iptv/';
   var FREETV = 'https://raw.githubusercontent.com/Free-TV/IPTV/master/';
@@ -417,7 +417,7 @@ var Plus = (function () {
   function hideGeo() { try { return !(window.Prefs && Prefs.showGeo && Prefs.showGeo()); } catch (e) { return true; } }
   function usable(list) { return hideGeo() ? list.filter(geoOk) : list; }
 
-  // Sat-Abgleich: laeuft der Welt-TV-Sender auch ueber Satellit, kommt "Jetzt laeuft" aus dem EPG des Fernsehers
+  // Sat-Abgleich: laeuft der IP-TV-Sender auch ueber Satellit, kommt "Jetzt laeuft" aus dem EPG des Fernsehers
   function norm(n) { return (n || '').toLowerCase().replace(/\(.*?\)|\b(hd|uhd|sd|fhd|deutschland|germany|de)\b|[^a-z0-9]/g, ''); }
   var satByName = null;
   function satFor(name) {
@@ -443,7 +443,7 @@ var Plus = (function () {
 
   var extApps = [], extLaunch = null;   // die Apps des Fernsehers (von home.js), fuer die Suche
 
-  // Zuletzt gesehen: die letzten 20 Sender, die in Welt-TV liefen
+  // Zuletzt gesehen: die letzten 20 Sender, die in IP-TV liefen
   function recent() { return stored('wtvRecent') || []; }
   function remember(ch) {
     var list = recent().filter(function (c) { return c.url !== ch.url; });
@@ -451,7 +451,7 @@ var Plus = (function () {
     store('wtvRecent', list.slice(0, 20));
   }
 
-  // Fuer die Karte in "Welt-TV": ein bekannter frei empfangbarer Sender, sonst der erste mit Logo
+  // Fuer die Karte in "IP-TV": ein bekannter frei empfangbarer Sender, sonst der erste mit Logo
   var FEATURED = /^(3sat|tagesschau24|phoenix|ZDFinfo|DW|Welt|ntv|n-tv|euronews|arte)/i;
   var featured = [];
   function loadFeatured() {
@@ -464,7 +464,7 @@ var Plus = (function () {
     });
   }
 
-  // Free My TV+ 1.6: Live-Vorschau eines kostenlosen US-Sportsenders in der grossen Welt-TV-Kachel.
+  // Free My TV+ 1.6: Live-Vorschau eines kostenlosen US-Sportsenders in der grossen IP-TV-Kachel.
   // ESPN und Co. gibt es nicht legal kostenlos (die Eintraege in freien Listen sind Pay-TV-Kopien): genommen werden nur
   // offizielle Gratis-Sender der Anbieter selbst, und nie Adressen, die nur eine nackte IP sind.
   var SPORT_PREF = [/^CBS Sports Golazo/i, /^beIN SPORTS XTRA(?! en)/i, /^Fubo Sports/i, /^NBC Sports NOW/i, /^Tennis Channel(?! 2)/i, /^Willow/i];
@@ -520,7 +520,7 @@ var Plus = (function () {
     });
   }
 
-  // MARK: - Welt-TV: Senderliste (eigene Ebene) und Vollbild-Player
+  // MARK: - IP-TV: Senderliste (eigene Ebene) und Vollbild-Player
 
   function $(id) { return document.getElementById(id); }
   function el(tag, cls, parent, text) {
@@ -797,14 +797,14 @@ var Plus = (function () {
     if (ui.onClose) ui.onClose();
   }
 
-  /** Im laufenden Sender: das Welt-TV-Menue halb durchsichtig darueber, das Bild laeuft weiter. */
+  /** Im laufenden Sender: das IP-TV-Menue halb durchsichtig darueber, das Bild laeuft weiter. */
   function overlayWorld() {
     var w = $('wtv');
     ui.over = true;
     ui.open = 'wtv';
     setClass(w, 'over', true);
     setClass(w, 'open', true);
-    if (ui.playList && ui.list !== ui.playList && !ui.list.length) setList(ui.playList, ui.playLabel || 'Welt-TV');
+    if (ui.playList && ui.list !== ui.playList && !ui.list.length) setList(ui.playList, ui.playLabel || 'IP-TV');
     if (ui.playList === ui.list) ui.item = ui.playing;
     ui.zone = 'grid';
     paintWorld();
@@ -1642,7 +1642,7 @@ var Plus = (function () {
         }, function () { paintMedia(); });
       } catch (e) {}
     } else md.rows.push({label: 'USB-Speicher gibt es nur am Fernseher', kind: 'none'});
-    md.rows.push({label: 'Eigene Quellen und Listen: in Welt-TV unter „Eigene Quellen“', kind: 'wtv'});
+    md.rows.push({label: 'Eigene Quellen und Listen: in IP-TV unter „Eigene Quellen“', kind: 'wtv'});
     var c = Recorder.cfg();
     if (c.nas) md.rows.push({label: '● Aufnahmen im Netzwerk', kind: 'nasrec'});
     md.rows.push({label: 'Aufnahmen speichern auf:  ' + (c.target === 'nas' ? 'Netzwerkspeicher' : 'USB-Stick') + '   (OK wechselt)', kind: 'target'});
@@ -2377,7 +2377,7 @@ var Plus = (function () {
 
   var bandMood = '', bandTried = {}, bandUrl = '';
 
-  /** Das Foto des Streifens auch hinter allen Menues (Einstellungen, Alle Apps, Welt-TV ...), abgedunkelt. */
+  /** Das Foto des Streifens auch hinter allen Menues (Einstellungen, Alle Apps, IP-TV ...), abgedunkelt. */
   function paintSheets(url) {
     var list = document.querySelectorAll('.sheet');
     for (var i = 0; i < list.length; i++) {
@@ -2433,7 +2433,7 @@ var Plus = (function () {
 
   /**
    * Die drei Karten des Tabs: {id, title, meta, image, logo, text, live, run}.
-   * tab 0: Jetzt im TV, 1: Welt-TV, 2: News.
+   * tab 0: Jetzt im TV, 1: IP-TV, 2: News.
    */
   function cards(tab, hooks) {
     var out = [];
@@ -2457,13 +2457,13 @@ var Plus = (function () {
         for (var f = 0; f < featured.length && out.length < 3; f++) out.push(worldCard(featured[f], featured, f));
       }
     } else if (tab === 1) {
-      // Welt-TV: Tipp (flach) und Suche darunter, "Alle Sender", dann die 10 zuletzt gesehenen
+      // IP-TV: Tipp (flach) und Suche darunter, "Alle Sender", dann die 10 zuletzt gesehenen
       loadSport();
       if (sportCh && !ui.open) {
         out.push({id: 'sport' + sportCh.url, draw: drawSport, text: '', kicker: '', title: '', plain: true, inside: true, rect: [80, 262, 700, 300],
-          run: function () { stopPreview(); play([sportCh], 0, 'Welt-TV'); }});
+          run: function () { stopPreview(); play([sportCh], 0, 'IP-TV'); }});
       } else if (featured[0]) { stopPreview(); var a = worldCard(featured[0], featured, 0); a.rect = [80, 262, 700, 300]; a.inside = true; out.push(a); }
-      out.push({id: 'wsearch', text: 'Sender suchen', kicker: 'Welt-TV', title: '', rect: [80, 582, 700, 180], inside: true, plain: true,
+      out.push({id: 'wsearch', text: 'Sender suchen', kicker: 'IP-TV', title: '', rect: [80, 582, 700, 180], inside: true, plain: true,
         run: function () { openWorld('search'); }});
       out.push({id: 'wtv', text: 'Alle Sender', kicker: 'Kategorien · Länder · Themen', title: '', icon: 'cast', rect: [800, 262, 300, 500], inside: true, plain: true,
         run: function () { openWorld(); }});
@@ -2536,8 +2536,8 @@ var Plus = (function () {
   function picture(title) { var w = wikiFor(title); return w && w.img ? w.img : ''; }
 
   function worldCard(ch, list, i) {
-    return {id: 'w' + i + ch.name, logo: ch.logo, title: ch.name, meta: 'Welt-TV' + (ch.quality ? '  ·  ' + ch.quality : ''),
-      run: function () { play(list, i, 'Welt-TV'); }};
+    return {id: 'w' + i + ch.name, logo: ch.logo, title: ch.name, meta: 'IP-TV' + (ch.quality ? '  ·  ' + ch.quality : ''),
+      run: function () { play(list, i, 'IP-TV'); }};
   }
 
   // MARK: - Licht: Govee (1.5)
@@ -2774,7 +2774,7 @@ var Plus = (function () {
   }
 
   // MARK: - Recorder (1.5)
-  // Welt-TV (HLS) nimmt die App selbst auf: Segment fuer Segment auf den USB-Stick (eine .ts-Datei) oder in einen
+  // IP-TV (HLS) nimmt die App selbst auf: Segment fuer Segment auf den USB-Stick (eine .ts-Datei) oder in einen
   // Netzwerkordner per WebDAV (Segmente und eine Wiedergabeliste, spielbar mit VLC oder hier im Mediaplayer).
   // Sat-Sender kann keine fremde App aufnehmen: das macht der Fernseher selbst (REC-Taste im Fernsehbild).
   // Adresse, Benutzer und Passwort fuers Netzwerk bleiben nur auf diesem Fernseher (localStorage).
@@ -2898,10 +2898,10 @@ var Plus = (function () {
       say('Aufnahme beendet' + (why ? ' (' + why + ')' : '') + ': ' + j.name + ', ' + Math.round(j.bytes / 1048576) + ' MB auf ' + j.sink.label);
     }
 
-    /** Welt-TV-Sender aufnehmen (HLS), bis gestoppt. */
+    /** IP-TV-Sender aufnehmen (HLS), bis gestoppt. */
     function world(ch) {
       if (job) { stop(); return; }
-      if (!ch || !/\.m3u8?(\?|$)/i.test(ch.url) && !/m3u8/i.test(ch.url)) { say('Aufnehmen geht bei Welt-TV-Sendern mit HLS-Stream (m3u8).'); return; }
+      if (!ch || !/\.m3u8?(\?|$)/i.test(ch.url) && !/m3u8/i.test(ch.url)) { say('Aufnehmen geht bei IP-TV-Sendern mit HLS-Stream (m3u8).'); return; }
       var c = cfg(), name = safe(ch.name) + '_' + stamp();
       (c.target === 'nas' ? nasSink : usbSink)(name, function (err, sink) {
         if (err) { say('Aufnahme nicht möglich: ' + err.message); return; }
@@ -3006,7 +3006,7 @@ var Plus = (function () {
 
   var preloaded = false;
   function refresh() {
-    if (!preloaded) {   // 1.7: hls.js und der Sportsender schon vorab, damit die Welt-TV-Vorschau schnell steht
+    if (!preloaded) {   // 1.7: hls.js und der Sportsender schon vorab, damit die IP-TV-Vorschau schnell steht
       preloaded = true;
       setTimeout(function () { loadHls(function () {}); loadSport(); if (sportCh) getText(sportCh.url, function () {}, 8000); }, 5000);
     }

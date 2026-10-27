@@ -402,7 +402,7 @@
     renderTitle();
     var tabs = $('tabs');
     tabs.innerHTML = '';
-    var names = ['Jetzt im TV', 'Welt-TV', 'News'];   // Free My TV+: Sat-Programm, Welt-TV, Cybersecurity
+    var names = ['Jetzt im TV', 'IP-TV', 'News'];   // Free My TV+: Sat-Programm, IP-TV, Cybersecurity
     for (var i = 0; i < 3; i++) {
       var t = el('button', 'tab', tabs, names[i]);
       hover(t, Z.TOP, i);
@@ -436,7 +436,7 @@
 
   // MARK: - Picks and background
 
-  // Free My TV+: die Karten kommen aus Plus.cards: Livebild + EPG, Welt-TV-Sender oder Cybersecurity-Schlagzeilen.
+  // Free My TV+: die Karten kommen aus Plus.cards: Livebild + EPG, IP-TV-Sender oder Cybersecurity-Schlagzeilen.
   // Free My TV+: Karten 500 hoch (das Livebild ist groesser), eine Karte kann ihr eigenes Rechteck mitbringen
   var CARD_RECTS = [[80, 262, 1040, 500], [1160, 262, 320, 500], [1520, 262, 320, 500]];
   // Free My TV+ 1.4: das Livebild oben in der Livekarte [80, 270, 920, 500], darunter 60 px Bauchbinde
@@ -633,7 +633,7 @@
     }
   })();
 
-  /** Free My TV+: Karten raeumlich ansteuern (Welt-TV hat zwei Reihen). -1 = keine in dieser Richtung. */
+  /** Free My TV+: Karten raeumlich ansteuern (IP-TV hat zwei Reihen). -1 = keine in dieser Richtung. */
   function cardToward(dx, dy) {
     var a = cardRects[st.card];
     if (!a) return -1;
@@ -1027,7 +1027,7 @@
         step: function () { Prefs.set('epgNight', !Prefs.epgNight()); }},
       {label: 'Nach anderen Apps zurück zu Free My TV+', toggle: Prefs.backHome(),
         step: function () { Prefs.set('backHome', !Prefs.backHome()); Plus.backHome(Prefs.backHome()); }},
-      {label: 'Welt-TV: auch Sender mit Geo-Sperre zeigen', toggle: Prefs.showGeo(),
+      {label: 'IP-TV: auch Sender mit Geo-Sperre zeigen', toggle: Prefs.showGeo(),
         step: function () { Prefs.set('showGeo', !Prefs.showGeo()); }},
       {label: 'Samsung-Werbe-Apps ausblenden', toggle: Prefs.hidePromo(),
         step: function () { Prefs.set('hidePromo', !Prefs.hidePromo()); loadApps(function () { renderShelf(); }); }}
@@ -1439,7 +1439,7 @@
         var to = cardToward(dx, dy);
         if (to >= 0) st.card = to;
         else if (dx) {
-          // Free My TV+ 1.7: am Rand weiter nach rechts oder links wechselt die Seite (Jetzt im TV, Welt-TV, News)
+          // Free My TV+ 1.7: am Rand weiter nach rechts oder links wechselt die Seite (Jetzt im TV, IP-TV, News)
           var nt = st.tab + (dx > 0 ? 1 : -1);
           if (nt < 0 || nt > 2) break;
           selectTab(nt);
@@ -1696,7 +1696,7 @@
     }
     var handled = Plus.key(k, TV.keys);
     if (handled === 'type') return;   // Free My TV+: die Taste geht ins Suchfeld
-    if (handled) { e.preventDefault(); return; }   // Free My TV+: Welt-TV, Player, Senderliste
+    if (handled) { e.preventDefault(); return; }   // Free My TV+: IP-TV, Player, Senderliste
     if (k === TV.keys.left) move(-1, 0);
     else if (k === TV.keys.right) move(1, 0);
     else if (k === TV.keys.up) move(0, -1);
@@ -1806,7 +1806,7 @@
     checkNight();
     renderBand();
   });
-  // Free My TV+: neue Schlagzeilen, neues EPG oder Welt-TV-Liste geladen
+  // Free My TV+: neue Schlagzeilen, neues EPG oder IP-TV-Liste geladen
   Plus.onChange(function () {
     if (!$('quotes').firstChild) renderQuotes();
     renderCards();
@@ -1878,7 +1878,7 @@
     Plus.refresh();
     renderBand();
     if (st.tab === 0) renderCards();   // EPG-Zeit ("noch 12 Min.") aktuell halten
-    // 1.5: der Bildschirmschoner nur, wo kein Fernsehbild laeuft (Welt-TV- und News-Seite, Schublade), nie im laufenden Programm
+    // 1.5: der Bildschirmschoner nur, wo kein Fernsehbild laeuft (IP-TV- und News-Seite, Schublade), nie im laufenden Programm
     var liveShows = (st.tab === 0 && cards[0] && cards[0].live) || Plus.isOpen();
     if (!saverOn && !tvFull && !sheetOpen() && !liveShows && Date.now() - idleAt > SAVER_AFTER) showSaver();
     if (saverOn) tickSaverClock($('saver').querySelector('.clock'));
