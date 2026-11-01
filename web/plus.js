@@ -14,7 +14,14 @@ var Plus = (function () {
   var listeners = [];
   function changed() { for (var i = 0; i < listeners.length; i++) { try { listeners[i](); } catch (e) {} } }
 
-  function store(key, value) { try { localStorage.setItem('fmtvplus.' + key, JSON.stringify(value)); } catch (e) {} }
+  // 1.8: was man selbst anlegt (eigene IP-TV-Quellen, Favoriten, Meine Senderliste), steht zusaetzlich in einer Sicherungsdatei
+  // ausserhalb der App (Ordner "Downloads" des Fernsehers). Ein Update, auch eines mit Loeschen vorher, verliert es so nicht.
+  // Keine Passwoerter oder Schluessel darin.
+  var BACKUP_KEYS = ['wtvCustom', 'wtvFav', 'myList', 'favHow', 'mineHow', 'wtvRecent', 'wtvOpen', 'lastAdd'];
+  function store(key, value) {
+    try { localStorage.setItem('fmtvplus.' + key, JSON.stringify(value)); } catch (e) {}
+    if (BACKUP_KEYS && BACKUP_KEYS.indexOf(key) >= 0) backupSoon();
+  }
   function stored(key) { try { return JSON.parse(localStorage.getItem('fmtvplus.' + key)); } catch (e) { return null; } }
 
   /** GET as text; done(error, text). */
@@ -190,7 +197,7 @@ var Plus = (function () {
   function program(p) {
     if (!p) return null;
     var start = tzMs(p.startTime), dur = (p.duration || 0) * 1000;
-    return {title: p.title || '', start: start, end: dur ? start + dur : 0, text: p.detailedDescription || p.description || '',
+    return {title: p.title || '', start: start, end: dur ? start + dur : 0, text: (p.detailedDescription || p.description || '').slice(0, 1800),
       lang: p.language || '', rating: p.rating || ''};
   }
 
@@ -306,6 +313,7 @@ var Plus = (function () {
   /** Naechster/vorheriger Sat-Sender (P+/P- auf der Startseite und in der Senderkachel). */
   function zap(dir) {
     if (!sat.list.length) return;
+    ui.mineList = null;   // normales Umschalten verlaesst Meine Senderliste
     var cur = sat.channel, at = 0;
     for (var i = 0; i < sat.list.length; i++) if (cur && sat.list[i].major === cur.major && sat.list[i].minor === cur.minor) at = i;
     var next = sat.list[(at + dir + sat.list.length) % sat.list.length];
@@ -366,7 +374,13 @@ var Plus = (function () {
   ];
   var WTV_SOURCES = [];   // flach: alle Quellen (fuer die Karten und als Nummer im Speicher)
   for (var gi = 0; gi < WTV_GROUPS.length; gi++) WTV_SOURCES = WTV_SOURCES.concat(WTV_GROUPS[gi].items);
-  var wtvCache = {};
+  var wtvCache = {}, wtvOrder = [];
+  // 1.7.2: Zwischenspeicher mit Obergrenze: der zuletzt benutzte Eintrag bleibt, der aelteste geht
+  function lruTouch(order, obj, key, max) {
+    for (var i = order.length - 1; i >= 0; i--) if (order[i] === key) order.splice(i, 1);
+    order.push(key);
+    while (order.length > max) delete obj[order.shift()];
+  }
   var ADULT = /xxx|adult|erotic|porn/i;
 
   function customSources() { return stored('wtvCustom') || []; }
@@ -433,11 +447,14 @@ var Plus = (function () {
       });
     }
     var url = srcUrl(src);
-    if (wtvCache[url]) return done(usable(wtvCache[url]));
+    if (wtvCache[url]) { lruTouch(wtvOrder, wtvCache, url, 3); return done(usable(wtvCache[url])); }
     getText(url, function (err, text) {
       if (err) return done(null);
-      wtvCache[url] = parseM3U(text);
-      done(usable(wtvCache[url]));
+      var list = parseM3U(text);
+      text = null;
+      wtvCache[url] = list;
+      lruTouch(wtvOrder, wtvCache, url, 3);   // hoechstens drei Listen im Speicher (der Index hat ueber 10 000 Sender)
+      done(usable(list));
     }, 30000);
   }
 
@@ -449,6 +466,215 @@ var Plus = (function () {
     var list = recent().filter(function (c) { return c.url !== ch.url; });
     list.unshift({name: ch.name, url: ch.url, logo: ch.logo, quality: ch.quality, tags: ch.tags || [], cc: ch.cc || ''});
     store('wtvRecent', list.slice(0, 20));
+  }
+
+  // MARK: - Favoriten und Meine Senderliste (1.8)
+  // Favoriten: IP-TV-Sender, als eigene Playlist sortier- und gruppierbar. Meine Senderliste: Sat- und IP-TV-Sender
+  // gemischt, in eigener Reihenfolge mit Programmplaetzen; P+/P− schaltet darin weiter. Beides bleibt nur auf dem Fernseher.
+  function favs() { return stored('wtvFav') || []; }
+  function mine() { return stored('myList') || []; }
+  function chKey(ch) { return ch.sat ? 'sat:' + ch.sat.major + '.' + ch.sat.minor : 'ip:' + (ch.url || ch.name); }
+  function slim(ch) {
+    if (ch.sat) {
+      var nm = ch.name || channelName(ch.sat);
+      return {name: nm, sat: {major: ch.sat.major, minor: ch.sat.minor}, logo: logoFor({channelName: nm}) || '', tags: [], cc: '', group: 'Sat-TV', quality: '', added: Date.now()};
+    }
+    return {name: ch.name, url: ch.url, logo: ch.logo || '', quality: ch.quality || '', tags: ch.tags || [], cc: ch.cc || '',
+      group: (ch.group || '').split(';')[0], added: Date.now()};
+  }
+  function indexIn(list, ch) { var k = chKey(ch); for (var i = 0; i < list.length; i++) if (chKey(list[i]) === k) return i; return -1; }
+  function toggleIn(name, ch) {
+    var list = stored(name) || [], i = indexIn(list, ch);
+    if (i >= 0) list.splice(i, 1); else list.push(slim(ch));
+    store(name, list);
+    return i < 0;
+  }
+  function countPlay(ch) {
+    var p = stored('wtvPlays') || {}, k = chKey(ch), e = p[k] || {n: 0, at: 0};
+    e.n++; e.at = Date.now(); p[k] = e;
+    var keys = [];   // hoechstens 300 Eintraege
+    for (var q in p) if (p.hasOwnProperty(q)) keys.push(q);
+    if (keys.length > 300) { keys.sort(function (a, b) { return p[a].at - p[b].at; }); for (var d = 0; d < keys.length - 300; d++) delete p[keys[d]]; }
+    store('wtvPlays', p);
+  }
+
+  var SORTS = [['own', 'Eigene Reihenfolge'], ['az', 'Name A–Z'], ['za', 'Name Z–A'], ['country', 'Land'], ['quality', 'Qualität'],
+    ['added', 'Zuletzt hinzugefügt'], ['seen', 'Zuletzt gesehen'], ['most', 'Meistgesehen']];
+  var GROUPS = [['none', 'keine'], ['source', 'TV / IP-TV'], ['country', 'Land'], ['category', 'Kategorie'], ['quality', 'Qualität'],
+    ['letter', 'Anfangsbuchstabe']];
+  function labelOf(table, id) { for (var i = 0; i < table.length; i++) if (table[i][0] === id) return table[i][1]; return table[0][1]; }
+  function nextOf(table, id) { for (var i = 0; i < table.length; i++) if (table[i][0] === id) return table[(i + 1) % table.length][0]; return table[0][0]; }
+  function qRank(q) { var m = /(\d+)/.exec(q || ''); return m ? +m[1] : 0; }
+  function groupOf(ch, g) {
+    if (g === 'source') return ch.sat ? 'Sat-TV' : 'IP-TV';
+    if (g === 'country') return ch.sat ? 'Sat-TV' : (ch.cc || 'ohne Land');
+    if (g === 'category') return ch.sat ? 'Sat-TV' : (ch.group || 'ohne Kategorie');
+    if (g === 'quality') return ch.quality || (ch.sat ? 'Sat-TV' : 'ohne Angabe');
+    if (g === 'letter') return letterOf(ch);
+    return '';
+  }
+  function viewHow(which) { var h = stored(which + 'How') || {}; return {sort: h.sort || 'own', group: h.group || 'none'}; }
+  /** Sortieren und in Gruppen staffeln. Gibt Kopien zurueck (mit Programmplatz), dazu je Eintrag den Gruppennamen. */
+  function arrange(raw, how) {
+    var plays = stored('wtvPlays') || {}, rows = [], i;
+    for (i = 0; i < raw.length; i++) {
+      var c = {}, o = raw[i];
+      for (var f in o) if (o.hasOwnProperty(f)) c[f] = o[f];
+      c.num = i + 1;
+      c.tags = c.tags || [];
+      rows.push({c: c, i: i, g: groupOf(c, how.group), p: plays[chKey(c)] || {n: 0, at: 0}});
+    }
+    function low(t) { return (t || '').toLowerCase(); }
+    function bySort(a, b) {
+      var x = a.c, y = b.c, nx = low(x.name), ny = low(y.name);
+      var r = 0;
+      if (how.sort === 'az') r = nx < ny ? -1 : nx > ny ? 1 : 0;
+      else if (how.sort === 'za') r = nx < ny ? 1 : nx > ny ? -1 : 0;
+      else if (how.sort === 'country') r = low(x.cc || '~') < low(y.cc || '~') ? -1 : low(x.cc || '~') > low(y.cc || '~') ? 1 : (nx < ny ? -1 : nx > ny ? 1 : 0);
+      else if (how.sort === 'quality') r = qRank(y.quality) - qRank(x.quality);
+      else if (how.sort === 'added') r = (y.added || 0) - (x.added || 0);
+      else if (how.sort === 'seen') r = b.p.at - a.p.at;
+      else if (how.sort === 'most') r = b.p.n - a.p.n || b.p.at - a.p.at;
+      return r || a.i - b.i;
+    }
+    function groupRank(g) {
+      if (how.group === 'source') return g === 'Sat-TV' ? 0 : 1;
+      if (how.group === 'quality') return g === 'Sat-TV' ? -1 : -qRank(g);
+      if (/^ohne /.test(g)) return 1e9;
+      return 0;
+    }
+    rows.sort(function (a, b) {
+      if (how.group !== 'none' && a.g !== b.g) {
+        var r = groupRank(a.g) - groupRank(b.g);
+        if (r) return r;
+        if (a.g === HOME_CC || b.g === HOME_CC) return a.g === HOME_CC ? -1 : 1;
+        return a.g < b.g ? -1 : 1;
+      }
+      return bySort(a, b);
+    });
+    var list = [], groups = [];
+    for (i = 0; i < rows.length; i++) { list.push(rows[i].c); groups.push(rows[i].g); }
+    return {list: list, groups: how.group === 'none' ? null : groups};
+  }
+
+  function viewChips(which) {
+    var how = viewHow(which);
+    function set(field, val) { var h = viewHow(which); h[field] = val; store(which + 'How', h); showView(which, true); }
+    return [
+      {t: 'Sortierung: ' + labelOf(SORTS, how.sort) + '  ⟳', on: how.sort !== 'own', run: function () { set('sort', nextOf(SORTS, viewHow(which).sort)); }},
+      {t: 'Gruppen: ' + labelOf(GROUPS, how.group) + '  ⟳', on: how.group !== 'none', run: function () { set('group', nextOf(GROUPS, viewHow(which).group)); }},
+      {t: 'Zurücksetzen', on: false, run: function () { store(which + 'How', {}); showView(which, true); }}
+    ];
+  }
+  function showView(which, keepFocus) {
+    var raw = which === 'fav' ? favs() : mine(), how = viewHow(which), arr = arrange(raw, how);
+    var label = which === 'fav' ? 'Favoriten' : 'Meine Senderliste', at = ui.item, fc = ui.fc;
+    ui.source = null;
+    setList(arr.list, label, raw.length ?
+      raw.length + (which === 'fav' ? ' Favoriten' : ' Sender (TV und IP-TV)') + '  ·  OK lang / Rot: verschieben, entfernen' +
+        (which === 'mine' ? '  ·  P+/P− schaltet hier weiter' : '') :
+      (which === 'fav' ? 'Noch keine Favoriten. Auf einem Sender OK lange halten oder Rot drücken: „Zu Favoriten“.' :
+        'Noch leer. Auf einem IP-TV-Sender oder in der Sat-Senderliste OK lange halten oder Rot drücken: „In Meine Senderliste“.'));
+    ui.view = which;
+    ui.groupLbl = arr.groups;
+    ui.filters = viewChips(which);
+    if (keepFocus) { ui.item = Math.min(at, Math.max(0, arr.list.length - 1)); ui.fc = Math.min(fc, ui.filters.length - 1); }
+    ui.nodes = {}; $('wtv-grid').innerHTML = '';
+    paintFilters();
+    paintWorld();
+  }
+
+  // Aktionsmenue (OK lange halten oder rote Taste auf einem Sender)
+  function say(t) { if (guideHooks && guideHooks.toast) guideHooks.toast(t); else if ($('wtv-info')) $('wtv-info').textContent = t; }
+  function actionsFor(ch) {
+    var out = [];
+    if (!ch || ch.app) return out;
+    var fav = indexIn(favs(), ch) >= 0, my = indexIn(mine(), ch) >= 0;
+    if (!ch.sat) out.push({id: 'fav', label: fav ? 'Aus Favoriten entfernen' : 'Zu Favoriten', sym: fav ? 'close' : 'star'});
+    out.push({id: 'mine', label: my ? 'Aus Meiner Senderliste' : 'In Meine Senderliste', sym: my ? 'close' : 'list'});
+    if (ui.view && (ui.view === 'fav' ? fav : my)) out.push({id: 'move', label: 'Verschieben', sym: 'swap'});
+    out.push({id: 'play', label: 'Ansehen', sym: 'play'});
+    return out;
+  }
+  function openActions(ch) {
+    var items = actionsFor(ch);
+    if (!items.length) return false;
+    ui.menu = {ch: ch, items: items, at: 0};
+    paintActions();
+    return true;
+  }
+  function paintActions() {
+    var m = $('wtv-menu');
+    if (!m) { m = el('div', '', $('wtv')); m.id = 'wtv-menu'; }
+    m.innerHTML = '';
+    setClass(m, 'on', !!ui.menu);
+    if (!ui.menu) return;
+    el('div', 'mh', m, ui.menu.ch.name + (ui.menu.ch.sat ? '  ·  Sat-TV' : '  ·  IP-TV'));
+    for (var i = 0; i < ui.menu.items.length; i++) {
+      var it = ui.menu.items[i], b = el('div', 'mtile' + (i === ui.menu.at ? ' focus' : ''), m);
+      el('div', 'mi', b, {star: '★', close: '✕', list: '☰', swap: '⇄', play: '▶'}[it.sym] || '•');
+      el('div', 'ml', b, it.label);
+    }
+  }
+  function runAction(id) {
+    var ch = ui.menu.ch;
+    ui.menu = null;
+    paintActions();
+    if (id === 'fav') say(toggleIn('wtvFav', ch) ? '★ ' + ch.name + ' ist jetzt ein Favorit' : ch.name + ' aus den Favoriten entfernt');
+    else if (id === 'mine') say(toggleIn('myList', ch) ? ch.name + ' steht jetzt in Meiner Senderliste (Platz ' + mine().length + ')' : ch.name + ' aus Meiner Senderliste entfernt');
+    else if (id === 'move') { startMove(ch); return; }
+    else if (id === 'play') { play(ui.list, ui.item, ui.label); return; }
+    if (ui.view) showView(ui.view, true);
+    paintWorld();
+  }
+  function actionsKey(k, K) {
+    var m = ui.menu;
+    if (k === K.back || k === 403) { ui.menu = null; paintActions(); return true; }
+    if (k === K.left) m.at = Math.max(0, m.at - 1);
+    else if (k === K.right) m.at = Math.min(m.items.length - 1, m.at + 1);
+    else if (k === K.ok) { runAction(m.items[m.at].id); return true; }
+    paintActions();
+    return true;
+  }
+
+  // Verschieben: nur in der eigenen Reihenfolge ohne Gruppen (wird dafuer umgestellt)
+  function startMove(ch) {
+    var which = ui.view, h = viewHow(which);
+    if (h.sort !== 'own' || h.group !== 'none') { store(which + 'How', {sort: 'own', group: 'none'}); showView(which, false); }
+    var raw = which === 'fav' ? favs() : mine(), at = indexIn(raw, ch);
+    if (at < 0) return;
+    ui.item = at;
+    ui.moving = true;
+    ui.zone = 'grid';
+    paintWorld();
+    $('wtv-info').textContent = 'Verschieben: ◄ ► ▲ ▼ an den neuen Platz, OK legt ab';
+  }
+  function moveKey(k, K) {
+    var which = ui.view, name = which === 'fav' ? 'wtvFav' : 'myList', raw = stored(name) || [], n = raw.length, to = ui.item;
+    if (k === K.ok || k === K.back || k === 403) { ui.moving = false; showView(which, true); say('Reihenfolge gespeichert'); return true; }
+    if (k === K.left) to--; else if (k === K.right) to++; else if (k === K.up) to -= COLS; else if (k === K.down) to += COLS; else return true;
+    to = Math.max(0, Math.min(n - 1, to));
+    if (to === ui.item) return true;
+    var it = raw.splice(ui.item, 1)[0];
+    raw.splice(to, 0, it);
+    store(name, raw);
+    ui.item = to;
+    var keepMove = true;
+    showView(which, true);
+    ui.moving = keepMove;
+    ui.zone = 'grid';
+    ui.item = to;
+    paintWorld();
+    $('wtv-info').textContent = 'Verschieben: ◄ ► ▲ ▼ an den neuen Platz (jetzt Platz ' + (to + 1) + '), OK legt ab';
+    return true;
+  }
+  /** P+/P− in Meiner Senderliste (auch fuer Sat-Sender, die von dort gestartet wurden). */
+  function mineZap(dir) {
+    var l = ui.mineList;
+    if (!l || !l.length) return false;
+    var i = (ui.mineAt + dir + l.length) % l.length;
+    play(l, i, 'Meine Senderliste');
+    return true;
   }
 
   // Fuer die Karte in "IP-TV": ein bekannter frei empfangbarer Sender, sonst der erste mit Logo
@@ -544,7 +770,8 @@ var Plus = (function () {
 
   /** Die Zeilen der Seitenleiste: Suche, Zuletzt gesehen, dann Gruppen (aufgeklappt mit ihren Quellen). */
   function sideRows() {
-    var rows = [{kind: 'search', label: 'Suchen'}, {kind: 'recent', label: 'Zuletzt gesehen'}];
+    var rows = [{kind: 'search', label: 'Suchen'}, {kind: 'recent', label: 'Zuletzt gesehen'},
+      {kind: 'fav', label: '★  Favoriten (' + favs().length + ')'}, {kind: 'mine', label: '☰  Meine Senderliste (' + mine().length + ')'}];
     for (var g = 0; g < WTV_GROUPS.length; g++) {
       var grp = WTV_GROUPS[g];
       rows.push({kind: 'group', label: grp.label, group: grp, open: !!expanded[grp.label]});
@@ -565,6 +792,14 @@ var Plus = (function () {
     $('wtv-grid').innerHTML = '';
     if (document.activeElement !== field()) field().placeholder = 'Sendername suchen (OK drücken zum Tippen)';
     if (how === 'search') { showRecent(); ui.zone = 'search'; paintWorld(); startTyping('search'); return; }
+    if (how === 'fav' || how === 'mine') {   // 1.8: direkt in Favoriten oder Meine Senderliste
+      var rws = sideRows();
+      for (var j = 0; j < rws.length; j++) if (rws[j].kind === how) ui.side = j;
+      showView(how);
+      ui.zone = ui.list.length ? 'grid' : 'side';
+      paintWorld();
+      return;
+    }
     var last = stored('wtvSourceLabel'), rows = sideRows(), at = -1;
     for (var i = 0; i < rows.length; i++) if (rows[i].kind === 'src' && rows[i].label === last) at = i;
     if (at < 0) { for (i = 0; i < rows.length; i++) if (rows[i].kind === 'src') { at = i; break; } }
@@ -583,8 +818,9 @@ var Plus = (function () {
     return out.length > 1 ? ['Alle'].concat(out.slice(0, 11)) : [];
   }
   function applyFilter(i) {
-    ui.fi = i;
     var f = ui.filters[i];
+    if (f && typeof f === 'object') { f.run(); return true; }   // 1.8: Schalter (Sortierung, Gruppen) statt Laender
+    ui.fi = i;
     ui.list = !f || f === 'Alle' ? ui.base : ui.base.filter(function (c) { return c.cc === f; });
     ui.item = 0; ui.scroll = 0; ui.nodes = {}; $('wtv-grid').innerHTML = '';
     paintFilters();
@@ -593,13 +829,15 @@ var Plus = (function () {
     var box = $('wtv-filter');
     box.innerHTML = '';
     for (var i = 0; i < ui.filters.length; i++) {
-      var c = el('div', 'fchip', box, ui.filters[i] === 'Alle' ? 'Alle Länder' : ui.filters[i]);
-      setClass(c, 'on', i === ui.fi);
+      var it = ui.filters[i], obj = it && typeof it === 'object';
+      var c = el('div', 'fchip', box, obj ? it.t : it === 'Alle' ? 'Alle Länder' : it);
+      setClass(c, 'on', obj ? it.on : i === ui.fi);
       setClass(c, 'focus', ui.zone === 'filter' && i === ui.fc);
     }
   }
 
   function setList(list, label, info) {
+    ui.view = null; ui.groupLbl = null; ui.moving = false;
     ui.base = list;
     ui.filters = filters(list);
     ui.fi = 0; ui.fc = 0;
@@ -669,20 +907,26 @@ var Plus = (function () {
   }
 
   function field() { return $('wtv-q'); }
-  function startTyping(mode) {
+  // 1.8: was zuletzt eingegeben wurde, steht beim naechsten Mal wieder im Feld (nichts verschwindet beim erneuten Eingeben)
+  function startTyping(mode, keep) {
     ui.mode = mode;
     var f = field();
-    f.value = '';
+    f.value = keep !== undefined ? keep : (stored(mode === 'add' ? 'lastAdd' : 'lastSearch') || '');
     f.placeholder = mode === 'add' ? 'Adresse einer M3U-Liste, z. B. https://…/liste.m3u' : 'Sendername suchen, z. B. tagesschau';
     ui.zone = 'search';
     paintWorld();
     f.focus();
+    try { if (mode === 'search') f.select(); else f.setSelectionRange(f.value.length, f.value.length); } catch (e) {}   // Suche: markiert, Tippen ersetzt
   }
   function stopTyping() { var f = field(); if (f && document.activeElement === f) f.blur(); }
 
   function addCustom(url) {
     url = (url || '').replace(/^\s+|\s+$/g, '');
-    if (!/^https?:\/\/.+/i.test(url)) { $('wtv-info').textContent = 'Das ist keine Adresse. Sie muss mit http:// oder https:// beginnen.'; return; }
+    if (!/^https?:\/\/.+/i.test(url)) {
+      $('wtv-info').textContent = 'Das ist keine Adresse. Sie muss mit http:// oder https:// beginnen. Deine Eingabe steht noch im Feld.';
+      setTimeout(function () { startTyping('add', url); }, 0);
+      return;
+    }
     var name = url.replace(/^https?:\/\//i, '').replace(/[?#].*$/, '');
     var parts = name.split('/'), label = parts[0] + (parts.length > 1 ? ' · ' + parts[parts.length - 1].replace(/\.m3u8?$/i, '') : '');
     var list = customSources().filter(function (s) { return s.url !== url; });
@@ -705,6 +949,7 @@ var Plus = (function () {
     paintWorld();
   }
 
+  function keyAt(i) { return ui.groupLbl ? ui.groupLbl[i] : letterOf(ui.list[i]); }
   function letterOf(ch) { var c = (ch && ch.name || '#').charAt(0).toUpperCase(); return /[A-ZÄÖÜ]/.test(c) ? c.replace('Ä', 'A').replace('Ö', 'O').replace('Ü', 'U') : '#'; }
 
   function paintWorld() {
@@ -716,12 +961,18 @@ var Plus = (function () {
       var r = rows[i], row = el('div', 'srow ' + r.kind, side, (r.kind === 'group' ? (r.open ? '▾  ' : '▸  ') : '') + r.label);
       if (r.kind === 'src' && ui.source === r.src) setClass(row, 'on', true);
       if (r.kind === 'recent' && !ui.source && ui.label === 'Zuletzt gesehen') setClass(row, 'on', true);
+      if ((r.kind === 'fav' || r.kind === 'mine') && ui.view === r.kind) setClass(row, 'on', true);
       if (ui.zone === 'side' && i === ui.side) setClass(row, 'focus', true);
     }
     var firstSide = Math.max(0, Math.min(rows.length - 13, ui.side - 6));
     side.style.webkitTransform = side.style.transform = 'translateY(' + (-firstSide * 60) + 'px)';
     var cur = rows[ui.side];
-    $('wtv-hint').textContent = ui.zone === 'side' && cur && cur.custom ? 'Rote Taste: diese Quelle entfernen' : '';
+    $('wtv-hint').textContent = ui.zone === 'side' && cur && cur.custom ? 'Rote Taste: diese Quelle entfernen' :
+      '';   // 1.8: Favorit / Meine Senderliste steht in der Tastenleiste unten rechts
+    var fs = {}, fl = favs(), ms = {}, ml = mine();
+    for (i = 0; i < fl.length; i++) fs[chKey(fl[i])] = true;
+    for (i = 0; i < ml.length; i++) ms[chKey(ml[i])] = true;
+    ui.favSet = fs; ui.mineSet = ms;
     setClass($('wtv-close'), 'focus', ui.zone === 'close');
     setClass($('wtv-search'), 'focus', ui.zone === 'search');
     setClass($('wtv-bar'), 'focus', ui.zone === 'bar');
@@ -735,6 +986,7 @@ var Plus = (function () {
       keep[i] = true;
       if (!ui.nodes[i]) ui.nodes[i] = chanNode(ui.list[i], i, grid);
       setClass(ui.nodes[i], 'focus', ui.zone === 'grid' && i === ui.item);
+      setClass(ui.nodes[i], 'moving', !!ui.moving && i === ui.item);
     }
     for (var k in ui.nodes) {
       if (ui.nodes.hasOwnProperty(k) && !keep[k]) { if (ui.nodes[k].parentNode) ui.nodes[k].parentNode.removeChild(ui.nodes[k]); delete ui.nodes[k]; }
@@ -765,12 +1017,18 @@ var Plus = (function () {
     var tags = ch.tags || [];
     var badge = isGeo(ch) ? (geoOk(ch) ? '' : 'Geo') : tags.indexOf('Not 24/7') >= 0 ? 'zeitweise' : ch.quality;
     if (badge) el('span', 'badge', c, badge);
+    // 1.8: Programmplatz in Meiner Senderliste, Stern fuer Favoriten, Gruppenanfang als Band
+    if (ui.view === 'mine' && ch.num) el('span', 'pnum', c, String(ch.num));
+    else if (ui.favSet && ui.favSet[chKey(ch)]) el('span', 'pfav', c, '★');
+    if (ch.sat) el('span', 'psat', c, 'Sat-TV');
+    if (ui.groupLbl && (k === 0 || ui.groupLbl[k] !== ui.groupLbl[k - 1])) el('span', 'gstart', c, ui.groupLbl[k]);
     return c;
   }
 
   function showLetter() {
     var b = $('wtv-letter');
-    b.textContent = letterOf(ui.list[ui.item]);
+    b.textContent = keyAt(ui.item);
+    setClass(b, 'wide', b.textContent.length > 2);
     setClass(b, 'on', true);
     clearTimeout(ui.letterTimer);
     ui.letterTimer = setTimeout(function () { setClass(b, 'on', false); }, 900);
@@ -779,11 +1037,11 @@ var Plus = (function () {
   function jumpLetter(dir) {
     var n = ui.list.length;
     if (!n) return;
-    var now = letterOf(ui.list[ui.item]), i = ui.item;
-    if (dir > 0) { while (i < n && letterOf(ui.list[i]) === now) i++; if (i >= n) i = n - 1; }
+    var now = keyAt(ui.item), i = ui.item;   // 1.8: in gruppierten Listen von Gruppe zu Gruppe
+    if (dir > 0) { while (i < n && keyAt(i) === now) i++; if (i >= n) i = n - 1; }
     else {
-      while (i > 0 && letterOf(ui.list[i - 1]) === now) i--;   // Anfang des aktuellen Buchstabens
-      if (i === ui.item && i > 0) { i--; var prev = letterOf(ui.list[i]); while (i > 0 && letterOf(ui.list[i - 1]) === prev) i--; }
+      while (i > 0 && keyAt(i - 1) === now) i--;   // Anfang des aktuellen Buchstabens
+      if (i === ui.item && i > 0) { i--; var prev = keyAt(i); while (i > 0 && keyAt(i - 1) === prev) i--; }
     }
     ui.item = i;
     showLetter();
@@ -815,6 +1073,7 @@ var Plus = (function () {
     if (!r) return;
     if (r.kind === 'search') startTyping('search');
     else if (r.kind === 'recent') { ui.source = null; showRecent(); if (ui.list.length) ui.zone = 'grid'; }
+    else if (r.kind === 'fav' || r.kind === 'mine') { showView(r.kind); if (ui.list.length) ui.zone = 'grid'; }
     else if (r.kind === 'group') { expanded[r.label] = !expanded[r.label]; store('wtvOpen', expanded); }
     else if (r.kind === 'add') startTyping('add');
     else if (r.kind === 'src') { if (ui.source !== r.src) pickSource(r.src); else if (ui.list.length) ui.zone = 'grid'; }
@@ -824,11 +1083,13 @@ var Plus = (function () {
   function typingKey(k, K) {
     if (k === K.ok || k === 65376) {   // OK / Fertig der Samsung-Tastatur
       var v = field().value;
+      store(ui.mode === 'add' ? 'lastAdd' : 'lastSearch', v);
       stopTyping();
       if (ui.mode === 'add') addCustom(v); else { runSearch(v); if (ui.list.length) ui.zone = 'grid'; }
       paintWorld();
       return true;
     }
+    if (k === K.back || k === 27 || k === 65385 || k === K.up || k === K.down) store(ui.mode === 'add' ? 'lastAdd' : 'lastSearch', field().value);   // auch abgebrochen bleibt es stehen
     if (k === K.back || k === 27 || k === 65385) { stopTyping(); paintWorld(); return true; }
     if (k === K.up) { stopTyping(); ui.zone = 'close'; paintWorld(); return true; }
     if (k === K.down) { stopTyping(); if (ui.list.length) ui.zone = 'grid'; paintWorld(); return true; }
@@ -837,6 +1098,8 @@ var Plus = (function () {
 
   function worldKey(k, K) {
     if (document.activeElement === field()) return typingKey(k, K);
+    if (ui.menu) return actionsKey(k, K);
+    if (ui.moving) { moveKey(k, K); return true; }
     var n = ui.list.length;
     if (k === K.back) {
       if (ui.zone === 'grid' || ui.zone === 'bar' || ui.zone === 'search') ui.zone = 'side';
@@ -855,7 +1118,7 @@ var Plus = (function () {
     } else if (ui.zone === 'filter') {
       if (k === K.left) { if (ui.fc > 0) ui.fc--; else ui.zone = 'side'; }
       else if (k === K.right) ui.fc = Math.min(ui.filters.length - 1, ui.fc + 1);
-      else if (k === K.ok) { applyFilter(ui.fc); if (ui.list.length) ui.zone = 'grid'; }
+      else if (k === K.ok) { if (!applyFilter(ui.fc) && ui.list.length) ui.zone = 'grid'; }
       else if (k === K.up) ui.zone = 'search';
       else if (k === K.down && n) ui.zone = 'grid';
       paintFilters();
@@ -878,6 +1141,7 @@ var Plus = (function () {
       else if (k === 427) ui.item = Math.max(col, ui.item - COLS * VIS);   // P-
       else if (k === 428) ui.item = Math.min(n - 1, ui.item + COLS * VIS);   // P+
       else if (k === K.ok && n) { play(ui.list, ui.item, ui.label); return true; }
+      else if (k === 403 && n) { openActions(ui.list[ui.item]); return true; }   // rot: Favorit, Meine Senderliste, verschieben
       if (k === 427 || k === 428) showLetter();
     }
     paintWorld();
@@ -927,7 +1191,20 @@ var Plus = (function () {
     var ch = list[idx];
     if (!ch) return;
     if (ch.app) { closeWorld(); if (extLaunch) extLaunch(ch.app); return; }
-    if (ch.sat) { closeWorld(); tune(ch.sat, function () { changed(); }); return; }
+    // 1.8: aus Meiner Senderliste gestartet, schaltet P+/P− dort weiter (Sat und IP-TV gemischt)
+    if (label === 'Meine Senderliste') { ui.mineList = list; ui.mineAt = idx; } else ui.mineList = null;
+    if (label !== 'Mediaplayer') countPlay(ch);
+    if (ch.sat) {
+      if (ui.open === 'player' || ui.over) {   // vom IP-TV-Bild auf einen Sat-Sender: Player zu
+        stopVideo(); setClass($('player'), 'open', false);
+        ui.over = false; setClass($('wtv'), 'over', false); ui.before = null;
+        ui.open = 'wtv';
+      }
+      closeWorld();
+      tune(ch.sat, function () { changed(); });
+      if (label === 'Meine Senderliste') say((ch.num || idx + 1) + '  ' + ch.name);
+      return;
+    }
     if (label !== 'Mediaplayer' && ch.group !== md.title) remember(ch);
     stopPreview();
     ui.playList = list;
@@ -1057,7 +1334,10 @@ var Plus = (function () {
       if (sat.list[tvl.item] !== ch) return;
       var nx = sat.nexts && sat.nexts[key];
       if (!pr) { el('div', 'it', box, 'Keine Programmdaten vom Sender'); return; }
-      var w = wikiFor(pr.title);
+      var w = wikiPeek(pr.title);   // 1.7.2: wie im Programmfuehrer erst nach kurzem Verweilen nachladen
+      clearTimeout(tvl.wikiWait);
+      if (w === undefined) tvl.wikiWait = setTimeout(function () { if (ui.open === 'tvlist' && sat.list[tvl.item] === ch) wikiFor(pr.title); }, 700);
+      w = w || null;
       if (w && w.img) { var im = el('div', 'iimg', box); im.style.backgroundImage = 'url("' + w.img + '")'; }
       el('div', 'it', box, pr.title);
       el('div', 'itime', box, (pr.start ? hm(pr.start) : '') + (pr.end ? '–' + hm(pr.end) + '  ·  noch ' + Math.max(0, Math.round((pr.end - Date.now()) / 60000)) + ' Min.' : ''));
@@ -1083,8 +1363,14 @@ var Plus = (function () {
     else if (k === K.down) tvl.item = Math.min(sat.list.length - 1, tvl.item + 1);
     else if (k === 427) tvl.item = Math.max(0, tvl.item - 9);
     else if (k === 428) tvl.item = Math.min(sat.list.length - 1, tvl.item + 9);
+    else if (k === 403) {   // 1.8: rot: in Meine Senderliste (oder wieder heraus)
+      var sc = sat.list[tvl.item], entry = {name: channelName(sc), sat: sc};
+      say(toggleIn('myList', entry) ? channelName(sc) + ' steht jetzt in Meiner Senderliste (Platz ' + mine().length + ')' : channelName(sc) + ' aus Meiner Senderliste entfernt');
+      return;
+    }
     else if (k === K.ok) {
       var ch = sat.list[tvl.item];
+      ui.mineList = null;
       closeChannels();
       tune(ch, function () { changed(); });
       return;
@@ -1103,7 +1389,7 @@ var Plus = (function () {
   // Free My TV+ 1.4: EPG nacheinander laden (der Fernseher verwirft viele gleichzeitige Anfragen). Zuerst alle sichtbaren
   // Sender im sichtbaren Zeitfenster, dann dieselben Sender Fenster fuer Fenster bis Tagesende (oder bis Anzeigeende,
   // wenn der Tag vorher endet), erst danach die Sender ausserhalb der Liste.
-  var epg = {}, epgQ = [], epgBusy = false, epgGen = 0;
+  var epg = {}, epgQ = [], epgBusy = false, epgGen = 0, epgOrder = [], EPG_MAX = 300;
   function epgKey(ch) { return ch.major + '.' + ch.minor; }
   function epgList(ch) { var e = epg[epgKey(ch)]; return e ? e.list : null; }
   function epgHas(ch, from, to) {
@@ -1115,11 +1401,12 @@ var Plus = (function () {
   function epgMerge(ch, from, to, list) {
     var key = epgKey(ch), e = epg[key];
     if (!e || e.at < Date.now() - 15 * 60000) e = epg[key] = {list: [], spans: [], at: Date.now()};
-    var seen = {};
+    lruTouch(epgOrder, epg, key, EPG_MAX);   // 1.7.2: hoechstens 300 Sender im Speicher, die zuletzt gebrauchten
+    var seen = {}, old = Date.now() - 2 * 3600000;
     for (var i = 0; i < e.list.length; i++) seen[e.list[i].start + '|' + e.list[i].title] = true;
     for (var j = 0; j < list.length; j++) {
       var p = list[j];
-      if (!p.start || seen[p.start + '|' + p.title]) continue;
+      if (!p.start || seen[p.start + '|' + p.title] || (p.end && p.end < old)) continue;   // laengst Gelaufenes nicht aufheben
       seen[p.start + '|' + p.title] = true;
       e.list.push(p);
     }
@@ -1289,7 +1576,7 @@ var Plus = (function () {
       if (!ch || lanes[epgKey(ch)]) continue;
       var row = el('div', 'grow' + (d === 0 ? ' cur' : '') + (idx === playing ? ' playing' : ''), box);
       var name = el('div', 'gname', row);
-      el('span', 'gn', name, String(ch.major));
+      el('span', 'gn' + (ch.major >= 1000 ? ' g4' : ''), name, String(ch.major));   // 1.7.2: vierstellig etwas kleiner
       var lg = el('span', 'glogo', name), lu = logoFor(ch);
       if (lu) { var im2 = el('img', '', lg); im2.src = lu; im2.onerror = function () { this.parentNode.className = 'glogo none'; }; }
       else lg.className = 'glogo none';
@@ -1321,7 +1608,14 @@ var Plus = (function () {
     gd.ch = ch;
     box.innerHTML = '';
     if (!cur) { el('div', 'it', box, channelName(ch)); return; }
-    var w = wikiFor(cur.title);
+    // 1.7.2: Bild und Text von Wikipedia erst, wenn die Zeile kurz stehen bleibt (beim Blaettern nichts nachladen)
+    var w = wikiPeek(cur.title);
+    clearTimeout(gd.wikiWait);
+    if (w === undefined) {
+      var want = cur.title;
+      gd.wikiWait = setTimeout(function () { if (ui.open === 'guide' && gd.prog && gd.prog.title === want) wikiFor(want); }, 700);
+    }
+    w = w || null;
     if (w && w.img) { var im = el('div', 'iimg', box); im.style.backgroundImage = 'url("' + w.img + '")'; }
     el('div', 'it', box, cur.title);
     var now = Date.now();
@@ -1341,7 +1635,8 @@ var Plus = (function () {
     var p = gd.prog, now = Date.now(), future = p && p.start > now + 60000;
     return [{id: 'watch', label: future ? 'Erinnern' : 'Programm ansehen', sym: future ? 'bell' : 'play'},
       {id: 'info', label: 'Info', sym: 'sparkles'},
-      {id: 'rec', label: future ? 'Aufnahme planen' : 'Aufnehmen', sym: 'live_tv'}];
+      {id: 'rec', label: future ? 'Aufnahme planen' : 'Aufnehmen', sym: 'live_tv'},
+      {id: 'mine', label: gd.ch && indexIn(mine(), {sat: gd.ch}) >= 0 ? 'Aus Meiner Senderliste' : 'In Meine Senderliste', sym: 'tv'}];   // 1.8
   }
   function paintGuideMenu() {
     var m = $('gd-menu');
@@ -1363,6 +1658,11 @@ var Plus = (function () {
     var ch = sat.list[gd.sel], p = gd.prog;
     if (id === 'info') { gd.menu = -1; gd.detail = true; paintGuideMenu(); paintDetail(); legendChanged(); if (ui.onClose) ui.onClose('refresh'); return; }
     if (id === 'rec') { gd.menu = -1; paintGuideMenu(); Recorder.sat(ch, p); return; }
+    if (id === 'mine') {   // 1.8: Sat-Sender in Meine Senderliste (gemischt mit IP-TV)
+      gd.menu = -1; paintGuideMenu();
+      say(toggleIn('myList', {name: channelName(ch), sat: ch}) ? channelName(ch) + ' steht jetzt in Meiner Senderliste (Platz ' + mine().length + ')' : channelName(ch) + ' aus Meiner Senderliste entfernt');
+      return;
+    }
     // ansehen (oder erinnern)
     gd.menu = -1;
     if (p && p.start > Date.now() + 60000) { Recorder.remind(ch, p); paintGuide(); return; }
@@ -1376,10 +1676,11 @@ var Plus = (function () {
   }
 
   // Die ausfuehrliche Info: grosse Schrift, Bild, wann, wo, wer, Genre, Aehnliches
-  var similar = {};
+  var similar = {}, similarOrder = [];
   function similarFor(page, done) {
     if (similar[page] !== undefined) return done(similar[page]);
     similar[page] = [];
+    lruTouch(similarOrder, similar, page, 60);
     getText('https://de.wikipedia.org/w/api.php?action=query&list=search&srlimit=6&format=json&origin=*&srsearch=' +
       encodeURIComponent('morelike:' + page), function (err, text) {
       if (err) return;
@@ -1739,10 +2040,11 @@ var Plus = (function () {
       if (k === K.ok || k === 65376) {
         f.blur();
         var u = (f.value || '').replace(/^\s+|\s+$/g, '');
+        store('lastMediaUrl', u);
         if (/^(https?|rtsp|rtmp|udp|file):\/\//i.test(u)) { setClass($('media'), 'open', false); play([{name: u.replace(/^.*\//, '') || u, url: u, logo: '', tags: [], cc: ''}], 0, 'Mediaplayer'); }
         return true;
       }
-      if (k === K.back || k === 27 || k === 65385) { f.blur(); md.field = null; f.type = 'text'; setClass($('media-search'), 'on', false); return true; }
+      if (k === K.back || k === 27 || k === 65385) { if (!md.field) store('lastMediaUrl', (f.value || '').replace(/^\s+|\s+$/g, '')); f.blur(); md.field = null; f.type = 'text'; setClass($('media-search'), 'on', false); return true; }
       return 'type';
     }
     if (k === K.back) {
@@ -1755,12 +2057,12 @@ var Plus = (function () {
     else if (k === K.ok) {
       var r = md.rows[md.item];
       if (!r) return true;
-      if (r.kind === 'url') { md.field = null; f.type = 'text'; f.placeholder = 'https://… oder rtsp://… eingeben, OK spielt ab'; setClass($('media-search'), 'on', true); f.value = ''; f.focus(); return true; }
+      if (r.kind === 'url') { md.field = null; f.type = 'text'; f.placeholder = 'https://… oder rtsp://… eingeben, OK spielt ab'; setClass($('media-search'), 'on', true); f.value = stored('lastMediaUrl') || ''; f.focus(); return true; }
       if (r.kind === 'input') {
         md.field = r.field;
         f.type = r.secret ? 'password' : 'text';
         f.placeholder = r.hint;
-        f.value = r.secret ? '' : (stored(r.field) || '');
+        f.value = stored(r.field) || '';   // 1.8: auch das Passwort bleibt (verdeckt) stehen
         setClass($('media-search'), 'on', true);
         f.focus();
         return true;
@@ -2243,13 +2545,15 @@ var Plus = (function () {
   function legendChanged() { if (legendHook) try { legendHook(); } catch (e) {} }
   function legendText() {
     if (ui.open === 'wtv') {
+      if (ui.menu) return '◄ ► wählen  ·  OK  ·  Zurück';
+      if (ui.moving) return '◄ ► ▲ ▼ verschieben  ·  OK ablegen';
       return ui.zone === 'side' ? '▲ ▼ wählen  ·  OK öffnen/aufklappen  ·  ► Sender  ·  Zurück' + (ui.over ? ' zum Bild' : '') :
-        ui.zone === 'grid' ? 'OK ansehen  ·  ◄ ► ▲ ▼ wählen  ·  P+/P− blättern  ·  ► am Rand: Buchstaben  ·  Zurück' :
-        ui.zone === 'bar' ? '▲ ▼ Buchstabe  ·  ◄ zurück ins Raster' : ui.zone === 'filter' ? '◄ ► Land  ·  OK filtern  ·  ▼ Sender' :
+        ui.zone === 'grid' ? 'OK ansehen  ·  OK lang / Rot: Favorit, Meine Liste  ·  P+/P− blättern  ·  ► am Rand: ' + (ui.groupLbl ? 'Gruppen' : 'Buchstaben') + '  ·  Zurück' :
+        ui.zone === 'bar' ? '▲ ▼ Buchstabe  ·  ◄ zurück ins Raster' : ui.zone === 'filter' ? (ui.view ? '◄ ► wählen  ·  OK umschalten  ·  ▼ Sender' : '◄ ► Land  ·  OK filtern  ·  ▼ Sender') :
         ui.zone === 'search' ? 'OK tippen  ·  ▼ Ergebnisse  ·  ◄ Kategorien' : 'OK schließen  ·  ▼ Suche';
     }
     if (ui.open === 'player') return 'OK oder ◄ ► Menü über dem Bild  ·  ▲ ▼ / P+/P− Sender  ·  Rot: ' + (Recorder.busy() ? 'Aufnahme beenden' : 'aufnehmen') + '  ·  Zurück';
-    if (ui.open === 'tvlist') return tvl.info ? '▲ ▼ blättern  ·  ◄ zurück zur Liste' : '▲ ▼ Sender  ·  OK umschalten  ·  ► / Info Details  ·  P+/P−  ·  Zurück';
+    if (ui.open === 'tvlist') return tvl.info ? '▲ ▼ blättern  ·  ◄ zurück zur Liste' : '▲ ▼ Sender  ·  OK umschalten  ·  OK lang / Rot: Meine Senderliste  ·  ► / Info Details  ·  Zurück';
     if (ui.open === 'light') return lt.dev ? '▲ ▼ wählen  ·  ◄ ► ändern  ·  OK schalten / anwenden  ·  Zurück: Geräte' : '▲ ▼ wählen  ·  OK öffnen  ·  Zurück';
     if (ui.open === 'guide') return sweep ? 'Zurück: Suchlauf abbrechen' : gd.detail ? '▲ ▼ blättern  ·  OK oder Zurück: schließen' :
       gd.menu >= 0 ? '◄ ► wählen  ·  OK  ·  Zurück' : '▲ ▼ Sender  ·  P+/P− Seite  ·  ◄ ► Zeit  ·  OK Menü  ·  Info  ·  Rot: EPG-Suchlauf  ·  Zurück';
@@ -2284,6 +2588,7 @@ var Plus = (function () {
     return r;
   }
   function keyInner(k, K) {
+    if (!ui.open && (k === 427 || k === 428) && ui.mineList && mineZap(k === 427 ? 1 : -1)) return true;   // 1.8: in Meiner Senderliste
     if (!ui.open && (k === 427 || k === 428) && sat.list.length) { zap(k === 427 ? 1 : -1); return true; }
     if (!ui.open) return false;
     if (k === 27 || k === 8) k = K.back;   // Esc/Backspace in der Vorschau
@@ -2467,7 +2772,10 @@ var Plus = (function () {
         run: function () { openWorld('search'); }});
       out.push({id: 'wtv', text: 'Alle Sender', kicker: 'Kategorien · Länder · Themen', title: '', icon: 'cast', rect: [800, 262, 300, 500], inside: true, plain: true,
         run: function () { openWorld(); }});
-      var rec = recent().slice(0, 20), names = {};
+      var fv = favs(), rec = [], names = {};   // 1.8: zuerst die Favoriten, dann zuletzt gesehen
+      for (var fi = 0; fi < fv.length && rec.length < 20; fi++) if (!fv[fi].sat) rec.push(fv[fi]);
+      var rc0 = recent();
+      for (var ri = 0; ri < rc0.length && rec.length < 20; ri++) if (indexIn(rec, rc0[ri]) < 0) rec.push(rc0[ri]);
       for (var r = 0; r < rec.length; r++) names[rec[r].name] = true;
       for (var t = 0; t < featured.length && rec.length < 20; t++) if (!names[featured[t].name]) rec.push(featured[t]);
       for (var m = 0; m < rec.length; m++) {
@@ -2513,19 +2821,30 @@ var Plus = (function () {
   }
 
   // Bild zur naechsten Sendung: das Vorschaubild ihres Wikipedia-Artikels, wenn es einen gibt
-  var wiki = {};
+  var wiki = {}, wikiOrder = [];
+  // 1.7.2: nie das Originalbild (oft 4000 Pixel breit, im Speicher 40 MB und mehr), sondern eine Vorschau mit 640 Pixeln
+  function wikiImg(j) {
+    var t = j.thumbnail && j.thumbnail.source || '', o = j.originalimage || {};
+    if (o.source && o.width && o.width <= 800) return o.source;
+    if (t && /\/thumb\//.test(t) && /\/\d+px-[^\/]+$/.test(t)) return t.replace(/\/\d+px-([^\/]+)$/, '/640px-$1');
+    return t;
+  }
   /** Wikipedia-Zusammenfassung zu einer Sendung: {img, text}, oder null (wird nachgeladen, dann changed()). */
+  function wikiKey(title) { return (title || '').replace(/\s*[-–:(].*$/, '').replace(/^\s+|\s+$/g, ''); }
+  /** Nur nachsehen, nichts laden: undefined = noch nie geholt. */
+  function wikiPeek(title) { var t = wikiKey(title); return !t || t.length < 3 ? false : wiki[t]; }
   function wikiFor(title) {
-    var t = (title || '').replace(/\s*[-–:(].*$/, '').replace(/^\s+|\s+$/g, '');
+    var t = wikiKey(title);
     if (!t || t.length < 3) return null;
     if (wiki[t] !== undefined) return wiki[t] || null;
     wiki[t] = false;
+    lruTouch(wikiOrder, wiki, t, 120);
     getText('https://de.wikipedia.org/api/rest_v1/page/summary/' + encodeURIComponent(t.replace(/ /g, '_')), function (err, text) {
       if (err) return;
       try {
         var j = JSON.parse(text);
         if (j.type === 'disambiguation') return;
-        wiki[t] = {img: j.originalimage ? j.originalimage.source : j.thumbnail ? j.thumbnail.source : '', text: j.extract || '', desc: j.description || '', page: j.title || t};
+        wiki[t] = {img: wikiImg(j), text: j.extract || '', desc: j.description || '', page: j.title || t};
         changed();
         if (ui.open === 'tvlist') paintInfo();
         if (ui.open === 'guide') guideWiki();
@@ -2755,7 +3074,7 @@ var Plus = (function () {
       clearTimeout(lt.pending);
       lt.pending = setTimeout(function () { applyRow(row); }, 450);   // erst senden, wenn die Taste ruht
     } else if (k === K.ok && row) {
-      if (row.kind === 'key') { setClass($('light-search'), 'on', true); f.value = ''; f.focus(); return true; }
+      if (row.kind === 'key') { setClass($('light-search'), 'on', true); f.type = 'password'; f.value = stored('goveeKey') || ''; f.focus(); return true; }   // 1.8: der alte Schluessel bleibt (verdeckt) stehen
       if (row.kind === 'dev') { lightDevice(row.dev); return true; }
       if (row.kind === 'all') {
         var i = 0;
@@ -3002,6 +3321,101 @@ var Plus = (function () {
     return {world: world, stop: stop, sat: satRec, remind: remind, busy: function () { return !!job; }, cfg: cfg};
   })();
 
+
+  // MARK: - Sicherung der eigenen Listen (1.8)
+  var BACKUP_FILE = 'FreeMyTVPlus-Sicherung.json', backupTimer = 0, backupReady = false;
+  function backupDir(done) {
+    var fs = window.tizen && window.tizen.filesystem, roots = ['downloads', 'documents'], i = 0;
+    if (!fs || !fs.resolve) return done(null);
+    (function next() {
+      if (i >= roots.length) return done(null);
+      var r = roots[i++];
+      try { fs.resolve(r, function (d) { done(d); }, function () { next(); }, 'rw'); } catch (e) { next(); }
+    })();
+  }
+  function backupSoon() {
+    if (!backupReady) return;   // erst nach dem Einlesen beim Start, sonst ueberschreibt ein leerer Stand die Sicherung
+    clearTimeout(backupTimer);
+    backupTimer = setTimeout(writeBackup, 500);
+  }
+  function backupData() {
+    var d = {app: 'Free My TV+', v: 1, at: Date.now()};
+    for (var i = 0; i < BACKUP_KEYS.length; i++) { var v = stored(BACKUP_KEYS[i]); if (v !== null && v !== undefined) d[BACKUP_KEYS[i]] = v; }
+    return d;
+  }
+  function writeBackup() {
+    var text = JSON.stringify(backupData());
+    backupDir(function (dir) {
+      if (!dir) return;
+      var f = null;
+      try { f = dir.resolve(BACKUP_FILE); } catch (e) { try { f = dir.createFile(BACKUP_FILE); } catch (e2) { return; } }
+      try {
+        f.openStream('w', function (st) { try { st.write(text); } catch (e3) {} try { st.close(); } catch (e4) {} }, function () {}, 'UTF-8');
+      } catch (e5) {}
+    });
+  }
+  /** Sicherung und aktueller Stand zusammen: nichts aus der Sicherung geht verloren, nichts Neues wird ueberschrieben. */
+  function mergeBackup(d) {
+    var any = false;
+    function mergeList(name, keyFn) {
+      var old = d && d[name], cur = stored(name);
+      if (!old || !old.length) return;
+      if (!cur || !cur.length) { store(name, old); any = true; return; }
+      var seen = {}, i;
+      for (i = 0; i < cur.length; i++) seen[keyFn(cur[i])] = true;
+      for (i = 0; i < old.length; i++) if (!seen[keyFn(old[i])]) { cur.push(old[i]); seen[keyFn(old[i])] = true; any = true; }
+      if (any) store(name, cur);
+    }
+    mergeList('wtvCustom', function (s) { return s.url; });
+    if (!stored('wtvFav')) mergeList('wtvFav', chKey);   // nur wenn hier keine Favoriten sind (Entferntes kommt nicht zurueck)
+    if (!stored('myList')) mergeList('myList', chKey);
+    var single = ['favHow', 'mineHow', 'wtvRecent', 'wtvOpen', 'lastAdd'];
+    for (var k = 0; k < single.length; k++) if (stored(single[k]) === null && d && d[single[k]] !== undefined) { store(single[k], d[single[k]]); any = true; }
+    return any;
+  }
+  function restoreBackup() {
+    backupDir(function (dir) {
+      var f = null;
+      if (dir) { try { f = dir.resolve(BACKUP_FILE); } catch (e) { f = null; } }
+      if (!f) { backupReady = true; writeBackup(); return; }   // noch keine Sicherung: jetzt die erste anlegen (aus dem alten Stand)
+      try {
+        f.readAsText(function (text) {
+          var d = null;
+          try { d = JSON.parse(text); } catch (e2) {}
+          if (d && mergeBackup(d)) { syncCustom(); changed(); }
+          backupReady = true;
+          writeBackup();
+        }, function () { backupReady = true; writeBackup(); }, 'UTF-8');
+      } catch (e3) { backupReady = true; writeBackup(); }
+    });
+  }
+
+  // MARK: - Speicherwaechter (1.7.2)
+  // Der Fernseher hat knapp 2 GB fuer alles. Wird es eng, gibt die App ihre Zwischenspeicher frei, bevor das System sie
+  // beendet: im Hintergrund (eine andere App ist vorne) immer, sonst wenn weniger als 150 MB frei sind.
+  var memTrimmed = 0;
+  function trimMemory(hard) {
+    memTrimmed++;
+    if (ui.open !== 'wtv' && ui.open !== 'player') { wtvCache = {}; wtvOrder = []; }
+    wiki = {}; wikiOrder = []; similar = {}; similarOrder = [];
+    satByName = null;
+    if (ui.open !== 'guide') { epg = {}; epgOrder = []; }
+    if (hard && ui.open !== 'wtv') stopPreview();
+  }
+  function freeMemory() {
+    try { var si = window.tizen && window.tizen.systeminfo; return si && si.getAvailableMemory ? si.getAvailableMemory() : 0; } catch (e) { return 0; }
+  }
+  setInterval(function () {
+    var free = freeMemory();
+    if (free && free < 150 * 1048576) trimMemory(free < 80 * 1048576);
+  }, 60000);
+  try {
+    window.tizen.systeminfo.addPropertyValueChangeListener('MEMORY', function (m) {
+      if (m && m.status && m.status !== 'NORMAL') trimMemory(true);
+    });
+  } catch (e) {}
+  document.addEventListener('visibilitychange', function () { if (document.hidden) trimMemory(true); });
+
   // MARK: - Start
 
   var preloaded = false;
@@ -3017,6 +3431,7 @@ var Plus = (function () {
 
   try { window.tizen.tvinputdevice.registerKey('ChannelUp'); window.tizen.tvinputdevice.registerKey('ChannelDown'); } catch (e) {}
   try { window.tizen.tvinputdevice.registerKey('ColorF0Red'); } catch (e) {}
+  setTimeout(restoreBackup, 1500);   // 1.8: eigene Quellen, Favoriten und Meine Senderliste aus der Sicherung
   try { window.tizen.tvinputdevice.registerKey('Info'); } catch (e) {}
 
   if (tv) {
@@ -3059,12 +3474,27 @@ var Plus = (function () {
     openGuide: openGuide,
     openLight: openLight,
     stopPreview: stopPreview,
+    trimMemory: trimMemory,
+    memStats: function () { var n = 0, k; for (k in epg) if (epg.hasOwnProperty(k)) n++; var w = 0; for (k in wtvCache) if (wtvCache.hasOwnProperty(k)) w++; return {epg: n, lists: w, wiki: wikiOrder.length, trimmed: memTrimmed}; },
     epgAuto: function () { return auto.ok === true ? 'über den 2. Empfänger' : auto.ok === false ? 'nachts (2. Empfänger für Apps gesperrt)' : 'wird geprüft'; },
     openMedia: openMedia,
     setApps: function (list, launch) { extApps = list || []; extLaunch = launch; },
     zapMode: function () { return zapMode; },
     endZap: function () { if (zapMode) { zapMode = false; changed(); return true; } return false; },
     key: key,
+    // 1.8: OK lange halten auf einem Sender (IP-TV-Raster, Sat-Senderliste) oeffnet das Aktionsmenue
+    wantsLong: function () {
+      if (ui.open === 'wtv') return ui.zone === 'grid' && !ui.menu && !ui.moving && document.activeElement !== field() && ui.list.length > 0;
+      return ui.open === 'tvlist' && !tvl.info;
+    },
+    longOk: function () {
+      if (ui.open === 'wtv') { if (openActions(ui.list[ui.item])) paintWorld(); }
+      else if (ui.open === 'tvlist') keyInner(403, (window.TV && TV.keys) || {});
+      legendChanged();
+    },
+    openFav: function () { openWorld('fav'); },
+    openMine: function () { openWorld('mine'); },
+    mineCount: function () { return mine().length; },
     isOpen: function () { return !!ui.open; },
     onClose: function (fn) { ui.onClose = fn; },
     sources: WTV_SOURCES

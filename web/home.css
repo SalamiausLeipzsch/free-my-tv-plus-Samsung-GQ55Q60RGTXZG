@@ -1298,3 +1298,26 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 .tvgoing #home > #band, .tvfull #home > #band, .tvback #home > #band, .tvgoing #home > #zoomframe, .tvfull #home > #zoomframe, .tvback #home > #zoomframe { opacity: 1 !important; }
 .tvgoing #drawer, .tvgoing #legend { -webkit-transition: opacity 1.8s ease-in-out !important; transition: opacity 1.8s ease-in-out !important; }
 #zoomframe { z-index: 0; -webkit-transition: -webkit-transform 1.8s cubic-bezier(0.4, 0, 0.2, 1); transition: transform 1.8s cubic-bezier(0.4, 0, 0.2, 1); }
+
+/* Free My TV+ 1.7.2: vierstellige Sendernummern passen in die Spalte, ohne in Logo oder Namen zu laufen */
+#guide .gname .gn.g4 { font-size: 0.72em; letter-spacing: -0.5px; }
+
+/* Free My TV+ 1.8: Favoriten, Meine Senderliste, Aktionsmenue im IP-TV */
+#wtv-menu { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; z-index: 8; display: none; background: rgba(6, 8, 14, 0.9); text-align: center; }
+#wtv-menu.on { display: block; }
+#wtv-menu .mh { margin: 340px auto 36px; max-width: 1300px; font-size: 36px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#wtv-menu .mtile { display: inline-block; vertical-align: top; width: 280px; height: 200px; margin: 0 16px; border-radius: 26px;
+  background: -webkit-linear-gradient(top, #3A3D4C, #262835); background: linear-gradient(#3A3D4C, #262835);
+  box-shadow: inset 0 1.5px 0 rgba(255, 255, 255, 0.55), inset 0 0 0 1.5px rgba(255, 255, 255, 0.28), 0 16px 36px rgba(0, 0, 0, 0.35);
+  -webkit-transition: -webkit-transform 0.15s; transition: transform 0.15s; }
+#wtv-menu .mtile .mi { margin: 36px 0 16px; font-size: 58px; line-height: 64px; color: #FFF; }
+#wtv-menu .mtile .ml { font-size: 26px; font-weight: 600; padding: 0 14px; }
+#wtv-menu .mtile.focus { -webkit-transform: scale(1.06); transform: scale(1.06); box-shadow: 0 0 0 4px #0A84FF, 0 0 0 7px rgba(255, 255, 255, 0.85), 0 16px 36px rgba(0, 0, 0, 0.4); }
+.chan .pnum { position: absolute; left: 18px; top: 18px; min-width: 30px; padding: 2px 8px; border-radius: 9px; background: #0A84FF; color: #FFF; font-size: 17px; font-weight: 700; text-align: center; }
+.chan .pfav { position: absolute; left: 18px; top: 14px; color: #FFD60A; font-size: 26px; text-shadow: 0 1px 4px rgba(0, 0, 0, 0.6); }
+.chan .psat { position: absolute; right: 18px; bottom: 64px; padding: 1px 8px; border-radius: 8px; background: rgba(15, 23, 42, 0.85); color: #9FE1FF; font-size: 14px; }
+.chan .gstart { position: absolute; left: 10px; top: 102px; max-width: 220px; padding: 2px 12px; border-radius: 0 12px 0 12px; background: rgba(52, 199, 89, 0.95); color: #FFF; font-size: 16px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.chan.moving { box-shadow: 0 0 0 4px #FFD60A, 0 14px 32px rgba(0, 0, 0, 0.5); }
+#wtv-letter.wide { width: 300px; left: 1520px; font-size: 30px; border-radius: 60px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding: 0 20px; box-sizing: border-box; }
+#wtv-info { max-width: 760px; overflow: hidden; text-overflow: ellipsis; }   /* 1.8: nicht in die Tastenleiste laufen */
+#gd-menu { background: rgba(6, 8, 14, 0.88); }   /* 1.8: vier Kacheln, besser lesbar */

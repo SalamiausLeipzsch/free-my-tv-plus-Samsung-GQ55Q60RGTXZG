@@ -46,6 +46,10 @@ Entwickler-Apps nicht. Dann im Workflow `python3 tizen/build.py --generic --no-c
 - **Programmführer** (OK auf der Senderkachel): ▲ ▼ Sender, P+/P− eine Seite, ◄ ► Zeitachse, OK Menü (Ansehen/Erinnern,
   Info, Aufnehmen), Info-Taste Info-Seite, rot EPG-Suchlauf (sammelt Programmdaten, schaltet dabei kurz durch die Sender).
 - **IP-TV-Player:** ▲ ▼ Sender, OK Menü über dem Bild, rot Aufnahme starten/beenden.
+- **IP-TV-Raster:** OK ansehen, OK lang (oder rot) Aktionsmenü: Favorit, Meine Senderliste, Verschieben. In „★ Favoriten“ und
+  „Meine Senderliste“ schalten die Knöpfe über dem Raster Sortierung und Gruppen um.
+- **Meine Senderliste:** Sat- und IP-TV-Sender gemischt (Sat-Sender über das OK-Menü im Programmführer). Von dort gestartet,
+  schaltet P+/P− durch diese Liste.
 - **Unten rechts** steht auf jeder Seite, welche Tasten gerade gehen.
 
 ## Recorder
@@ -114,12 +118,19 @@ Absichtlich **nie gesperrt**: `samsungotn.net` (Firmware- und Sicherheitsupdates
 - **Home-Taste:** öffnet weiterhin Samsungs Leiste; der Rückkehr-Dienst holt Free My TV+ nach anderen Apps zurück.
 - **IP-TV:** freie Sender laufen nicht immer; Pay-TV-Sender wie ESPN gibt es nicht legal kostenlos und sind nicht drin.
 - **Fotos, News, Wikipedia, Logos** kommen live aus dem Internet; fällt etwas aus, bleibt die Kachel schlicht.
+- **Arbeitsspeicher:** Der Fernseher hat knapp 2 GB für alles. Seit 1.7.2 hält die App ihre Zwischenspeicher klein
+  (Wikipedia-Bilder als Vorschau mit 640 Pixeln, höchstens drei IP-TV-Listen und 300 Sender EPG) und gibt sie frei, sobald sie
+  im Hintergrund ist oder weniger als 150 MB frei sind. Die Einstellungen zeigen unten, wie viel gerade frei ist.
 
 ## Datenschutz
 
 Free My TV+ speichert alles nur auf dem Fernseher (Einstellungen, Themen, Zuletzt gesehen, Govee-Schlüssel,
 Netzwerkspeicher-Zugang). Es gibt kein Konto und keine Auswertung. Abgerufen werden nur die genannten öffentlichen Dienste
 (Open-Meteo, iptv-org/Free-TV, Bing/Google News, Wikipedia, Pexels, tv-logos, auf Wunsch Govee).
+
+Eigene IP-TV-Quellen, Favoriten und „Meine Senderliste“ stehen zusätzlich in `FreeMyTVPlus-Sicherung.json` im Ordner
+„Downloads“ des Fernsehers, damit sie Updates überstehen. Passwörter und Schlüssel kommen dort nicht hinein. Wer alles
+entfernen will, löscht diese Datei mit (z. B. über einen Dateimanager oder per USB).
 
 ## Dateien
 
@@ -179,6 +190,10 @@ To keep it for good, store a certificate as the secrets `TIZEN_AUTHOR_P12` (Base
 - **TV guide** (OK on the channel tile): ▲ ▼ channels, P+/P− a page, ◄ ► timeline, OK menu (watch/remind, info, record), Info
   key info page, red EPG scan (collects programme data, briefly tuning through the channels).
 - **IP TV player:** ▲ ▼ channels, OK menu over the picture, red starts/stops recording.
+- **IP TV grid:** OK watches, long OK (or red) opens the action menu: favourite, my channel list, move. In "★ Favoriten" and
+  "Meine Senderliste" the switches above the grid change sorting and groups.
+- **Meine Senderliste (my channel list):** satellite and IP TV channels mixed (satellite channels via the OK menu in the TV
+  guide). Started from there, P+/P− zaps through this list.
 - **Bottom right** every page shows which keys work right now.
 
 ## Recorder
@@ -246,12 +261,19 @@ Deliberately **never blocked**: `samsungotn.net` (firmware and security updates)
 - **Home button:** still opens Samsung's bar; the return service brings Free My TV+ back after other apps.
 - **IP TV:** free channels don't always run; pay-TV channels such as ESPN aren't legally free and aren't included.
 - **Photos, news, Wikipedia, logos** come live from the internet; if something fails, the tile stays plain.
+- **Memory:** the TV has just under 2 GB for everything. Since 1.7.2 the app keeps its caches small (Wikipedia pictures as
+  640-pixel previews, at most three IP TV lists and EPG for 300 channels) and frees them as soon as it is in the background or
+  less than 150 MB are free. The bottom of the settings shows how much is free right now.
 
 ## Privacy
 
 Free My TV+ keeps everything on the TV only (settings, topics, recently watched, Govee key, network storage login). No
 account, no analytics. It only calls the public services named above (Open-Meteo, iptv-org/Free-TV, Bing/Google News,
 Wikipedia, Pexels, tv-logos, Govee if you set it up).
+
+Your own IP TV sources, favourites and "Meine Senderliste" (my channel list) are also kept in `FreeMyTVPlus-Sicherung.json`
+in the TV's "Downloads" folder so they survive updates. Passwords and keys never go in there. To remove everything, delete
+that file too (for example with a file manager or over USB).
 
 ## Files
 

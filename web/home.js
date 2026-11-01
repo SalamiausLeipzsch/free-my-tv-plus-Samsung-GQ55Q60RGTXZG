@@ -332,7 +332,7 @@
   // MARK: - Focus
 
   var Z = {TOP: 'top', CARDS: 'cards', SHELF: 'shelf', DRAWER: 'drawer', APPS: 'apps', SETTINGS: 'settings', EDIT: 'edit', LANG: 'lang', CITY: 'city', ABOUT: 'about'};
-  var st = {zone: Z.SHELF, top: 0, tab: 0, card: 0, shelf: 0, drawer: 0, grid: 0, row: 0, edit: 0, lang: 0, city: 0};
+  var st = {zone: Z.CARDS, top: 0, tab: 0, card: 0, shelf: 0, drawer: 0, grid: 0, row: 0, edit: 0, lang: 0, city: 0};
   var cards = [];
 
   function sheetOpen() { return st.zone === Z.APPS || st.zone === Z.SETTINGS || st.zone === Z.EDIT || st.zone === Z.LANG || st.zone === Z.CITY || st.zone === Z.ABOUT; }
@@ -819,6 +819,7 @@
     drawerItems.push({label: 'Mediaplayer', symbol: 'play', run: function () { Plus.openMedia(); updateFocus(); }});
     drawerItems.push({label: 'Werbefrei', symbol: 'shield', run: function () { Plus.openPrivacy(); updateFocus(); }});
     drawerItems.push({label: 'Licht', symbol: 'bulb', run: function () { Plus.openLight(); updateFocus(); }});
+    drawerItems.push({label: 'Meine Liste', symbol: 'tv', run: function () { Plus.openMine(); updateFocus(); }});   // 1.8: TV und IP-TV gemischt
     if (TV.canOpenSettings) drawerItems.push({label: tr('TV Settings'), symbol: 'tv_settings', run: tvSettings});
     var n = drawerItems.length, gap = 18, groupGap = 56, groups = drawerInputs > 0 && drawerInputs < n ? 2 : 1;
     var tw = Math.min(230, (1760 - Math.max(0, n - groups) * gap - (groups - 1) * groupGap) / Math.max(1, n));
@@ -1628,7 +1629,7 @@
       var p = photos.length ? photos[saverIndex++ % photos.length] : null;
       var back = front === a ? b : a;
       if (p) {
-        back.style.backgroundImage = 'url(' + (p.url || Data.image(p.backdrop, 'original')) + ')';
+        back.style.backgroundImage = 'url(' + (p.url || Data.image(p.backdrop, 'w1280')) + ')';
         back.style.webkitTransform = back.style.transform = 'scale(1.0)';
         clock.children[2].textContent = p.title;
         saverPick = p;
@@ -1694,6 +1695,13 @@
         return;
       }
     }
+    // Free My TV+ 1.8: OK lange halten auf einem Sender (IP-TV, Sat-Senderliste) oeffnet das Aktionsmenue
+    if (k === TV.keys.ok && Plus.wantsLong && Plus.wantsLong()) {
+      e.preventDefault();
+      if (e.repeat || plusOk) return;
+      plusOk = setTimeout(function () { plusOk = 0; Plus.longOk(); legend(); }, 650);
+      return;
+    }
     var handled = Plus.key(k, TV.keys);
     if (handled === 'type') return;   // Free My TV+: die Taste geht ins Suchfeld
     if (handled) { e.preventDefault(); return; }   // Free My TV+: IP-TV, Player, Senderliste
@@ -1709,9 +1717,10 @@
   document.addEventListener('mousemove', function () { poke(); });
   document.addEventListener('keyup', function (e) {
     if (e.keyCode === TV.keys.ok && okTimer) { clearTimeout(okTimer); okTimer = 0; activate(); }
+    if (e.keyCode === TV.keys.ok && plusOk) { clearTimeout(plusOk); plusOk = 0; Plus.key(TV.keys.ok, TV.keys); legend(); syncLive(); }
   });
 
-  var moving = false, okTimer = 0;
+  var moving = false, okTimer = 0, plusOk = 0;
   function startMoving() {
     if (!shelf[st.shelf]) return;
     moving = true;
@@ -1789,12 +1798,17 @@
   }
 
   /** Back to the home screen (the app was opened again): the shelf, everything closed, the first tab. */
+  // Free My TV+ 1.8: beim Start und beim Zurueckkommen steht die Auswahl auf dem Livebild (erste Karte), nicht auf der Leiste
+  function homeFocus() {
+    if (st.tab !== 0) { st.tab = 0; renderCards(); }
+    st.zone = cards.length ? Z.CARDS : Z.SHELF;
+    st.card = 0;
+  }
   function reset() {
     hideSaver();
     closeSheets();
-    st.zone = Z.SHELF;
     st.shelf = 0;
-    if (st.tab !== 0) { st.tab = 0; renderCards(); }
+    homeFocus();
     updateFocus();
     restInDrawer();   // drawer_first: out again at once, not only after the TV lists its apps
   }
@@ -1855,6 +1869,7 @@
     if (Prefs.backHome()) Plus.backHome(true, !document.hidden);
     if (document.hidden) { hideSaver(); Plus.stopPreview(); if (tvFull || $('zoomframe')) { tvFull = false; clearTimeout(tvTimer); tvClass(false, false, false); setClass(zoomFrame(), 'on', false); zoomTo(false, 0); } Plus.live(null); return; }
     idleAt = Date.now();
+    if (!Plus.isOpen() && !sheetOpen()) { homeFocus(); updateFocus(); }
     loadApps(function () { renderShelf(); renderDrawer(); updateFocus(); Data.refresh(); Plus.refresh(); renderCards(); });
   });
 

@@ -8,6 +8,104 @@ Englisch. Der Abschnitt der aktuellen Version wird beim Bauen automatisch als Te
 *Newest version first. Each version starts with a short summary, then the details, then the same in English. The current
 version's section becomes the GitHub release text automatically.*
 
+## 1.8.0
+
+<img src="screenshots/1.8-aktionsmenue.jpg" width="49%" alt="Aktionsmenü im IP-TV"> <img src="screenshots/1.8-favoriten-sortiert.jpg" width="49%" alt="Favoriten sortiert und gruppiert">
+<img src="screenshots/1.8-meine-senderliste.jpg" width="49%" alt="Meine Senderliste mit Sat- und IP-TV-Sendern"> <img src="screenshots/1.8-programmfuehrer-meine-liste.jpg" width="49%" alt="Programmführer: In Meine Senderliste">
+<img src="screenshots/1.8-start-fokus-livebild.jpg" width="49%" alt="Start: Auswahl auf dem Livebild">
+
+**Kurz:** Neu: Favoriten im IP-TV als eigene Playlist (sortieren, in Gruppen staffeln, selbst ordnen), „Meine Senderliste“
+mit Sat- und IP-TV-Sendern gemischt (P+/P− schaltet darin weiter), Sicherung der eigenen Quellen und Listen, die Updates
+übersteht. Behoben: Eingaben (Quell-Adresse, Stream-Adresse, Zugangsdaten) verschwinden nicht mehr. Geändert: Beim Start und
+beim Zurückkommen steht die Auswahl auf dem Livebild statt auf der App-Leiste.
+
+- **Aktionsmenü:** Auf einem Sender im IP-TV OK lange halten (oder rote Taste): „Zu Favoriten“, „In Meine Senderliste“,
+  „Verschieben“ (in den eigenen Listen), „Ansehen“. Im Programmführer hat das OK-Menü dafür die Kachel „In Meine Senderliste“.
+- **Favoriten:** eigener Eintrag „★ Favoriten“ in der IP-TV-Seitenleiste, Sterne an den Senderkacheln, die Kacheln im Reiter
+  IP-TV zeigen zuerst die Favoriten, dann zuletzt gesehene.
+- **Sortierung** (Schalter über dem Raster, OK schaltet weiter): eigene Reihenfolge, Name A–Z, Name Z–A, Land, Qualität,
+  zuletzt hinzugefügt, zuletzt gesehen, meistgesehen. **Gruppen:** keine, TV / IP-TV, Land, Kategorie, Qualität,
+  Anfangsbuchstabe. Jede Gruppe beginnt mit einem grünen Band, die Leiste rechts springt von Gruppe zu Gruppe.
+  „Zurücksetzen“ stellt beides zurück. Verschieben: ◄ ► ▲ ▼, OK legt ab.
+- **Meine Senderliste:** Sat-Sender (aus dem Programmführer) und IP-TV-Sender in einer Liste mit Programmplätzen. Von dort
+  gestartet, schaltet P+/P− (und ▲ ▼ im IP-TV-Bild) durch genau diese Liste, ob Sat oder IP-TV. Erreichbar in der
+  IP-TV-Seitenleiste und als „Meine Liste“ in der Schublade.
+- **Sicherung:** Eigene IP-TV-Quellen, Favoriten, Meine Senderliste und deren Sortierung stehen zusätzlich in der Datei
+  `FreeMyTVPlus-Sicherung.json` im Ordner „Downloads“ des Fernsehers. Beim Start führt die App Sicherung und aktuellen Stand
+  zusammen, ohne Doppelte; auch wenn die App für ein Update gelöscht wurde, sind die Quellen danach wieder da. Beim ersten
+  Start von 1.8 wird die Sicherung aus dem bisherigen Stand angelegt. Keine Passwörter oder Schlüssel darin.
+- **Eingaben:** Beim erneuten Öffnen steht die zuletzt eingegebene Adresse wieder im Feld, auch nach Zurück. Eine Adresse
+  ohne http:// oder https:// bleibt im Feld stehen, statt zu verschwinden. Die Suche zeigt den letzten Begriff markiert
+  (Tippen ersetzt ihn). Govee-Schlüssel und NAS-Passwort stehen verdeckt wieder im Feld.
+- **Start-Fokus:** Beim Öffnen der App und beim Zurückkommen aus einer anderen App ist das Livebild (erste Karte von „Jetzt im
+  TV“) gewählt, nicht mehr die App-Leiste.
+
+**English**
+
+**Summary:** New: favourites in IP TV as your own playlist (sort, stage in groups, order by hand), "Meine Senderliste" (my
+channel list) mixing satellite and IP TV channels (P+/P− zaps within it), a backup of your own sources and lists that survives
+updates. Fixed: entries (source address, stream address, credentials) no longer disappear. Changed: on start and when coming
+back, the focus is on the live picture instead of the app bar.
+
+- **Action menu:** on a channel in IP TV hold OK (or press red): "Zu Favoriten" (add to favourites), "In Meine Senderliste"
+  (add to my list), "Verschieben" (move, in your own lists), "Ansehen" (watch). In the TV guide the OK menu has an
+  "In Meine Senderliste" tile.
+- **Favourites:** their own "★ Favoriten" entry in the IP TV sidebar, stars on the channel tiles; the tiles in the IP TV tab
+  show favourites first, then recently watched.
+- **Sorting** (switches above the grid, OK steps through): own order, name A–Z, name Z–A, country, quality, recently added,
+  recently watched, most watched. **Groups:** none, TV / IP TV, country, category, quality, first letter. Each group starts
+  with a green band; the bar on the right jumps from group to group. "Zurücksetzen" resets both. Moving: ◄ ► ▲ ▼, OK drops.
+- **Meine Senderliste (my channel list):** satellite channels (from the TV guide) and IP TV channels in one list with channel
+  numbers. Started from there, P+/P− (and ▲ ▼ in the IP TV picture) zaps through exactly this list, satellite or IP TV. In
+  the IP TV sidebar and as "Meine Liste" in the drawer.
+- **Backup:** your own IP TV sources, favourites, my channel list and their sorting are also kept in the file
+  `FreeMyTVPlus-Sicherung.json` in the TV's "Downloads" folder. On start the app merges the backup with the current state
+  without duplicates; even if the app was deleted for an update, the sources come back. The first start of 1.8 creates the
+  backup from the existing state. No passwords or keys in it.
+- **Entries:** when opened again, the last address is back in the field, also after Back. An address without http:// or
+  https:// stays in the field instead of disappearing. Search shows the last term selected (typing replaces it). The Govee key
+  and the NAS password are back in the field, hidden.
+- **Start focus:** when the app opens and when coming back from another app, the live picture (first card of "Jetzt im TV")
+  is selected, no longer the app bar.
+
+## 1.7.2
+
+<img src="screenshots/1.7.2-speicher-vorher-nachher.jpg" width="49%" alt="Speicher vorher und nachher"> <img src="screenshots/1.7.2-programmfuehrer-vierstellig.jpg" width="49%" alt="Programmführer mit vierstelligen Sendernummern">
+
+**Kurz:** Stabiler und deutlich sparsamer mit dem Arbeitsspeicher. Im Test mit 2000 Sat-Sendern und 12 000 IP-TV-Sendern
+braucht die Seite nach derselben Bedienung 244 statt 886 MB, der JavaScript-Teil 15 statt 49 MB. Dazu passen vierstellige
+Sendernummern im Programmführer wieder in ihre Spalte.
+
+- Wikipedia-Bilder (Programmführer, Senderliste, Infoseite): statt des Originals (oft über 4000 Pixel breit, im Speicher
+  40 MB und mehr je Bild) eine Vorschau mit 640 Pixeln. Beim Blättern lädt die App nichts nach; Bild und Text kommen, wenn
+  eine Zeile 0,7 s stehen bleibt.
+- IP-TV: höchstens drei Senderlisten im Speicher (die zuletzt benutzten). Bisher blieb jede geöffnete Liste bis zum Neustart.
+- EPG: höchstens 300 Sender im Speicher, Sendungen, die vor über 2 Stunden endeten, werden nicht mehr aufgehoben, lange
+  Beschreibungen auf 1800 Zeichen gekürzt. Wikipedia-Treffer und ähnliche Sendungen ebenfalls mit Obergrenze.
+- Speicherwächter: Ist die App im Hintergrund (eine andere App vorne), meldet der Fernseher Speichermangel oder sind weniger
+  als 150 MB frei, gibt sie ihre Zwischenspeicher frei (unter 80 MB stoppt sie auch die IP-TV-Vorschau). Das senkt die
+  Gefahr, dass das System die App beendet. Alles Freigegebene lädt bei Bedarf neu.
+- Bildschirmschoner-Fotos von TMDB in 1280 statt Originalgröße (nur bei eigenen Builds mit TMDB-Schlüssel).
+- Programmführer: Sendernummern ab 1000 etwas kleiner, damit sie nicht in Logo und Namen laufen.
+
+**English**
+
+**Summary:** More stable and much lighter on memory. In a test with 2000 satellite and 12,000 IP TV channels, the page needs
+244 instead of 886 MB after the same steps, the JavaScript part 15 instead of 49 MB. Four-digit channel numbers fit their
+column in the TV guide again.
+
+- Wikipedia pictures (TV guide, channel list, info page): a 640-pixel preview instead of the original (often more than 4000
+  pixels wide, 40 MB or more in memory per picture). Nothing loads while paging; picture and text come when a row stays for
+  0.7 s.
+- IP TV: at most three channel lists in memory (the most recently used). Until now every opened list stayed until a restart.
+- EPG: at most 300 channels in memory, programmes that ended more than 2 hours ago are no longer kept, long descriptions cut to
+  1800 characters. Wikipedia results and similar programmes are capped too.
+- Memory guard: when the app is in the background (another app in front), the TV reports low memory or less than 150 MB are
+  free, it frees its caches (below 80 MB it also stops the IP TV preview). That lowers the risk of the system closing the app.
+  Everything freed loads again when needed.
+- Screensaver photos from TMDB at 1280 instead of the original size (only own builds with a TMDB key).
+- TV guide: channel numbers from 1000 up are a little smaller so they don't run into the logo and name.
+
 ## 1.7.1
 
 <img src="screenshots/tv/01-startseite-jetzt-im-tv.jpg" width="32%" alt="Startseite am Fernseher"> <img src="screenshots/tv/03-ip-tv-startseite.jpg" width="32%" alt="IP-TV am Fernseher"> <img src="screenshots/tv/02-programmfuehrer.jpg" width="32%" alt="Programmführer am Fernseher">

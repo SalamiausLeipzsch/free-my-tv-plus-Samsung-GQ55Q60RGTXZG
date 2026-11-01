@@ -93,6 +93,8 @@ Free My TV+ ist Stück für Stück entstanden, jeweils aus dem, was im Alltag vo
 | Mediaplayer für USB-Sticks und Stream-Adressen | 1.3 |
 | Recorder für IP-TV auf USB-Stick oder Netzwerkspeicher (WebDAV) | 1.5 |
 | Govee-Licht steuern (Farben, Szenen, Musik, DreamView) | 1.5 |
+| Stabiler und sparsam mit dem Arbeitsspeicher (kleine Bilder, begrenzte Zwischenspeicher, Speicherwächter) | 1.7.2 |
+| Favoriten als eigene Playlist (sortieren, gruppieren), „Meine Senderliste“ mit Sat- und IP-TV-Sendern, Sicherung der eigenen Quellen über Updates | 1.8 |
 
 **Ideen für später:** KI-Assistent im Fernseher (Claude, GPT und andere Modelle über einen gemeinsamen, frei wählbaren
 Zugang), weitere Gratis-Senderlisten.
@@ -176,6 +178,8 @@ Updates work the same way from step 2.
 | Media player for USB sticks and stream addresses | 1.3 |
 | Recorder for IP TV to a USB stick or network storage (WebDAV) | 1.5 |
 | Govee light control (colours, scenes, music, DreamView) | 1.5 |
+| More stable and light on memory (small pictures, capped caches, memory guard) | 1.7.2 |
+| Favourites as your own playlist (sort, group), "my channel list" with satellite and IP TV channels, backup of your own sources across updates | 1.8 |
 
 **Ideas for later:** an AI assistant on the TV (Claude, GPT and other models through one shared, selectable gateway), more
 free channel lists.
