@@ -95,6 +95,7 @@ Free My TV+ ist Stück für Stück entstanden, jeweils aus dem, was im Alltag vo
 | Govee-Licht steuern (Farben, Szenen, Musik, DreamView) | 1.5 |
 | Stabiler und sparsam mit dem Arbeitsspeicher (kleine Bilder, begrenzte Zwischenspeicher, Speicherwächter) | 1.7.2 |
 | Favoriten als eigene Playlist (sortieren, gruppieren), „Meine Senderliste“ mit Sat- und IP-TV-Sendern, Sicherung der eigenen Quellen über Updates | 1.8 |
+| Kein Sprung ins Menü beim Schauen, EPG sammelt sich unsichtbar, alle freien IP-TV-Listen alphabetisch, News zum Blättern | 1.9 |
 
 **Ideen für später:** KI-Assistent im Fernseher (Claude, GPT und andere Modelle über einen gemeinsamen, frei wählbaren
 Zugang), weitere Gratis-Senderlisten.
@@ -180,6 +181,7 @@ Updates work the same way from step 2.
 | Govee light control (colours, scenes, music, DreamView) | 1.5 |
 | More stable and light on memory (small pictures, capped caches, memory guard) | 1.7.2 |
 | Favourites as your own playlist (sort, group), "my channel list" with satellite and IP TV channels, backup of your own sources across updates | 1.8 |
+| No jump to the menu while watching, EPG collects itself invisibly, all free IP TV lists in alphabetical order, news to page through | 1.9 |
 
 **Ideas for later:** an AI assistant on the TV (Claude, GPT and other models through one shared, selectable gateway), more
 free channel lists.

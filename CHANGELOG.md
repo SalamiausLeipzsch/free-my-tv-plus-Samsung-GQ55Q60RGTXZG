@@ -8,6 +8,60 @@ Englisch. Der Abschnitt der aktuellen Version wird beim Bauen automatisch als Te
 *Newest version first. Each version starts with a short summary, then the details, then the same in English. The current
 version's section becomes the GitHub release text automatically.*
 
+## 1.9.0
+
+**Kurz:** Behoben: Free My TV+ springt beim Schauen (TizenTube, TV, IP-TV) nicht mehr ungewollt ins Menü. Das EPG sammelt sich
+jetzt wirklich von selbst. Neu: alle freien IP-TV-Listen mit Ländern, Bundesländern, Städten, Sprachen, Themen und Regionen,
+alles alphabetisch; News lassen sich durchblättern. Geändert: Einstellungen ohne überlaufende Zeilen, weniger Speicher.
+
+- **Sprung ins Menü behoben:** Der Rückkehr-Dienst holte Free My TV+ nach vorne, sobald irgendeine sichtbare App endete, auch
+  eine im Hintergrund. So landete man mitten in TizenTube oder beim Fernsehen in Free My TV+ plötzlich im Menü. Jetzt zählt
+  nur die App, die wirklich vorne ist, und erst nach 2,5 s (TizenBrew startet Apps um). Ist Free My TV+ selbst vorne, stören
+  Hintergrund-Apps nicht mehr. Wird die App vom System beendet (Absturz, Speicher voll), macht sie danach im TV-Vollbild oder
+  mit dem IP-TV-Sender weiter, statt im Menü zu stehen.
+- **EPG automatisch:** Der Tuner sammelt Programmdaten nur auf der Sendergruppe, auf der er steht (das zeigte die rote Taste).
+  Bisher sollte das nachts passieren, wenn der Fernseher meist aus ist. Jetzt schaltet Free My TV+ unsichtbar durch die
+  Sendergruppen, wann immer niemand das Fernsehbild sieht: während einer anderen App, die du über Free My TV+ öffnest, oder
+  auf IP-TV, News und im Mediaplayer. Je Gruppe 6 s, höchstens alle 2 Stunden. Wird das Bild gebraucht, bricht es sofort ab
+  und schaltet zurück. In den Einstellungen steht, wann zuletzt gesammelt wurde.
+- **IP-TV:** alle Listen von iptv-org (190 Länder mit Bundesländern, Regionen und Städten, 206 Sprachen, 31 Themen, 42 Regionen)
+  und alle 88 Länderlisten von Free-TV, dazu inoffizielle Sammlungen kostenloser Werbesender (Pluto TV, Samsung TV Plus, Plex,
+  Roku). Gruppen und Einträge sind alphabetisch; OK auf einem Land klappt seine Bundesländer auf, dort die Städte.
+- **News:** Auf einer News-Kachel blättert P− zu älteren und P+ zu neueren Meldungen, die Kachel bleibt dann eine Minute dort.
+  OK öffnet eine Liste aller Meldungen des Themas mit Bild, ▲ ▼ blättert, OK öffnet den Artikel.
+- **Einstellungen:** kürzere Beschriftungen, nichts läuft mehr unter Schalter oder Werte. „EPG automatisch sammeln“ mit eigener
+  Zeile „EPG zuletzt“. Der Schalter „Cybersecurity-News“ ist weg, die Schlagzeile bleibt.
+- **Speicher:** Senderlogos werden auf Anzeigegröße verkleinert (statt 512 Pixel im Speicher), das alte Hintergrundfoto wird nach
+  dem Überblenden freigegeben, hls.js lädt erst, wenn IP-TV gebraucht wird, und die IP-TV-Vorschau pausiert nach 2 Minuten ohne
+  Taste.
+
+**English**
+
+**Summary:** Fixed: Free My TV+ no longer jumps to the menu while you watch (TizenTube, TV, IP TV). The EPG now really collects
+itself. New: all free IP TV lists with countries, states, cities, languages, categories and regions, all alphabetical; news can be
+paged through. Changed: settings without overflowing rows, less memory.
+
+- **Jump to the menu fixed:** the return service brought Free My TV+ to the front as soon as any visible app ended, also one in
+  the background. That threw you out of TizenTube, or back to the menu while watching TV in Free My TV+. Now only the app that is
+  really in front counts, and only after 2.5 s (TizenBrew relaunches apps). When Free My TV+ itself is in front, background apps
+  no longer matter. If the system closes the app (crash, memory full), it continues in full-screen TV or with the IP TV channel
+  instead of the menu.
+- **Automatic EPG:** the tuner only collects programme data on the transponder it is tuned to (as the red button showed). Until
+  now this was meant to happen at night, when the TV is usually off. Now Free My TV+ tunes through the transponders invisibly
+  whenever nobody sees the TV picture: while another app opened from Free My TV+ runs, or on IP TV, news and the media player.
+  6 s per transponder, at most every 2 hours. When the picture is needed, it stops at once and tunes back. The settings show when
+  it last collected.
+- **IP TV:** all lists of iptv-org (190 countries with states, regions and cities, 206 languages, 31 categories, 42 regions) and
+  all 88 country lists of Free-TV, plus unofficial collections of free ad-supported channels (Pluto TV, Samsung TV Plus, Plex,
+  Roku). Groups and entries are alphabetical; OK on a country opens its states, there its cities.
+- **News:** on a news tile P− goes to older and P+ to newer stories; the tile then stays there for a minute. OK opens a list of
+  all stories of the topic with a picture, ▲ ▼ scrolls, OK opens the article.
+- **Settings:** shorter labels, nothing runs under switches or values any more. "EPG automatisch sammeln" with its own
+  "EPG zuletzt" row. The "Cybersecurity-News" switch is gone, the headline stays.
+- **Memory:** channel logos are scaled down to their display size (instead of 512 pixels in memory), the old background photo
+  is released after the crossfade, hls.js loads only when IP TV needs it, and the IP TV preview pauses after 2 minutes without
+  a key.
+
 ## 1.8.0
 
 <img src="screenshots/1.8-aktionsmenue.jpg" width="49%" alt="Aktionsmenü im IP-TV"> <img src="screenshots/1.8-favoriten-sortiert.jpg" width="49%" alt="Favoriten sortiert und gruppiert">

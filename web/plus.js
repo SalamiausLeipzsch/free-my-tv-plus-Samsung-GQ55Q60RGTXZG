@@ -83,6 +83,7 @@ var Plus = (function () {
    */
   function youtube(fallback) {
     if (!samsung) { if (fallback) fallback(); return; }
+    if (typeof quiet !== 'undefined' && quiet) { quiet.launched = TIZENBREW; quiet.launchedName = 'TizenTube'; }   // 1.9: fuers stille EPG-Sammeln
     try {
       var data = new window.tizen.ApplicationControlData('module', [JSON.stringify(TIZENTUBE)]);
       var ac = new window.tizen.ApplicationControl('http://tizen.org/appcontrol/operation/default', null, null, null, [data]);
@@ -299,6 +300,8 @@ var Plus = (function () {
   /** Das Livebild des Fernsehers in einem Rechteck (Bildschirmpixel), oder aus. */
   function live(rect) {
     if (!tvw) return;
+    if (rect && quiet && quiet.run) quietStop(true);   // 1.9: das Bild wird gebraucht: EPG-Sammeln abbrechen, zurueckschalten
+    if (!rect && liveRect && quiet) quiet.offAt = Date.now();
     if (morph) { if (rect) return; morph = null; }   // waehrend des Ziehens bestimmt liveMorph das Rechteck
     var key = rect ? rect.join(',') : '';
     if (key === liveRect) return;
@@ -344,38 +347,94 @@ var Plus = (function () {
   function named(label, re) { return {label: label, filter: re}; }
   function freetv(file, label) { return {label: label, url: FREETV + 'playlists/playlist_' + file + '.m3u8'}; }
 
+  function sub(code, label) { return {label: label, path: 'subdivisions/' + code + '.m3u'}; }
+  function city(code, label) { return {label: label, path: 'cities/' + code + '.m3u'}; }
+  function region(code, label) { return {label: label, path: 'regions/' + code + '.m3u'}; }
+  function fast(label, url) { return {label: label, url: url, unofficial: true}; }
+  function sortKey(t) { return (t || '').toLowerCase().replace(/ä/g, 'a').replace(/ö/g, 'o').replace(/ü/g, 'u').replace(/ß/g, 'ss'); }
+  function byLabel(a, b) { var x = sortKey(a.label), y = sortKey(b.label); return x < y ? -1 : x > y ? 1 : 0; }
+
+  // 1.9: alle Listen von iptv-org (Laender mit Bundeslaendern und Staedten, Sprachen, Themen, Regionen) und Free-TV,
+  // dazu inoffizielle Sammlungen kostenloser Werbe-Sender (FAST). Alles alphabetisch, Gruppen ebenso.
+  // Die Liste erzeugt tools/make_iptv_sources.py als web/sources.js; fehlt sie, gilt eine kurze eingebaute Auswahl.
+  var SRC = window.IPTV_SOURCES || null;
+  function countryItem(c) {
+    var it = country(c[0], c[1]);
+    if (c[2] && c[2].length) {
+      it.kids = [];
+      for (var i = 0; i < c[2].length; i++) {
+        var s2 = c[2][i];
+        if (s2.length > 2) {
+          var su = sub(s2[0], s2[1]);
+          if (s2[2] && s2[2].length) { su.kids = []; for (var j = 0; j < s2[2].length; j++) su.kids.push(city(s2[2][j][0], s2[2][j][1])); }
+          it.kids.push(su);
+        } else it.kids.push(city(s2[0], s2[1]));
+      }
+    }
+    return it;
+  }
+  function mapList(list, fn) { var out = []; for (var i = 0; list && i < list.length; i++) out.push(fn(list[i])); return out; }
+  var THEMES = SRC ? mapList(SRC.cat, function (c) { return cat(c[0], c[1]); }) :
+    [cat('news', 'Nachrichten'), cat('sports', 'Sport'), cat('movies', 'Filme'), cat('series', 'Serien'), cat('documentary', 'Dokus'),
+      cat('music', 'Musik'), cat('kids', 'Kinder'), cat('entertainment', 'Unterhaltung'), cat('cooking', 'Kochen')];
+  THEMES.push(named('Gaming', /gam(e|es|ing)\b|e-?sport|gamer|twitch|\bign\b|nintendo|playstation|xbox/i));
+  THEMES.push(named('Haus & Garten', /garden|garten|\bhaus\b|home|hgtv|\bdiy\b|wohn|immobil|bauen|heimwerk|interior/i));
+  THEMES.sort(byLabel);
+  var FAST = [fast('Pluto TV Deutschland', 'https://i.mjh.nz/PlutoTV/de.m3u8'), fast('Pluto TV alle Länder', 'https://i.mjh.nz/PlutoTV/all.m3u8'),
+    fast('Samsung TV Plus Deutschland', 'https://i.mjh.nz/SamsungTVPlus/de.m3u8'), fast('Samsung TV Plus Österreich', 'https://i.mjh.nz/SamsungTVPlus/at.m3u8'),
+    fast('Samsung TV Plus Schweiz', 'https://i.mjh.nz/SamsungTVPlus/ch.m3u8'), fast('Samsung TV Plus alle Länder', 'https://i.mjh.nz/SamsungTVPlus/all.m3u8'),
+    fast('Plex alle Länder', 'https://i.mjh.nz/Plex/all.m3u8'), fast('Roku alle Länder', 'https://i.mjh.nz/Roku/all.m3u8')].sort(byLabel);
+  var FREE = SRC ? mapList(SRC.freetv, function (f) { return freetv(f[0], 'Free-TV ' + f[1]); }) :
+    [freetv('germany', 'Free-TV Deutschland'), freetv('austria', 'Free-TV Österreich'), freetv('switzerland', 'Free-TV Schweiz')];
+  FREE.unshift({label: 'Free-TV alle Länder', url: FREETV + 'playlist.m3u8'});
+
   // Aufklappbare Gruppen der Seitenleiste. Gruppen mit "open" sind beim ersten Start aufgeklappt.
   var WTV_GROUPS = [
-    {label: 'Sprachen', open: true, items: [lang('deu', 'Deutsch'), lang('eng', 'Englisch'), lang('fra', 'Französisch'),
-      lang('spa', 'Spanisch'), lang('ita', 'Italienisch'), lang('nld', 'Niederländisch'), lang('pol', 'Polnisch'),
-      lang('tur', 'Türkisch'), lang('por', 'Portugiesisch'), lang('ara', 'Arabisch'), lang('rus', 'Russisch')]},
-    {label: 'Länder', items: [country('de', 'Deutschland'), country('at', 'Österreich'), country('ch', 'Schweiz'),
-      country('uk', 'Großbritannien'), country('us', 'USA'), country('fr', 'Frankreich'), country('it', 'Italien'),
-      country('es', 'Spanien'), country('nl', 'Niederlande'), country('be', 'Belgien'), country('pl', 'Polen'),
-      country('tr', 'Türkei'), country('se', 'Schweden'), country('no', 'Norwegen'), country('dk', 'Dänemark'),
-      country('pt', 'Portugal'), country('gr', 'Griechenland'), country('ca', 'Kanada'), country('au', 'Australien'),
-      country('in', 'Indien'), country('jp', 'Japan'), country('kr', 'Südkorea'), country('br', 'Brasilien'),
-      country('mx', 'Mexiko'), country('ar', 'Argentinien')]},
-    {label: 'Themen', items: [cat('news', 'Nachrichten'), cat('sports', 'Sport'), cat('cooking', 'Kochen'),
-      named('Gaming', /gam(e|es|ing)\b|e-?sport|gamer|twitch|\bign\b|nintendo|playstation|xbox/i),
-      named('Haus & Garten', /garden|garten|\bhaus\b|home|hgtv|\bdiy\b|wohn|immobil|bauen|heimwerk|interior/i),
-      cat('movies', 'Filme'), cat('series', 'Serien'), cat('documentary', 'Dokus'), cat('music', 'Musik'),
-      cat('kids', 'Kinder'), cat('family', 'Familie'), cat('comedy', 'Comedy'), cat('entertainment', 'Unterhaltung'),
-      cat('lifestyle', 'Lifestyle'), cat('travel', 'Reisen'), cat('outdoor', 'Natur & Outdoor'), cat('science', 'Wissenschaft'),
-      cat('education', 'Bildung'), cat('culture', 'Kultur'), cat('business', 'Wirtschaft'), cat('auto', 'Auto & Motor'),
-      cat('animation', 'Animation'), cat('classic', 'Klassiker'), cat('relax', 'Entspannung'), cat('weather', 'Wetter'),
-      cat('legislative', 'Politik & Parlament'), cat('shop', 'Shopping'), cat('religious', 'Religion')]},
-    {label: 'Gratis-Anbieter (Free-TV)', items: [freetv('germany', 'Free-TV Deutschland'), freetv('austria', 'Free-TV Österreich'),
-      freetv('switzerland', 'Free-TV Schweiz'), freetv('uk', 'Free-TV UK'), freetv('usa', 'Free-TV USA'),
-      freetv('france', 'Free-TV Frankreich'), freetv('italy', 'Free-TV Italien'), freetv('spain', 'Free-TV Spanien'),
-      {label: 'Free-TV alle Länder', url: FREETV + 'playlist.m3u8'}]},
+    {label: 'Alles', open: true, items: [INDEX]},
     {label: 'Eigene Quellen', custom: true, items: []},
-    {label: 'Alles', open: true, items: [INDEX]}
-  ];
+    {label: 'FAST-Sender (gratis)', items: FAST},   // kostenlos mit Werbung, inoffizielle Sammlungen
+    {label: 'Gratis-Anbieter (Free-TV)', items: FREE},
+    {label: 'Länder', items: SRC ? mapList(SRC.country, countryItem) : [country('de', 'Deutschland'), country('at', 'Österreich'), country('ch', 'Schweiz')]},
+    {label: 'Regionen', items: SRC ? mapList(SRC.region, function (r) { return region(r[0], r[1]); }) : []},
+    {label: 'Sprachen', items: SRC ? mapList(SRC.lang, function (l) { return lang(l[0], l[1]); }) : [lang('deu', 'Deutsch'), lang('eng', 'Englisch')]},
+    {label: 'Themen', items: THEMES}
+  ].sort(byLabel);
   var WTV_SOURCES = [];   // flach: alle Quellen (fuer die Karten und als Nummer im Speicher)
   for (var gi = 0; gi < WTV_GROUPS.length; gi++) WTV_SOURCES = WTV_SOURCES.concat(WTV_GROUPS[gi].items);
   var wtvCache = {}, wtvOrder = [];
   // 1.7.2: Zwischenspeicher mit Obergrenze: der zuletzt benutzte Eintrag bleibt, der aelteste geht
+  // 1.9: Logos klein halten. Das Original (oft 512 Pixel und mehr) wird einmal geladen, auf Anzeigegroesse verkleinert,
+  // und nur das kleine Bild bleibt. Ohne CORS beim Anbieter geht das nicht: dann eben das Original.
+  var smallCache = {}, smallOrder = [], smallWait = {};
+  function smallImg(url, w, h, done) {
+    if (!url || /^data:/.test(url)) return done(url || '');
+    var k = w + 'x' + h + '|' + url;
+    if (smallCache[k] !== undefined) return done(smallCache[k] || url);
+    if (smallWait[k]) { smallWait[k].push(done); return; }
+    smallWait[k] = [done];
+    var img = new Image();
+    function fin(v) {
+      smallCache[k] = v;
+      lruTouch(smallOrder, smallCache, k, 400);
+      var l = smallWait[k] || [];
+      delete smallWait[k];
+      img.onload = img.onerror = null;
+      for (var i = 0; i < l.length; i++) { try { l[i](v || url); } catch (e) {} }
+    }
+    img.onload = function () {
+      try {
+        var nw = img.naturalWidth || img.width, nh = img.naturalHeight || img.height;
+        var r = Math.min(w / nw, h / nh, 1), cw = Math.max(1, Math.round(nw * r)), ch2 = Math.max(1, Math.round(nh * r));
+        var c = document.createElement('canvas');
+        c.width = cw; c.height = ch2;
+        c.getContext('2d').drawImage(img, 0, 0, cw, ch2);
+        fin(c.toDataURL('image/png'));
+      } catch (e) { fin(''); }
+    };
+    img.onerror = function () { fin(''); };
+    try { img.crossOrigin = 'anonymous'; } catch (e) {}
+    img.src = url;
+  }
   function lruTouch(order, obj, key, max) {
     for (var i = order.length - 1; i >= 0; i--) if (order[i] === key) order.splice(i, 1);
     order.push(key);
@@ -681,7 +740,7 @@ var Plus = (function () {
   var FEATURED = /^(3sat|tagesschau24|phoenix|ZDFinfo|DW|Welt|ntv|n-tv|euronews|arte)/i;
   var featured = [];
   function loadFeatured() {
-    loadList(WTV_SOURCES[0], function (list) {
+    loadList(lang('deu', 'Deutsch'), function (list) {   // 1.9: fest die deutschsprachige Liste (die Gruppen sind jetzt alphabetisch)
       if (!list) return;
       var pick = list.filter(function (c) { return c.logo && FEATURED.test(c.name) && c.tags.indexOf('Geo-blocked') < 0; });
       if (pick.length < 3) pick = pick.concat(list.filter(function (c) { return c.logo && pick.indexOf(c) < 0; }));
@@ -717,11 +776,22 @@ var Plus = (function () {
     if (pv.video) { try { pv.video.pause(); pv.video.removeAttribute('src'); pv.video.load(); } catch (e) {} if (pv.video.parentNode) pv.video.parentNode.removeChild(pv.video); }
     pv = {video: null, hls: null, url: ''};
   }
+  // 1.9: die Live-Vorschau braucht einen Video-Decoder mit Puffern. Nach 2 Minuten ohne Taste pausiert sie (Standbild-Text),
+  // die naechste Taste holt sie zurueck.
+  var sportPaused = false;
+  setInterval(function () {
+    if (pv.video && !sportPaused && Date.now() - auto.idleAt > 120000) { sportPaused = true; stopPreview(); changed(); }
+  }, 15000);
   function drawSport(box) {
     stopPreview();
     var ch = sportCh;
     box.innerHTML = '';
     if (!ch) return;
+    if (sportPaused) {
+      el('div', 'kicker pvk', box, 'Live  ·  US-Sport  ·  Vorschau pausiert');
+      el('div', 'big pvb', box, ch.name.replace(/\s*\(\d+p\)/, '') + '  ·  eine Taste startet sie wieder');
+      return;
+    }
     var v = document.createElement('video');
     v.className = 'pvideo';
     v.muted = false;   // 1.7: mit Ton
@@ -769,6 +839,7 @@ var Plus = (function () {
   var expanded = stored('wtvOpen') || (function () { var o = {}; for (var i = 0; i < WTV_GROUPS.length; i++) o[WTV_GROUPS[i].label] = !!WTV_GROUPS[i].open; return o; })();
 
   /** Die Zeilen der Seitenleiste: Suche, Zuletzt gesehen, dann Gruppen (aufgeklappt mit ihren Quellen). */
+  var subOpen = stored('wtvSubOpen') || {};
   function sideRows() {
     var rows = [{kind: 'search', label: 'Suchen'}, {kind: 'recent', label: 'Zuletzt gesehen'},
       {kind: 'fav', label: '★  Favoriten (' + favs().length + ')'}, {kind: 'mine', label: '☰  Meine Senderliste (' + mine().length + ')'}];
@@ -776,7 +847,18 @@ var Plus = (function () {
       var grp = WTV_GROUPS[g];
       rows.push({kind: 'group', label: grp.label, group: grp, open: !!expanded[grp.label]});
       if (!expanded[grp.label]) continue;
-      for (var i = 0; i < grp.items.length; i++) rows.push({kind: 'src', label: grp.items[i].label, src: grp.items[i], custom: grp.custom, index: i});
+      for (var i = 0; i < grp.items.length; i++) {
+        var it = grp.items[i];
+        rows.push({kind: 'src', label: it.label, src: it, custom: grp.custom, index: i, depth: 0, kids: !!it.kids, open: !!subOpen[srcUrl(it)]});
+        // 1.9: Untergliederungen (Bundeslaender, Regionen, Staedte) unter dem gewaehlten Land
+        if (it.kids && subOpen[srcUrl(it)]) {
+          for (var j = 0; j < it.kids.length; j++) {
+            var k1 = it.kids[j];
+            rows.push({kind: 'src', label: k1.label, src: k1, depth: 1, kids: !!k1.kids, open: !!subOpen[srcUrl(k1)]});
+            if (k1.kids && subOpen[srcUrl(k1)]) for (var q = 0; q < k1.kids.length; q++) rows.push({kind: 'src', label: k1.kids[q].label, src: k1.kids[q], depth: 2});
+          }
+        }
+      }
       if (grp.custom) rows.push({kind: 'add', label: '+ Eigene Quelle hinzufügen'});
     }
     return rows;
@@ -800,11 +882,22 @@ var Plus = (function () {
       paintWorld();
       return;
     }
-    var last = stored('wtvSourceLabel'), rows = sideRows(), at = -1;
-    for (var i = 0; i < rows.length; i++) if (rows[i].kind === 'src' && rows[i].label === last) at = i;
-    if (at < 0) { for (i = 0; i < rows.length; i++) if (rows[i].kind === 'src') { at = i; break; } }
+    // 1.9: die zuletzt benutzte Liste suchen (auch in zugeklappten Gruppen und Untergliederungen), sonst die deutschsprachige
+    var last = stored('wtvSourceLabel'), pick = null, grpOf = null, rows, i, g;
+    function find(items, grp, label) {
+      for (var j = 0; j < items.length && !pick; j++) {
+        if (items[j].label === label) { pick = items[j]; grpOf = grp; }
+        else if (items[j].kids) find(items[j].kids, grp, label);
+      }
+    }
+    for (g = 0; g < WTV_GROUPS.length && !pick; g++) find(WTV_GROUPS[g].items, WTV_GROUPS[g], last);
+    if (!pick) for (g = 0; g < WTV_GROUPS.length && !pick; g++) if (WTV_GROUPS[g].label === 'Sprachen') find(WTV_GROUPS[g].items, WTV_GROUPS[g], 'Deutsch');
+    rows = sideRows();
+    var at = -1;
+    for (i = 0; i < rows.length; i++) if (pick && rows[i].src === pick) at = i;
+    if (at < 0) for (i = 0; i < rows.length; i++) if (grpOf && rows[i].kind === 'group' && rows[i].group === grpOf) at = i;
     ui.side = Math.max(0, at);
-    if (rows[ui.side] && rows[ui.side].src) pickSource(rows[ui.side].src); else showRecent();
+    if (pick) pickSource(pick); else showRecent();
     ui.zone = 'side';
     paintWorld();
   }
@@ -958,7 +1051,8 @@ var Plus = (function () {
     ui.side = Math.max(0, Math.min(rows.length - 1, ui.side));
     side.innerHTML = '';
     for (i = 0; i < rows.length; i++) {
-      var r = rows[i], row = el('div', 'srow ' + r.kind, side, (r.kind === 'group' ? (r.open ? '▾  ' : '▸  ') : '') + r.label);
+      var r = rows[i], row = el('div', 'srow ' + r.kind + (r.depth ? ' d' + r.depth : ''), side,
+        (r.kind === 'group' ? (r.open ? '▾  ' : '▸  ') : r.kids ? (r.open ? '▾ ' : '▸ ') : '') + r.label + (r.src && r.src.unofficial ? '  ·  inoffiziell' : ''));
       if (r.kind === 'src' && ui.source === r.src) setClass(row, 'on', true);
       if (r.kind === 'recent' && !ui.source && ui.label === 'Zuletzt gesehen') setClass(row, 'on', true);
       if ((r.kind === 'fav' || r.kind === 'mine') && ui.view === r.kind) setClass(row, 'on', true);
@@ -1008,7 +1102,7 @@ var Plus = (function () {
     if (ch.logo) {
       var img = el('img', '', logo);
       img.onerror = function () { logo.innerHTML = ''; el('span', 'ph', logo, ch.name.charAt(0)); };
-      img.src = ch.logo;
+      smallImg(ch.logo, 210, 96, function (v) { img.src = v; });   // 1.9: verkleinert
     } else el('span', 'ph', logo, ch.name.charAt(0));
     el('div', 'cn', c, ch.name + (ch.cc ? ' (' + ch.cc + ')' : ''));
     var np = el('div', 'np', c, ch.group ? ch.group.split(';')[0] : '');
@@ -1076,7 +1170,10 @@ var Plus = (function () {
     else if (r.kind === 'fav' || r.kind === 'mine') { showView(r.kind); if (ui.list.length) ui.zone = 'grid'; }
     else if (r.kind === 'group') { expanded[r.label] = !expanded[r.label]; store('wtvOpen', expanded); }
     else if (r.kind === 'add') startTyping('add');
-    else if (r.kind === 'src') { if (ui.source !== r.src) pickSource(r.src); else if (ui.list.length) ui.zone = 'grid'; }
+    else if (r.kind === 'src') {
+      if (r.kids) { var key = srcUrl(r.src); subOpen[key] = ui.source === r.src ? !subOpen[key] : true; store('wtvSubOpen', subOpen); }   // 1.9: Unterpunkte auf/zu
+      if (ui.source !== r.src) pickSource(r.src); else if (ui.list.length && !r.kids) ui.zone = 'grid';
+    }
   }
 
   /** Tasten, solange das Eingabefeld den Fokus hat. 'type': die Taste geht ins Feld. */
@@ -1206,6 +1303,7 @@ var Plus = (function () {
       return;
     }
     if (label !== 'Mediaplayer' && ch.group !== md.title) remember(ch);
+    watching({kind: 'ip', ch: {name: ch.name, url: ch.url, logo: ch.logo || '', tags: ch.tags || [], cc: ch.cc || '', quality: ch.quality || ''}, label: label || 'IP-TV'});
     stopPreview();
     ui.playList = list;
     ui.playing = idx;
@@ -1248,7 +1346,15 @@ var Plus = (function () {
     });
   }
 
+  // 1.9: was im Player laeuft, fuer den Neustart nach einem Absturz (home.js liest es beim Start)
+  function watching(w) { try { if (w) { w.at = Date.now(); localStorage.setItem('fmtv.watching', JSON.stringify(w)); } else localStorage.removeItem('fmtv.watching'); } catch (e) {} }
+  setInterval(function () {
+    if (ui.open !== 'player' || !ui.playList) return;
+    var c = ui.playList[ui.playing];
+    if (c && c.url) watching({kind: 'ip', ch: {name: c.name, url: c.url, logo: c.logo || '', tags: c.tags || [], cc: c.cc || '', quality: c.quality || ''}, label: ui.playLabel || 'IP-TV'});
+  }, 30000);
   function closePlayer() {
+    watching(null);
     stopVideo();
     playerMsg('');
     setClass($('player'), 'open', false);
@@ -1578,7 +1684,11 @@ var Plus = (function () {
       var name = el('div', 'gname', row);
       el('span', 'gn' + (ch.major >= 1000 ? ' g4' : ''), name, String(ch.major));   // 1.7.2: vierstellig etwas kleiner
       var lg = el('span', 'glogo', name), lu = logoFor(ch);
-      if (lu) { var im2 = el('img', '', lg); im2.src = lu; im2.onerror = function () { this.parentNode.className = 'glogo none'; }; }
+      if (lu) {
+        var im2 = el('img', '', lg);
+        im2.onerror = function () { if (this.parentNode) this.parentNode.className = 'glogo none'; };
+        (function (im) { smallImg(lu, 100, 56, function (v) { im.src = v; }); })(im2);   // 1.9: verkleinert
+      }
       else lg.className = 'glogo none';
       el('span', 'gc', name, channelName(ch));
       var lane = el('div', 'glane', row);
@@ -1830,6 +1940,98 @@ var Plus = (function () {
   }
   setInterval(autoEpg, 10 * 60000);
   setTimeout(autoEpg, 2 * 60000);
+
+  // 1.9: EPG still sammeln, wenn niemand das Fernsehbild sieht. Das Sammeln geht nur, solange der Tuner auf der
+  // Sendergruppe (Transponder) steht; die rote Taste zeigt, dass es so klappt. Automatisch heisst jetzt: immer dann,
+  // wenn eine andere App vorne ist (TizenTube, Netflix ...) oder in Free My TV+ kein Fernsehbild zu sehen ist
+  // (IP-TV, News, Mediaplayer). Je Sendergruppe 6 Sekunden, hoechstens 24 Gruppen, alle 2 Stunden. Wird das Bild
+  // wieder gebraucht, bricht es sofort ab und schaltet auf den Sender von vorher zurueck.
+  var quiet = {run: null, at: stored('epgQuietAt') || 0, how: stored('epgQuietHow') || '', launched: '', launchedName: '', offAt: Date.now(), n: stored('epgQuietN') || 0};
+  function rawTune(c) {
+    try { tv.tune({major: c.major, minor: c.minor}, {onsuccess: function () {}, onnosignal: function () {}}, function () {}, 'MAIN'); } catch (e) {}
+  }
+  function quietWhy() {
+    if (!tv || !sat.ok || !sat.list.length || sweep || auto.busy) return '';
+    if (!(window.Prefs && Prefs.epgNight && Prefs.epgNight())) return '';
+    try { if (Recorder.busy()) return ''; } catch (e) {}
+    if (ui.open === 'guide' || ui.open === 'tvlist') return '';
+    if (document.hidden) {
+      // nur, wenn wir selbst eine andere App geoeffnet haben, und nie beim Fernsehbild von Samsung oder einem Eingang
+      if (!quiet.launched || /tv-viewer|org\.tizen\.tv|hdmi|source|livetv/i.test(quiet.launched)) return '';
+      return quiet.launchedName || 'andere App';
+    }
+    if (!liveRect && Date.now() - quiet.offAt > 20000) return 'im Menü';
+    return '';
+  }
+  function quietStart(why) {
+    var seen = {}, list = [];
+    for (var i = 0; i < sat.list.length && list.length < 24 && i < 120; i++) {
+      var c = sat.list[i], key = c.transportStreamID !== undefined ? String(c.originalNetworkID) + '.' + String(c.transportStreamID) : epgKey(c);
+      if (seen[key]) continue;
+      seen[key] = true;
+      list.push(c);
+    }
+    if (list.length < 2) return;
+    quiet.run = {list: list, i: 0, back: sat.channel, why: why, timer: 0};
+    quietStep();
+  }
+  function appsNow(done) {
+    try {
+      window.tizen.application.getAppsContext(function (list) { var ids = {}; for (var i = 0; i < list.length; i++) ids[list[i].appId] = true; done(ids); }, function () { done(null); });
+    } catch (e) { done(null); }
+  }
+  /** Im Hintergrund nur, solange die geoeffnete App laeuft und Samsungs Fernsehbild (tv-viewer) nicht dazukommt. */
+  function hiddenSafe(done) {
+    if (!document.hidden) return done(true);
+    appsNow(function (ids) {
+      if (!ids) return done(false);
+      var viewer = false;
+      for (var id in ids) if (ids.hasOwnProperty(id) && /tv-viewer/.test(id)) viewer = true;
+      done(!viewer && !!ids[quiet.launched]);
+    });
+  }
+  function quietStep() {
+    var r = quiet.run;
+    if (!r) return;
+    if (!quietWhy()) { quietStop(true); return; }
+    if (document.hidden) {
+      hiddenSafe(function (ok) { if (quiet.run !== r) return; if (!ok) { quietStop(true); return; } quietTune(r); });
+      return;
+    }
+    quietTune(r);
+  }
+  function quietTune(r) {
+    if (r.i >= r.list.length) {
+      quiet.at = Date.now(); quiet.how = r.why; quiet.n = r.list.length;
+      store('epgQuietAt', quiet.at); store('epgQuietHow', quiet.how); store('epgQuietN', quiet.n);
+      auto.at = quiet.at; store('epgAutoAt', auto.at);
+      for (var k in epg) if (epg.hasOwnProperty(k)) epg[k].at = 0;   // der Programmfuehrer holt alles neu
+      quietStop(true);
+      return;
+    }
+    rawTune(r.list[r.i++]);
+    r.timer = setTimeout(quietStep, 6000);
+  }
+  function quietStop(back) {
+    var r = quiet.run;
+    if (!r) return;
+    clearTimeout(r.timer);
+    quiet.run = null;
+    if (back && r.back) rawTune(r.back);
+  }
+  setInterval(function () {
+    if (quiet.run || Date.now() - Math.max(quiet.at, auto.at) < 2 * 3600000) return;
+    var why = quietWhy();
+    if (why) quietStart(why);
+  }, 15000);
+  document.addEventListener('visibilitychange', function () { if (!document.hidden) { quietStop(true); quiet.launched = ''; } });
+  function epgStatus() {
+    var at = Math.max(quiet.at, auto.at);
+    if (!at) return 'noch nie';
+    var d = new Date(at), today = new Date().toDateString() === d.toDateString();
+    return (today ? 'heute ' : d.getDate() + '.' + (d.getMonth() + 1) + '. ') + hm(at) + (quiet.at >= auto.at && quiet.how ? ' · ' + quiet.how : '');
+  }
+
 
   // EPG-Suchlauf (rote Taste): je Transponder ein Sender fuer ein paar Sekunden, damit der Tuner dessen
   // Programmdaten einsammelt. Danach zurueck zum Sender von vorher.
@@ -2139,18 +2341,88 @@ var Plus = (function () {
         out.push({id: 'n' + i + topic, text: 'Wird geladen …', kicker: topic, title: '', news: true, inside: true, plain: true, rect: NEWS_RECTS[i], run: function () {}});
         continue;
       }
-      var it = list[(tick + i * 3) % list.length];
-      (function (a) {
-        out.push({id: 'n' + i + topic + a.title, text: a.title, kicker: topic + '  ·  ' + (a.source || '') + (a.at ? '  ·  ' + ago(a.at) : ''),
-          title: '', news: true, inside: true, plain: true, image: a.image, rect: NEWS_RECTS[i],
-          run: function () { if (a.link) openUrl(a.link, function () { hooks.toast('Artikel ließ sich nicht öffnen.'); }); }});
-      })(it);
+      // 1.9: von Hand geblaettert (P+/P−), bleibt die Kachel eine Minute dort stehen, sonst laeuft sie weiter
+      var pin = newsPin[i], idx = pin && pin.until > Date.now() && pin.topic === topic ? pin.idx : (tick + i * 3) % list.length;
+      idx = ((idx % list.length) + list.length) % list.length;
+      var it = list[idx];
+      (function (a, slot, at, tp, all) {
+        out.push({id: 'n' + slot + tp + a.title, text: a.title, kicker: tp + '  ·  ' + (a.source || '') + (a.at ? '  ·  ' + ago(a.at) : '') + '  ·  ' + (at + 1) + '/' + all.length,
+          title: '', news: true, slot: slot, inside: true, plain: true, image: a.image, rect: NEWS_RECTS[slot],
+          run: function () { openNewsList(tp, all, at, hooks); }});   // 1.9: OK zeigt alle Meldungen des Themas zum Blaettern
+      })(it, i, idx, topic, list);
     }
     out.push({id: 'ntopics', text: 'Themen wählen', kicker: chosen.join('  ·  '), title: '', plain: true, inside: true, flat: true,
       rect: [1380, 662, 460, 100], run: function () { openTopics(); }});
     return out;
   }
   setInterval(function () { if (!ui.open) changed(); }, 9000);   // die News-Kacheln blaettern weiter
+
+  // 1.9: News blaettern: P+/P− auf einer Kachel, OK oeffnet die Liste aller Meldungen des Themas
+  var newsPin = {};
+  function newsStep(slot, dir) {
+    var topic = topicsChosen()[slot], list = topicNews[topic];
+    if (topic === 'Cybersecurity' && (!list || !list.length) && news.length) list = news;
+    if (!list || !list.length) return false;
+    var tick = Math.floor(Date.now() / 9000), pin = newsPin[slot];
+    var cur = pin && pin.until > Date.now() && pin.topic === topic ? pin.idx : (tick + slot * 3) % list.length;
+    newsPin[slot] = {idx: (cur + dir + list.length) % list.length, until: Date.now() + 60000, topic: topic};
+    changed();
+    return true;
+  }
+  var nl = {topic: '', list: [], at: 0, hooks: null};
+  function openNewsList(topic, list, at, hooks) {
+    var box = $('newslist');
+    if (!box) {
+      box = el('div', 'layer sheet plus', $('stage') || document.body);
+      box.id = 'newslist';
+      el('div', 'nl-head', box); el('div', 'nl-rows', box); el('div', 'nl-side', box);
+    }
+    nl = {topic: topic, list: list.slice(0, 60), at: at || 0, hooks: hooks};
+    ui.open = 'newslist';
+    setClass(box, 'open', true);
+    live(null);
+    paintNewsList();
+  }
+  function paintNewsList() {
+    var box = $('newslist'), rows = box.querySelector('.nl-rows'), side = box.querySelector('.nl-side'), head = box.querySelector('.nl-head');
+    head.textContent = nl.topic + '  ·  ' + nl.list.length + ' Meldungen';
+    rows.innerHTML = '';
+    var from = Math.max(0, Math.min(nl.at - 4, nl.list.length - 9));
+    for (var i = from; i < Math.min(nl.list.length, from + 9); i++) {
+      var a = nl.list[i], r = el('div', 'nl-row' + (i === nl.at ? ' focus' : ''), rows);
+      el('div', 'nl-t', r, a.title);
+      el('div', 'nl-m', r, (a.source || '') + (a.at ? '  ·  ' + ago(a.at) : ''));
+    }
+    side.innerHTML = '';
+    var cur = nl.list[nl.at];
+    if (cur) {
+      if (cur.image) { var im = el('div', 'nl-img', side); im.style.backgroundImage = 'url("' + cur.image + '")'; }
+      el('div', 'nl-st', side, cur.title);
+      el('div', 'nl-sm', side, (cur.source || '') + (cur.at ? '  ·  ' + ago(cur.at) : '') + '  ·  ' + (nl.at + 1) + ' von ' + nl.list.length);
+      el('div', 'nl-hint', side, 'OK öffnet den Artikel');
+    }
+  }
+  function closeNewsList() {
+    setClass($('newslist'), 'open', false);
+    var box = $('newslist');
+    if (box) { var im = box.querySelector('.nl-img'); if (im) im.style.backgroundImage = 'none'; }
+    ui.open = null;
+    if (ui.onClose) ui.onClose();
+  }
+  function newsListKey(k, K) {
+    if (k === K.back) { closeNewsList(); return true; }
+    if (k === K.up) nl.at = Math.max(0, nl.at - 1);
+    else if (k === K.down) nl.at = Math.min(nl.list.length - 1, nl.at + 1);
+    else if (k === 427) nl.at = Math.max(0, nl.at - 8);
+    else if (k === 428) nl.at = Math.min(nl.list.length - 1, nl.at + 8);
+    else if (k === K.ok) {
+      var a = nl.list[nl.at], h = nl.hooks;
+      if (a && a.link) openUrl(a.link, function () { if (h && h.toast) h.toast('Artikel ließ sich nicht öffnen.'); });
+      return true;
+    }
+    paintNewsList();
+    return true;
+  }
 
   // Themenwahl (eigene Ebene)
   var tp = {zone: 'slots', slot: 0, item: 0, scroll: 0, list: TOPICS, letter: 0};
@@ -2561,6 +2833,7 @@ var Plus = (function () {
     if (ui.open === 'wx') return 'OK aktualisieren  ·  Zurück';
     if (ui.open === 'privacy') return '▲ ▼ blättern  ·  OK neu prüfen  ·  Zurück';
     if (ui.open === 'media') return mediaLegend();
+    if (ui.open === 'newslist') return '▲ ▼ Meldung  ·  P+/P− Seite  ·  OK Artikel öffnen  ·  Zurück';
     return '';
   }
 
@@ -2583,6 +2856,7 @@ var Plus = (function () {
   /** Tasten fuer die eigenen Ebenen; true = erledigt (home.js macht dann nichts mehr). */
   function key(k, K) {
     auto.idleAt = Date.now();
+    if (sportPaused) { sportPaused = false; setTimeout(changed, 0); }   // 1.9: Vorschau wieder starten
     var r = keyInner(k, K);
     legendChanged();
     return r;
@@ -2601,6 +2875,7 @@ var Plus = (function () {
     else if (ui.open === 'guide') guideKey(k, K);
     else if (ui.open === 'light') return lightKey(k, K);
     else if (ui.open === 'media') return mediaKey(k, K);
+    else if (ui.open === 'newslist') return newsListKey(k, K);
     return true;
   }
 
@@ -2730,6 +3005,8 @@ var Plus = (function () {
       setClass(photo, 'on', false);
       next.id = 'band-photo';
       photo.id = 'band-next';
+      // 1.9: nach dem Ueberblenden das alte Foto loslassen (bildschirmgross dekodiert: 8 MB)
+      setTimeout(function () { if (photo.id === 'band-next' && !/\bon\b/.test(photo.className)) photo.style.backgroundImage = 'none'; }, 3000);
     }
     tryNext();
   }
@@ -2765,7 +3042,7 @@ var Plus = (function () {
       // IP-TV: Tipp (flach) und Suche darunter, "Alle Sender", dann die 10 zuletzt gesehenen
       loadSport();
       if (sportCh && !ui.open) {
-        out.push({id: 'sport' + sportCh.url, draw: drawSport, text: '', kicker: '', title: '', plain: true, inside: true, rect: [80, 262, 700, 300],
+        out.push({id: 'sport' + sportCh.url + (sportPaused ? 'p' : ''), draw: drawSport, text: '', kicker: '', title: '', plain: true, inside: true, rect: [80, 262, 700, 300],
           run: function () { stopPreview(); play([sportCh], 0, 'IP-TV'); }});
       } else if (featured[0]) { stopPreview(); var a = worldCard(featured[0], featured, 0); a.rect = [80, 262, 700, 300]; a.inside = true; out.push(a); }
       out.push({id: 'wsearch', text: 'Sender suchen', kicker: 'IP-TV', title: '', rect: [80, 582, 700, 180], inside: true, plain: true,
@@ -3398,6 +3675,7 @@ var Plus = (function () {
     memTrimmed++;
     if (ui.open !== 'wtv' && ui.open !== 'player') { wtvCache = {}; wtvOrder = []; }
     wiki = {}; wikiOrder = []; similar = {}; similarOrder = [];
+    if (hard) { smallCache = {}; smallOrder = []; }
     satByName = null;
     if (ui.open !== 'guide') { epg = {}; epgOrder = []; }
     if (hard && ui.open !== 'wtv') stopPreview();
@@ -3422,7 +3700,8 @@ var Plus = (function () {
   function refresh() {
     if (!preloaded) {   // 1.7: hls.js und der Sportsender schon vorab, damit die IP-TV-Vorschau schnell steht
       preloaded = true;
-      setTimeout(function () { loadHls(function () {}); loadSport(); if (sportCh) getText(sportCh.url, function () {}, 8000); }, 5000);
+      // 1.9: hls.js (gut 400 KB Programm) erst laden, wenn IP-TV gebraucht wird; nur die Senderwahl vorab
+      setTimeout(function () { loadSport(); }, 5000);
     }
     refreshNews();
     if (Date.now() - sat.at > 60000) refreshSat();
@@ -3475,7 +3754,11 @@ var Plus = (function () {
     openLight: openLight,
     stopPreview: stopPreview,
     trimMemory: trimMemory,
+    resume: function (w) { if (w && w.ch && w.ch.url) play([w.ch], 0, w.label || 'IP-TV'); },
     memStats: function () { var n = 0, k; for (k in epg) if (epg.hasOwnProperty(k)) n++; var w = 0; for (k in wtvCache) if (wtvCache.hasOwnProperty(k)) w++; return {epg: n, lists: w, wiki: wikiOrder.length, trimmed: memTrimmed}; },
+    epgStatus: function () { return epgStatus(); },
+    newsStep: newsStep,
+    noteLaunch: function (id, name) { quiet.launched = id || ''; quiet.launchedName = name || ''; },
     epgAuto: function () { return auto.ok === true ? 'über den 2. Empfänger' : auto.ok === false ? 'nachts (2. Empfänger für Apps gesperrt)' : 'wird geprüft'; },
     openMedia: openMedia,
     setApps: function (list, launch) { extApps = list || []; extLaunch = launch; },

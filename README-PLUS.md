@@ -50,6 +50,7 @@ Entwickler-Apps nicht. Dann im Workflow `python3 tizen/build.py --generic --no-c
   „Meine Senderliste“ schalten die Knöpfe über dem Raster Sortierung und Gruppen um.
 - **Meine Senderliste:** Sat- und IP-TV-Sender gemischt (Sat-Sender über das OK-Menü im Programmführer). Von dort gestartet,
   schaltet P+/P− durch diese Liste.
+- **News:** P−/P+ auf einer News-Kachel blättert zu älteren/neueren Meldungen, OK öffnet die Liste aller Meldungen des Themas.
 - **Unten rechts** steht auf jeder Seite, welche Tasten gerade gehen.
 
 ## Recorder
@@ -112,8 +113,8 @@ Absichtlich **nie gesperrt**: `samsungotn.net` (Firmware- und Sicherheitsupdates
 - **Fernsehbild:** Auf Samsung-Fernsehern liegt das Sat-Bild über der App. Text direkt auf dem laufenden Bild geht deshalb
   nicht, und das Bild lässt sich nicht ruckelfrei vergrößern (darum der Rahmen beim Übergang ins Vollbild).
 - **EPG:** kommt vom Sat-Tuner. Er kennt nur Daten von Transpondern, auf denen er zuletzt war. Free My TV+ sammelt sie
-  automatisch: über den 2. Empfänger im Hintergrund, wenn Samsung das der App erlaubt, sonst nachts (3–5 Uhr, wenn lange
-  keine Taste gedrückt wurde; abschaltbar in den Start-Einstellungen). Die rote Taste im Programmführer startet es sofort.
+  automatisch und unsichtbar, sobald niemand das Fernsehbild sieht (während einer anderen App, auf IP-TV oder News), und
+  schaltet danach zurück; abschaltbar in den Start-Einstellungen. Die rote Taste im Programmführer startet es sofort.
   Einen direkten Zugriff aufs CI+-Modul gibt es für Apps nicht.
 - **Home-Taste:** öffnet weiterhin Samsungs Leiste; der Rückkehr-Dienst holt Free My TV+ nach anderen Apps zurück.
 - **IP-TV:** freie Sender laufen nicht immer; Pay-TV-Sender wie ESPN gibt es nicht legal kostenlos und sind nicht drin.
@@ -194,6 +195,7 @@ To keep it for good, store a certificate as the secrets `TIZEN_AUTHOR_P12` (Base
   "Meine Senderliste" the switches above the grid change sorting and groups.
 - **Meine Senderliste (my channel list):** satellite and IP TV channels mixed (satellite channels via the OK menu in the TV
   guide). Started from there, P+/P− zaps through this list.
+- **News:** P−/P+ on a news tile goes to older/newer stories, OK opens the list of all stories of the topic.
 - **Bottom right** every page shows which keys work right now.
 
 ## Recorder
@@ -255,8 +257,8 @@ Deliberately **never blocked**: `samsungotn.net` (firmware and security updates)
 - **TV picture:** on Samsung TVs the satellite picture lies above the app, so text can't sit on the moving picture, and the
   picture can't be scaled smoothly (hence the frame for the full-screen transition).
 - **EPG:** comes from the satellite tuner, which only knows data from transponders it was on recently. Free My TV+ collects it
-  automatically: in the background over the second tuner if Samsung allows the app to use it, otherwise at night (3–5 am, after
-  a long time without a key press; can be turned off in the home settings). The red button in the TV guide starts it at once.
+  automatically and invisibly whenever nobody sees the TV picture (while another app runs, on IP TV or news) and tunes back
+  afterwards; can be turned off in the home settings. The red button in the TV guide starts it at once.
   Apps have no direct access to the CI+ module.
 - **Home button:** still opens Samsung's bar; the return service brings Free My TV+ back after other apps.
 - **IP TV:** free channels don't always run; pay-TV channels such as ESPN aren't legally free and aren't included.

@@ -579,8 +579,20 @@
     var z = zoomFrame(), pic = Plus.bandUrl() || '';
     z.style.backgroundImage = pic ? 'url("' + pic + '")' : 'none';
   }
+  // Free My TV+ 1.9: was gerade laeuft (TV-Vollbild), damit ein Neustart nach einem Absturz dort weitermacht
+  function saveWatch(w) { try { if (w) { w.at = Date.now(); localStorage.setItem('fmtv.watching', JSON.stringify(w)); } else localStorage.removeItem('fmtv.watching'); } catch (e) {} }
+  function readWatch() { try { return JSON.parse(localStorage.getItem('fmtv.watching')); } catch (e) { return null; } }
+  function launchReason() {
+    try {
+      var req = window.tizen.application.getCurrentApplication().getRequestedAppControl();
+      var data = req && req.appControl && req.appControl.data || [];
+      for (var i = 0; i < data.length; i++) if (data[i].key === 'from') return data[i].value[0];
+    } catch (e) {}
+    return '';
+  }
   function enterFull() {
     tvFull = true;
+    saveWatch({kind: 'tv'});
     clearTimeout(tvTimer);
     document.documentElement.style.background = 'transparent';
     var z = zoomFrame();
@@ -598,6 +610,7 @@
     }, ZOOM_IN);
   }
   function leaveFull() {
+    saveWatch(null);
     tvFull = false;
     clearTimeout(tvTimer);
     var z = zoomFrame();
@@ -1007,7 +1020,7 @@
         step: function (d) { if (d >= 0) openLanguages(); }},
       {label: tr('Temperature'), value: unit === 'C' ? '°C' : unit === 'F' ? '°F' : tr('unit|Automatic'),
         step: function (d) { cycle('temperature', ['auto', 'C', 'F'], unit, d); renderPanels(); }},
-      {label: tr('Theme'), value: theme === 'light' ? tr('Light') : theme === 'dark' ? tr('Dark') : MOODS[theme] ? Plus.moodLabel(theme) : 'Automatisch (Wetter & Tageszeit)',
+      {label: tr('Theme'), value: theme === 'light' ? tr('Light') : theme === 'dark' ? tr('Dark') : MOODS[theme] ? Plus.moodLabel(theme) : 'Auto (Wetter & Zeit)',
         step: function (d) { cycle('theme', ['auto', 'light', 'dark'].concat(Object.keys(MOODS)), theme, d); checkNight(); }},
       {label: tr('Watch from the screensaver'), toggle: Prefs.saverWatch(),
         step: function () { Prefs.set('saverWatch', !Prefs.saverWatch()); }},
@@ -1017,18 +1030,18 @@
         step: function (d) { if (d >= 0) openCities(); }},
       {label: tr('Forecast'), value: Prefs.forecast() === 'days' ? tr('Next days') : tr('Next hours'),
         step: function (d) { cycle('forecast', ['hours', 'days'], Prefs.forecast(), d); renderPanels(); }},
-      {label: 'Cybersecurity-News', toggle: Prefs.quotes(),
-        step: function () { Prefs.set('quotes', !Prefs.quotes()); renderQuotes(); renderPanels(); }},
       {label: 'Werbung & Tracking', value: '›', step: function (d) { if (d >= 0) Plus.openPrivacy(); }},
-      {label: 'Farbe des Auswahlrahmens', value: ACCENTS[Prefs.accent()] ? ACCENTS[Prefs.accent()][0] : 'Blau',
+      {label: 'Farbe Auswahlrahmen', value: ACCENTS[Prefs.accent()] ? ACCENTS[Prefs.accent()][0] : 'Blau',
         step: function (d) { cycle('accent', Object.keys(ACCENTS), Prefs.accent(), d); applyAccent(); }},
-      {label: 'Hintergrundbild', value: Plus.scenes[Prefs.scene()] ? Plus.scenes[Prefs.scene()].label : 'Wetter & Tageszeit',
+      {label: 'Hintergrundbild', value: Plus.scenes[Prefs.scene()] ? Plus.scenes[Prefs.scene()].label : 'Wetter & Zeit',
         step: function (d) { cycle('scene', ['auto'].concat(Object.keys(Plus.scenes)), Prefs.scene(), d); renderBand(); }},
-      {label: 'EPG nachts sammeln, falls nötig (jetzt: ' + Plus.epgAuto() + ')', toggle: Prefs.epgNight(),
+      // Free My TV+ 1.9: kurze Beschriftungen (liefen sonst unter den Schalter), der EPG-Stand als eigene Zeile
+      {label: 'EPG automatisch sammeln', toggle: Prefs.epgNight(),
         step: function () { Prefs.set('epgNight', !Prefs.epgNight()); }},
-      {label: 'Nach anderen Apps zurück zu Free My TV+', toggle: Prefs.backHome(),
+      {label: 'EPG zuletzt', value: Plus.epgStatus(), info: true, step: function () {}},
+      {label: 'Nach Apps zurück zu Free My TV+', toggle: Prefs.backHome(),
         step: function () { Prefs.set('backHome', !Prefs.backHome()); Plus.backHome(Prefs.backHome()); }},
-      {label: 'IP-TV: auch Sender mit Geo-Sperre zeigen', toggle: Prefs.showGeo(),
+      {label: 'IP-TV: Sender mit Geo-Sperre zeigen', toggle: Prefs.showGeo(),
         step: function () { Prefs.set('showGeo', !Prefs.showGeo()); }},
       {label: 'Samsung-Werbe-Apps ausblenden', toggle: Prefs.hidePromo(),
         step: function () { Prefs.set('hidePromo', !Prefs.hidePromo()); loadApps(function () { renderShelf(); }); }}
@@ -1064,11 +1077,13 @@
     rowsNow = settingRows();
     list.style.height = Math.min(rowsNow.length, 7) * 78 + 'px';
     for (var i = 0; i < rowsNow.length; i++) {
-      var r = rowsNow[i], row = el('div', 'row' + (r.dim ? ' dim' : ''), holder, r.label);
+      var r = rowsNow[i], row = el('div', 'row' + (r.dim ? ' dim' : '') + (r.toggle !== undefined ? ' has-toggle' : ''), holder);
+      el('span', 'lbl', row, r.label);
       if (r.toggle !== undefined) setClass(el('div', 'toggle', row), 'on', r.toggle);
       else {
         var v = el('span', 'value', row);
-        if (r.value === '›') v.textContent = '›';
+        if (r.info) v.textContent = r.value;   // Free My TV+ 1.9: nur Anzeige
+        else if (r.value === '›') v.textContent = '›';
         else if (r.opens) { v.appendChild(document.createTextNode(r.value)); el('span', 'chev', v, '›'); }
         else { el('span', 'chev', v, '‹'); v.appendChild(document.createTextNode(r.value)); el('span', 'chev', v, '›'); }
       }
@@ -1356,6 +1371,7 @@
 
   function launcher(id, name) {
     return function () {
+      Plus.noteLaunch(id, name);   // Free My TV+ 1.9: welche App vorne ist (EPG still sammeln, solange sie laeuft)
       var normal = function () {
         TV.launch(id, null, function (ok) {
           if (!ok) toast(trf("Couldn't open {app}.", {app: name || id}));
@@ -1573,6 +1589,7 @@
     else if (sheetOpen()) t = st.zone === Z.SETTINGS ? '▲ ▼ wählen  ·  ◄ ► ändern  ·  OK öffnen  ·  Zurück' : '▲ ▼ ◄ ► wählen  ·  OK  ·  Zurück';
     else if (st.zone === Z.DRAWER) t = st.wxFocus ? 'OK Wetterbericht  ·  ▼ Verknüpfungen  ·  ▲ schließen' : '◄ ► wählen  ·  OK öffnen  ·  ▲ Wetter  ·  Zurück';
     else if (st.zone === Z.SHELF) t = '◄ ► wählen  ·  OK öffnen  ·  OK lang: verschieben  ·  ▼ Schublade  ·  P+/P− Sender';
+    else if (st.zone === Z.CARDS && cards[st.card] && cards[st.card].news) t = 'OK alle Meldungen  ·  P+/P− ältere/neuere  ·  ◄ ► ▲ ▼ wählen';   // Free My TV+ 1.9
     else if (st.zone === Z.CARDS) t = (cards[st.card] && cards[st.card].switcher ? 'OK Programmführer  ·  ' : 'OK öffnen  ·  ') + '◄ ► ▲ ▼ wählen, am Rand nächste Seite  ·  P+/P− Sender';
     else if (st.zone === Z.TOP) t = '◄ ► Knöpfe  ·  ▼ Kacheln';
     if (box.textContent !== t) box.textContent = t;
@@ -1702,6 +1719,9 @@
       plusOk = setTimeout(function () { plusOk = 0; Plus.longOk(); legend(); }, 650);
       return;
     }
+    // Free My TV+ 1.9: auf einer News-Kachel blaettert P+/P− durch die Meldungen (P− aeltere, P+ neuere)
+    if ((k === 427 || k === 428) && !Plus.isOpen() && !sheetOpen() && st.zone === Z.CARDS && cards[st.card] && cards[st.card].news &&
+        cards[st.card].slot !== undefined && Plus.newsStep(cards[st.card].slot, k === 428 ? 1 : -1)) { e.preventDefault(); return; }
     var handled = Plus.key(k, TV.keys);
     if (handled === 'type') return;   // Free My TV+: die Taste geht ins Suchfeld
     if (handled) { e.preventDefault(); return; }   // Free My TV+: IP-TV, Player, Senderliste
@@ -1858,6 +1878,8 @@
   function reopened() {
     // LG: with handlesRelaunch the app has to come to the front itself, or opening it again while it runs shows nothing.
     if (window.PalmSystem && window.PalmSystem.activate) window.PalmSystem.activate();
+    // Free My TV+ 1.9: holt der Rueckkehr-Dienst die laufende App nach einem Absturz, bleibt alles, wie es war
+    if (launchReason() === 'crashed' && (tvFull || Plus.isOpen())) return;
     reset();
     loadApps(function () { renderShelf(); renderDrawer(); restInDrawer(); Data.refresh(); Plus.refresh(); });
   }
@@ -1874,6 +1896,7 @@
   });
 
   I18N.set(Prefs.language());
+  if (!Prefs.quotes()) Prefs.set('quotes', true);   // Free My TV+ 1.9: der Schalter "Cybersecurity-News" ist weg, die Schlagzeile bleibt
   checkNight();   // now, from the last forecast: not after the TV lists its apps, with the day look until then
   // LG's screensaver waits only when ours will show: not under a sheet (ours waits there), and not without photos.
   TV.holdScreenSaver(function () { return !sheetOpen() && saverPhotos().length > 0; });
@@ -1886,7 +1909,19 @@
     Data.refresh();
     Plus.refresh();
     renderBand();
+    resumeWatch();
   });
+  // Free My TV+ 1.9: nach einem Neustart durch den Rueckkehr-Dienst (Absturz, Speicher voll) dort weiter, wo man war
+  function resumeWatch() {
+    var w = readWatch();
+    if (!w || Date.now() - (w.at || 0) > 3 * 60000) return;
+    if (launchReason() !== 'crashed' && Date.now() - (w.at || 0) > 60000) return;
+    setTimeout(function () {
+      if (w.kind === 'tv' && cards[0] && cards[0].live && !tvFull) { homeFocus(); updateFocus(); enterFull(); }
+      else if (w.kind === 'ip' && w.ch) Plus.resume(w);
+    }, 1200);
+  }
+  setInterval(function () { if (tvFull) saveWatch({kind: 'tv'}); }, 30000);
   setInterval(function () {
     checkNight();
     Data.refresh();
@@ -1900,5 +1935,5 @@
   }, 30000);
 
   // For the browser preview and tests.
-  window.FreeMyTV = {state: st, move: move, activate: activate, back: back, showSaver: showSaver, hideSaver: hideSaver, toast: toast};
+  window.FreeMyTV = {state: st, move: move, activate: activate, back: back, showSaver: showSaver, hideSaver: hideSaver, toast: toast, openSettings: openSettings, renderCards: renderCards};
 })();

@@ -1321,3 +1321,29 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 #wtv-letter.wide { width: 300px; left: 1520px; font-size: 30px; border-radius: 60px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding: 0 20px; box-sizing: border-box; }
 #wtv-info { max-width: 760px; overflow: hidden; text-overflow: ellipsis; }   /* 1.8: nicht in die Tastenleiste laufen */
 #gd-menu { background: rgba(6, 8, 14, 0.88); }   /* 1.8: vier Kacheln, besser lesbar */
+
+/* Free My TV+ 1.9: Untergliederungen in der IP-TV-Seitenleiste (Bundeslaender, Staedte) */
+#wtv-side .srow.src.d1 { padding-left: 72px; font-size: 22px; color: rgba(255, 255, 255, 0.78); }
+#wtv-side .srow.src.d2 { padding-left: 100px; font-size: 21px; color: rgba(255, 255, 255, 0.66); }
+#wtv-side .srow.src.d1.focus, #wtv-side .srow.src.d2.focus { color: #1D1D1F; }
+
+/* Free My TV+ 1.9: Einstellungen: lange Beschriftungen laufen nicht mehr unter Schalter und Werte */
+.box .row .lbl { display: inline-block; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; vertical-align: top; }
+.box .row.has-toggle .lbl { max-width: 600px; }
+#settings .box .row .value { max-width: 330px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#settings .box .row .lbl { max-width: 350px; }
+#settings .box .row.has-toggle .lbl { max-width: 600px; }
+
+/* Free My TV+ 1.9: News-Liste zum Blaettern */
+#newslist { background: #0B0D14; }
+#newslist .nl-head { position: absolute; left: 90px; top: 70px; font-size: 44px; font-weight: 700; }
+#newslist .nl-rows { position: absolute; left: 90px; top: 160px; width: 1010px; }
+#newslist .nl-row { height: 88px; margin-bottom: 10px; padding: 12px 24px; border-radius: 18px; background: rgba(255, 255, 255, 0.06); box-sizing: border-box; overflow: hidden; }
+#newslist .nl-row.focus { background: rgba(255, 255, 255, 0.16); box-shadow: 0 0 0 3px #FFF; }
+#newslist .nl-t { font-size: 26px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#newslist .nl-m { font-size: 19px; color: rgba(255, 255, 255, 0.55); margin-top: 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#newslist .nl-side { position: absolute; left: 1160px; top: 160px; width: 670px; }
+#newslist .nl-img { height: 376px; border-radius: 22px; background-size: cover; background-position: center; margin-bottom: 26px; }
+#newslist .nl-st { font-size: 32px; font-weight: 700; line-height: 1.25; max-height: 200px; overflow: hidden; }
+#newslist .nl-sm { font-size: 21px; color: rgba(255, 255, 255, 0.6); margin-top: 16px; }
+#newslist .nl-hint { font-size: 21px; color: rgba(255, 255, 255, 0.45); margin-top: 22px; }
